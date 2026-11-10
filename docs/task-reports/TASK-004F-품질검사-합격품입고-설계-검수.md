@@ -1,6 +1,6 @@
 # TASK-004F — 품질검사 확정과 합격품 재고 반영
 
-> 상태: 구현 코드 작성 / 실제 CI 결과는 별도 검증 후 갱신
+> 상태: **실제 GitHub Actions / MySQL Testcontainers CI 통과 (40/40)**
 
 ## 목적
 생산 완료(AWAITING_QC) 전에는 완제품 재고가 생기지 않도록 하며, 검사 확정 시 합격 수량만 LOT에 적립한다. 불합격 수량은 검사 이력에만 기록한다.
@@ -40,3 +40,12 @@
 
 ## 이후 학습용 요약
 검사 대기와 출고 가능 상태를 분리하고, 합격품 입고를 검사 확정과 같은 트랜잭션에 묶어 품질 검증 전 재고가 외부로 나가는 문제를 막는다.
+
+
+## CI에서 발견한 실제 오류 및 수정
+- 1차 CI: https://github.com/jeon950523/factoryflow/actions/runs/42919367508 — 40개 중 1개 실패. 동시 품질검사에서 성공 1건 후 다른 1건은 상태 충돌(409)이 아니라 LOT UNIQUE 충돌(500) 발생.
+- **원인:** 잠금 전 orders.findById(orderId)가 엔티티를 영속성 컨텍스트에 적재하고, 이후 findForUpdate에서도 동일 엔티티의 오래된 status=AWAITING_QC가 남을 수 있었다. 동시 요청이 둘 다 재고 반영을 시도하면서 중복 LOT 생성.
+- **수정:** WorkOrderRepository.findFinishedItemIdById()는 식별자만 읽는 스칼라 쿼리. 완제품 Item에 잠금을 건 뒤 findForUpdate(orderId)로 생산지시 엔티티를 최초 로딩하고 상태를 재검증한다.
+- 2차 CI: https://github.com/jeon950523/factoryflow/actions/runs/42923833862 — **40 tests / 0 failures / 0 skipped**, BUILD SUCCESSFUL. 품질검사 신규 테스트 6개 통과.
+- **장점:** DB 잠금 순서 유지와 영속성 컨텍스트 1차 캐시로 인한 낡은 상태 재사용 방지. **단점:** 잠금 전 스칼라 조회 1회가 추가됨. 2차 성능 최적화 시 DB 요청 횟수와 경합 측정 필요.
+- **검증 한계:** 실제 제조 현장의 부분 생산·검사 정정·폐기·재작업은 범위 밖. 장시간 대량 부하 테스트는 미실시.
