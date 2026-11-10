@@ -66,6 +66,12 @@ public class MaterialReservationEntity {
         return reservation;
     }
 
+    public void consume() {
+        if (status != ReservationStatus.RESERVED) throw new IllegalStateException("Reservation already processed");
+        status = ReservationStatus.CONSUMED;
+        consumedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    }
+
     public void release() {
         if (status != ReservationStatus.RESERVED) throw new IllegalStateException("Reservation already processed");
         status = ReservationStatus.RELEASED;

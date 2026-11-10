@@ -61,6 +61,21 @@ public class StockMovementEntity {
         return movement;
     }
 
+    public static StockMovementEntity rawConsumption(Long itemId, Long lotId, Long workOrderId, long quantity) {
+        if (itemId == null || lotId == null || workOrderId == null || quantity <= 0) {
+            throw new IllegalArgumentException("Invalid raw consumption movement");
+        }
+        StockMovementEntity movement = new StockMovementEntity();
+        movement.inventoryLotId = lotId;
+        movement.itemId = itemId;
+        movement.movementType = MovementType.RAW_CONSUMPTION;
+        movement.quantity = quantity;
+        movement.referenceType = ReferenceType.WORK_ORDER;
+        movement.referenceId = workOrderId;
+        movement.createdAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        return movement;
+    }
+
     public Long getId() { return id; }
     public Long getInventoryLotId() { return inventoryLotId; }
     public Long getItemId() { return itemId; }

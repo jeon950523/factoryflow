@@ -87,6 +87,18 @@ public class InventoryLotEntity {
         reservedQty = Math.addExact(reservedQty, quantity);
     }
 
+    /** 생산 시작: 해당 예약분의 현재고·예약고를 함께 감소시킨다. */
+    public void consumeReserved(long quantity) {
+        validatePositive(quantity);
+        if (quantity > reservedQty || quantity > onHandQty || sourceType != LotSourceType.RAW_RECEIPT) {
+            throw new ApiException(HttpStatus.CONFLICT, "RESERVATION_INTEGRITY_CONFLICT", "원자재 예약과 현재고가 일치하지 않습니다.");
+        }
+        long nextOnHand = onHandQty - quantity;
+        long nextReserved = reservedQty - quantity;
+        onHandQty = nextOnHand;
+        reservedQty = nextReserved;
+    }
+
     /** 생산지시 취소는 해당 작업이 확보한 예약량만 되돌린다. */
     public void release(long quantity) {
         validatePositive(quantity);
