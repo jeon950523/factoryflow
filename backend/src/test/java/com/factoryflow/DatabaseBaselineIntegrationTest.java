@@ -1,5 +1,6 @@
 package com.factoryflow;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,6 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,13 +80,15 @@ class DatabaseBaselineIntegrationTest {
     @Test
     void checkShouldRejectReservedStockGreaterThanOnHand() {
         long itemId = createRawItem();
-        assertThrows(DataIntegrityViolationException.class, () ->
+        DataAccessException exception = assertThrows(DataAccessException.class, () ->
                 jdbc.update("""
                         INSERT INTO inventory_lots(
                             item_id, lot_code, source_type, cumulative_in_qty, on_hand_qty, reserved_qty
                         ) VALUES (?, ?, 'RAW_RECEIPT', 10, 10, 11)
                         """, itemId, "LOT-" + UUID.randomUUID())
         );
+        SQLException sqlException = assertInstanceOf(SQLException.class, exception.getMostSpecificCause());
+        assertEquals(3819, sqlException.getErrorCode()); // MySQL CHECK constraint violation
     }
 
     @Test
