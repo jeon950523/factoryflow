@@ -5,7 +5,7 @@
 | 순서 | 작업 | 완료 조건 | 현재 상태 |
 |---|---|---|---|
 | 1 | 기존 코드 통합 및 CI 빌드·MySQL 테스트 | GitHub Actions `clean test` 초록색, Testcontainers 실행 로그, Flyway/JPA 검증 | **CI 17/17 통과 · 완료** |
-| 2 | 생산지시·예약·품질검사·출고 | SSOT 불변조건 및 동시성·실패 롤백 테스트 통과 | **DRAFT 생성·스냅샷 구현 중 (TASK-004C)** |
+| 2 | 생산지시·예약·품질검사·출고 | SSOT 불변조건 및 동시성·실패 롤백 테스트 통과 | **DRAFT 생성·스냅샷 5개 CI 검증 완료, 예약 구현 다음 (TASK-004D)** |
 | 3 | Vue 3 관리자 화면 | API 연결, 정상 업무 시나리오 클릭 시연 | 계획 |
 | 4 | 로그인·인가·공개 배포 보안 | 무인증 쓰기 차단, 역할 분리, 비밀 관리, CORS·CSRF 정책 | 계획 |
 | 5 | Vercel + Oracle Cloud Always Free | Vercel UI에서 Oracle VM API 접근, TLS, 인증, DB 백업/복원, 무료 할당량 검증 | 계획 |

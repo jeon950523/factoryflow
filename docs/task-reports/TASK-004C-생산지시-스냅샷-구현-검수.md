@@ -1,6 +1,6 @@
 # TASK-004C — 생산지시 DRAFT 생성 및 BOM 스냅샷 구현·검수
 
-> 상태: **구현·정적 검사 완료 / CI 통합검증 대기**  
+> 상태: **구현 및 실 MySQL CI 22개 테스트 검증 완료**  
 > 날짜: 2026-11-11 / 선행 작업: TASK-004B (17개 테스트 CI 통과)
 
 ## 1. 목적
@@ -45,7 +45,7 @@
 - 동일 `clientRequestId` 같은 요청 → 200 기존 내용, 다른 요청 → 409.
 - 병렬 동일 키 2건 → 1건 201 + 1건 200, `work_orders`와 스냅샷 1세트.
 - 등록 직후 재고와 예약 수량은 변하지 않는다 (`DRAFT`는 예약 아님).
-- Testcontainers MySQL 8.4 + MockMvc로 위 조건을 검증한다. **CI 실행 전까지 통과라고 말하지 않는다.**
+- Testcontainers MySQL 8.4 + MockMvc로 위 조건을 검증한다. **2026-11-11 GitHub Actions 결과: 전체 22개 테스트 통과.**
 
 ## 6. 시니어 검수 — 장단점 및 리팩터링
 
@@ -67,3 +67,12 @@
 1. 왜 생산지시를 만들 때 BOM을 그대로 참조하는 대신 자재 스냅샷을 저장할까?
 2. 왜 컨트롤러에 `@Transactional`을 붙이지 않고 writer Service에 적용할까?
 3. 같은 `clientRequestId`를 두 클라이언트가 동시에 요청하면 사전 조회만으로 충분할까?
+
+## 8. 실제 CI 검증 결과
+
+- 기능 브랜치 `feature/task-004c-work-order-draft`, 커밋 `4ef16e939670257658eb7ea4c9bf8050019f18ca`.
+- [GitHub Actions 실행](https://github.com/jeon950523/factoryflow/actions/runs/42882000269): `mysql-integration-tests` **success**, Java 21 Gradle `clean test` 성공.
+- JUnit XML 총합 **22 tests / 0 failures / 0 skipped**.
+- 신규 `WorkOrderDraftIntegrationTest` 5/5 통과: 스냅샷과 재고 미변경, 중복키 동일/다른 요청, 누락 BOM/오버플로, 입력 오류/404, 병렬 중복 생성.
+- 기존 TASK-002/003A/003B 회귀 17개 테스트도 모두 통과.
+- 한계: 생산 자재 예약·실제 소모·품질검사·출고, 운영 배포·인증은 아직 미구현. `DRAFT` 생성이 검증되었다는 사실과 다른 업무 전체가 완성되었다는 사실을 혼동하지 않는다.
