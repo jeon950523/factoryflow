@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -62,6 +64,34 @@ public class WorkOrderEntity {
     private LocalDateTime canceledAt;
 
     protected WorkOrderEntity() {
-        // Required by JPA; do not expose public mutation yet.
+        // JPA requires a no-args constructor.
     }
+
+    public static WorkOrderEntity draft(String orderNo, String clientRequestId, String requestHash,
+                                        Long finishedItemId, Long bomId, long plannedQty) {
+        if (orderNo == null || orderNo.isBlank() || clientRequestId == null || requestHash == null
+                || finishedItemId == null || bomId == null || plannedQty <= 0) {
+            throw new IllegalArgumentException("Invalid work order draft");
+        }
+        WorkOrderEntity entity = new WorkOrderEntity();
+        entity.orderNo = orderNo;
+        entity.clientRequestId = clientRequestId;
+        entity.requestHash = requestHash;
+        entity.finishedItemId = finishedItemId;
+        entity.bomId = bomId;
+        entity.plannedQty = plannedQty;
+        entity.status = WorkOrderStatus.DRAFT;
+        entity.createdAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        return entity;
+    }
+
+    public Long getId() { return id; }
+    public String getOrderNo() { return orderNo; }
+    public String getClientRequestId() { return clientRequestId; }
+    public String getRequestHash() { return requestHash; }
+    public Long getFinishedItemId() { return finishedItemId; }
+    public Long getBomId() { return bomId; }
+    public long getPlannedQty() { return plannedQty; }
+    public WorkOrderStatus getStatus() { return status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

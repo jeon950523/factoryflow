@@ -25,6 +25,21 @@ public class WorkOrderMaterialEntity {
     private long requiredQty;
 
     protected WorkOrderMaterialEntity() {
-        // Required by JPA; do not expose public mutation yet.
+        // JPA requires a no-args constructor.
     }
+
+    public static WorkOrderMaterialEntity snapshot(Long orderId, Long materialItemId, long requiredQty) {
+        if (orderId == null || materialItemId == null || requiredQty <= 0) {
+            throw new IllegalArgumentException("Invalid work order material snapshot");
+        }
+        WorkOrderMaterialEntity entity = new WorkOrderMaterialEntity();
+        entity.workOrderId = orderId;
+        entity.materialItemId = materialItemId;
+        entity.requiredQty = requiredQty;
+        return entity;
+    }
+
+    public Long getWorkOrderId() { return workOrderId; }
+    public Long getMaterialItemId() { return materialItemId; }
+    public long getRequiredQty() { return requiredQty; }
 }
