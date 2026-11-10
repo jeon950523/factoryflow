@@ -91,6 +91,18 @@ public class WorkOrderEntity {
         reservedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
     }
 
+    public void markStarted() {
+        if (status != WorkOrderStatus.RESERVED) throw new IllegalStateException("Only RESERVED orders can be started");
+        status = WorkOrderStatus.IN_PROGRESS;
+        startedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    }
+
+    public void markFinished() {
+        if (status != WorkOrderStatus.IN_PROGRESS) throw new IllegalStateException("Only IN_PROGRESS orders can be finished");
+        status = WorkOrderStatus.AWAITING_QC;
+        finishedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    }
+
     public void markCanceled() {
         if (status != WorkOrderStatus.DRAFT && status != WorkOrderStatus.RESERVED) {
             throw new IllegalStateException("Only DRAFT/RESERVED orders can be canceled");

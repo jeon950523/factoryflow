@@ -19,12 +19,15 @@ public class WorkOrderController {
     private final WorkOrderService service;
     private final WorkOrderLookupService lookup;
     private final WorkOrderReservationService reservationService;
+    private final WorkOrderProductionService productionService;
 
     public WorkOrderController(WorkOrderService service, WorkOrderLookupService lookup,
-                               WorkOrderReservationService reservationService) {
+                               WorkOrderReservationService reservationService,
+                               WorkOrderProductionService productionService) {
         this.service = service;
         this.lookup = lookup;
         this.reservationService = reservationService;
+        this.productionService = productionService;
     }
 
     @PostMapping
@@ -45,6 +48,16 @@ public class WorkOrderController {
     @PostMapping("/{id}/cancel")
     public ApiResponse<WorkOrderResponse> cancel(@PathVariable Long id) {
         return ApiResponse.of(reservationService.cancel(id));
+    }
+
+    @PostMapping("/{id}/start")
+    public ApiResponse<WorkOrderResponse> start(@PathVariable Long id) {
+        return ApiResponse.of(productionService.start(id));
+    }
+
+    @PostMapping("/{id}/finish")
+    public ApiResponse<WorkOrderResponse> finish(@PathVariable Long id) {
+        return ApiResponse.of(productionService.finish(id));
     }
 
     @GetMapping("/{id}")
