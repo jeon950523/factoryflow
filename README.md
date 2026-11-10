@@ -22,7 +22,8 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-002 · 개발 기반 구축 | CI 빌드·MySQL 테스트 검증 완료 | [구현·검수 기록](docs/TASK_002_구현_및_검수_기록.md) |
 | TASK-003A · 품목·BOM API | CI 빌드·MySQL 테스트 검증 완료 | [코드·설계 검수 보고서](docs/task-reports/TASK-003A-품목-BOM-구현-검수.md) |
 | TASK-003B · LOT 입고·멱등성 | CI 빌드·MySQL 테스트 검증 완료 | [구현·검수 보고서](docs/task-reports/TASK-003B-원자재입고-구현-검수.md) |
-| TASK-004 이후 · 생산·품질·출고 | 계획 | [SSOT의 구현 범위](docs/FACTORYFLOW_SSOT_v0.1.md) |
+| TASK-004C · 생산지시 DRAFT/BOM 스냅샷 | CI 통합 테스트 검증 완료 | [작업 보고서](docs/task-reports/TASK-004C-생산지시-스냅샷-구현-검수.md) |
+| TASK-004D 이후 · 자재 예약·소모·품질·출고 | 계획 | [SSOT의 구현 범위](docs/FACTORYFLOW_SSOT_v0.1.md) |
 
 **TASK-002 기반·TASK-003A 품목/BOM·TASK-003B 원자재 입고 기능은 기능 브랜치의 CI에서 Java 21 빌드 및 MySQL 통합 테스트 17개를 통과했습니다. 생산 예약·QC·출고·인증·배포는 아직 미구현입니다.** 생산 예약·QC·출고는 아직 미구현입니다.
 
@@ -134,3 +135,11 @@ Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 �
 - 인증·인가가 완성되기 전에는 인터넷에 쓰기 API를 공개하지 않는다.
 
 > **검증 결과:** [GitHub Actions 성공 실행](https://github.com/jeon950523/factoryflow/actions/runs/42879590170) — Java 21 빌드·Testcontainers MySQL 기반 JUnit 17개 통과. **Oracle VM 배포/외부 접속/인증은 아직 완료되지 않았습니다.**
+
+## TASK-004C 생산지시 DRAFT/BOM 스냅샷 (CI 22/22 통과)
+
+- `POST /api/v1/work-orders`: 완제품·BOM 검증 후 생산지시와 구성 자재 스냅샷을 한 트랜잭션으로 생성.
+- `GET /api/v1/work-orders/{id}`: 생산지시와 저장된 구성 자재 조회.
+- 중복 `clientRequestId` 동일 내용은 200 재조회, 다르면 409; `Math.multiplyExact`로 필요 수량 계산 오버플로 방어.
+- 아직 재고 예약·차감은 하지 않는다. [CI 22개 테스트 통과](https://github.com/jeon950523/factoryflow/actions/runs/42882000269).
+- [코드 선택 이유·테스트·시니어 검수·리팩터링 보고서](docs/task-reports/TASK-004C-생산지시-스냅샷-구현-검수.md)
