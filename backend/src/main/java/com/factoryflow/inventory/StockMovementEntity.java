@@ -76,6 +76,21 @@ public class StockMovementEntity {
         return movement;
     }
 
+    public static StockMovementEntity finishedReceipt(Long itemId, Long lotId, Long inspectionId, long quantity) {
+        if (itemId == null || lotId == null || inspectionId == null || quantity <= 0) {
+            throw new IllegalArgumentException("Invalid finished receipt movement");
+        }
+        StockMovementEntity movement = new StockMovementEntity();
+        movement.itemId = itemId;
+        movement.inventoryLotId = lotId;
+        movement.movementType = MovementType.FINISHED_RECEIPT;
+        movement.referenceType = ReferenceType.INSPECTION;
+        movement.referenceId = inspectionId;
+        movement.quantity = quantity;
+        movement.createdAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        return movement;
+    }
+
     public Long getId() { return id; }
     public Long getInventoryLotId() { return inventoryLotId; }
     public Long getItemId() { return itemId; }

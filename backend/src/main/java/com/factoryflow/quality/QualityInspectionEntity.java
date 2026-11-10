@@ -28,6 +28,25 @@ public class QualityInspectionEntity {
     @Column(name = "inspected_at", nullable = false)
     private LocalDateTime inspectedAt;
 
+    public static QualityInspectionEntity confirm(Long workOrderId, long passedQty, long failedQty) {
+        if (workOrderId == null || passedQty < 0 || failedQty < 0) {
+            throw new IllegalArgumentException("Invalid inspection");
+        }
+        QualityInspectionEntity entity = new QualityInspectionEntity();
+        entity.workOrderId = workOrderId;
+        entity.passedQty = passedQty;
+        entity.failedQty = failedQty;
+        entity.inspectedAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC)
+                .truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        return entity;
+    }
+
+    public Long getId() { return id; }
+    public Long getWorkOrderId() { return workOrderId; }
+    public long getPassedQty() { return passedQty; }
+    public long getFailedQty() { return failedQty; }
+    public LocalDateTime getInspectedAt() { return inspectedAt; }
+
     protected QualityInspectionEntity() {
         // Required by JPA; do not expose public mutation yet.
     }
