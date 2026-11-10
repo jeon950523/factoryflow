@@ -62,6 +62,22 @@ public class InventoryLotEntity {
         return lot;
     }
 
+    public static InventoryLotEntity receiveFinishedGood(Long itemId, String lotCode, long quantity) {
+        if (itemId == null || lotCode == null || lotCode.isBlank()) {
+            throw new IllegalArgumentException("Invalid finished lot");
+        }
+        validatePositive(quantity);
+        InventoryLotEntity lot = new InventoryLotEntity();
+        lot.itemId = itemId;
+        lot.lotCode = lotCode;
+        lot.sourceType = LotSourceType.QC_PASS;
+        lot.cumulativeInQty = quantity;
+        lot.onHandQty = quantity;
+        lot.reservedQty = 0L;
+        lot.receivedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        return lot;
+    }
+
     public void receiveAdditionalRawMaterial(long quantity) {
         validatePositive(quantity);
         if (sourceType != LotSourceType.RAW_RECEIPT) {
