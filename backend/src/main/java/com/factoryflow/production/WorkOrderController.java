@@ -18,10 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class WorkOrderController {
     private final WorkOrderService service;
     private final WorkOrderLookupService lookup;
+    private final WorkOrderReservationService reservationService;
 
-    public WorkOrderController(WorkOrderService service, WorkOrderLookupService lookup) {
+    public WorkOrderController(WorkOrderService service, WorkOrderLookupService lookup,
+                               WorkOrderReservationService reservationService) {
         this.service = service;
         this.lookup = lookup;
+        this.reservationService = reservationService;
     }
 
     @PostMapping
@@ -32,6 +35,16 @@ public class WorkOrderController {
                     .body(ApiResponse.of(outcome.response()));
         }
         return ResponseEntity.ok(ApiResponse.of(outcome.response()));
+    }
+
+    @PostMapping("/{id}/reserve")
+    public ApiResponse<WorkOrderResponse> reserve(@PathVariable Long id) {
+        return ApiResponse.of(reservationService.reserve(id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<WorkOrderResponse> cancel(@PathVariable Long id) {
+        return ApiResponse.of(reservationService.cancel(id));
     }
 
     @GetMapping("/{id}")

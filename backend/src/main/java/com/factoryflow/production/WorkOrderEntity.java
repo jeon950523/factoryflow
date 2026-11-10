@@ -85,6 +85,20 @@ public class WorkOrderEntity {
         return entity;
     }
 
+    public void markReserved() {
+        if (status != WorkOrderStatus.DRAFT) throw new IllegalStateException("Only DRAFT orders can be reserved");
+        status = WorkOrderStatus.RESERVED;
+        reservedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    }
+
+    public void markCanceled() {
+        if (status != WorkOrderStatus.DRAFT && status != WorkOrderStatus.RESERVED) {
+            throw new IllegalStateException("Only DRAFT/RESERVED orders can be canceled");
+        }
+        status = WorkOrderStatus.CANCELED;
+        canceledAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    }
+
     public Long getId() { return id; }
     public String getOrderNo() { return orderNo; }
     public String getClientRequestId() { return clientRequestId; }
