@@ -1,6 +1,6 @@
 # TASK-004E — 생산 시작/원자재 실제 소모 및 생산 완료
 
-> 상태: 구현 및 정적 검사 완료 / MySQL 통합 CI 검증 대기
+> 상태: **구현 및 MySQL Testcontainers CI 검증 완료** (기능 브랜치 기준, 2026-11-11)
 
 ## 목적
 - `RESERVED`로 확보한 원자재를 생산 시작할 때 실제 소모하고, 이동 이력을 남기며 상태를 `IN_PROGRESS`로 전환한다.
@@ -41,3 +41,18 @@
 
 ## 학습 정리
 - [`핵심 기술 개념 모음`](../learning/CORE_CONCEPTS.md)에 추가. 사용자 학습은 구현·검증을 끝낸 뒤 진행.
+
+## 실제 검증 결과
+- GitHub Actions: https://github.com/jeon950523/factoryflow/actions/runs/42891184237
+- Java 21 / Gradle Wrapper / Spring Boot / Testcontainers MySQL 8.4, `clean test` **BUILD SUCCESSFUL**.
+- JUnit XML에서 **34개 실행, 실패 0, 건너뜀 0** 확인.
+- 신규 `WorkOrderProductionIntegrationTest` 5개 전부 통과: 한 작업만 소모, 여러 LOT 이동 이력, 불법 상태, 이동 이력 UNIQUE 충돌 강제 주입 후 전체 rollback, 동시 시작 중복 소모 방지.
+- 정적 검사: `javac` parser Java 21 소스 77개, 구문 오류 0개.
+- 검증 범위 밖: 실운영 DB 락 병목, 품질 검사 합격품 입고, 완제품 출고, 인증·운영 배포.
+
+## 시니어 코드 검수 메모
+- 실제 상태 전이를 엔티티 메서드로 캡슐화하고, Service에서 DB 트랜잭션 경계를 유지함.
+- LOT 값 업데이트와 예약 상태 변경, 이동 이력 생성이 **하나의 트랜잭션**에 묶여 실패 시 원복되는 것을 DB 테스트로 확인함.
+- `WorkOrderProductionService`와 `WorkOrderReservationService`의 Item/Order 선잠금 방식이 중복됨. 현재는 일관된 순서가 더 중요하여 공통 추상화는 보류. 후속 명령이 누적되면 추출 검토.
+- 재고 수정 없는 finish는 WorkOrder 행만 잠금. 다른 작업과 DB 교착을 유발하는 추가 잠금 없음.
+- **향후 개선**: 복잡한 순수 업무 규칙의 단위 테스트 분리, LOT 한정 락, 조회·쓰기 서비스 시간 공급자(`Clock`) 주입, 장기 성능 측정. 검증되지 않은 성능 수치 주장 금지.
