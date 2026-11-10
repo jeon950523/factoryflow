@@ -52,9 +52,9 @@ public class QualityInspectionService {
 
         // 기존 쓰기 명령의 잠금 규칙과 일치: 완제품 Item -> WorkOrder -> LOT.
         // 완제품 ID는 잠금 목적 조회용이며, WorkOrder는 잠금 후 상태를 재확인한다.
-        WorkOrderEntity orderRef = orders.findById(orderId)
+        Long finishedItemId = orders.findFinishedItemIdById(orderId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "WORK_ORDER_NOT_FOUND", "생산지시가 없습니다."));
-        ItemEntity item = items.findForUpdate(orderRef.getFinishedItemId())
+        ItemEntity item = items.findForUpdate(finishedItemId)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "FINISHED_ITEM_NOT_FOUND", "완제품 품목이 없습니다."));
         if (!item.isActive() || item.getItemType() != ItemType.FINISHED_GOOD) {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_FINISHED_ITEM", "유효한 완제품이 아닙니다.");
