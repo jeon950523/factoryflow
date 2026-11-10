@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-002·003A·003B 통합 / GitHub Actions Java 21 + Testcontainers MySQL 17개 테스트 통과 (2026-11-11)**
+> **TASK-004D까지 구현·검증 / GitHub Actions Java 21 + Testcontainers MySQL 29개 테스트 통과 (2026-11-11)**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -23,9 +23,10 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-003A · 품목·BOM API | CI 빌드·MySQL 테스트 검증 완료 | [코드·설계 검수 보고서](docs/task-reports/TASK-003A-품목-BOM-구현-검수.md) |
 | TASK-003B · LOT 입고·멱등성 | CI 빌드·MySQL 테스트 검증 완료 | [구현·검수 보고서](docs/task-reports/TASK-003B-원자재입고-구현-검수.md) |
 | TASK-004C · 생산지시 DRAFT/BOM 스냅샷 | CI 통합 테스트 검증 완료 | [작업 보고서](docs/task-reports/TASK-004C-생산지시-스냅샷-구현-검수.md) |
-| TASK-004D 이후 · 자재 예약·소모·품질·출고 | 계획 | [SSOT의 구현 범위](docs/FACTORYFLOW_SSOT_v0.1.md) |
+| TASK-004D · FIFO LOT 재고 예약·취소 | MySQL 동시성/롤백 테스트 통과 | [구현·검수 보고서](docs/task-reports/TASK-004D-원자재예약-취소-구현-검수.md) |
+| TASK-004E 이후 · 생산 시작·소모·품질·출고 | 계획 | [SSOT의 구현 범위](docs/FACTORYFLOW_SSOT_v0.1.md) |
 
-**TASK-002 기반·TASK-003A 품목/BOM·TASK-003B 원자재 입고 기능은 기능 브랜치의 CI에서 Java 21 빌드 및 MySQL 통합 테스트 17개를 통과했습니다. 생산 예약·QC·출고·인증·배포는 아직 미구현입니다.** 생산 예약·QC·출고는 아직 미구현입니다.
+**현재까지 Java 21/Spring Boot + MySQL 8.4 Testcontainers 기반 29개 테스트가 GitHub Actions에서 통과했습니다. 생산 시작/원자재 소모·품질검사·완제품 출고·인증·배포는 아직 미구현입니다.**
 
 ## 기술 방향 (계획)
 
@@ -74,9 +75,9 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 
 ## 공개 범위 및 보안
 
-통합 코드 패키지는 검증·원격 등록 전 초안이며, 기존 main 브랜치는 설계 문서만 등록되어 있습니다. DB 비밀번호, `.env`, 실제 개인정보, 내부 인프라 접속 정보는 Git에 올리지 않습니다. 인증·인가가 구현되기 전의 쓰기 API는 인터넷에 공개하지 않습니다.
+구현 및 테스트 코드를 공개 저장소에서 관리합니다. DB 비밀번호, `.env`, 실제 개인정보, 내부 인프라 접속 정보는 Git에 올리지 않습니다. 인증·인가가 구현되기 전의 쓰기 API는 인터넷에 공개하지 않습니다.
 
-## TASK-002 개발 기반 (초안, 실행 미검증)
+## TASK-002 개발 기반 (CI 검증 완료)
 
 - 백엔드: `backend/` — Java 21 / Spring Boot 4.1.2 / Gradle Wrapper 9.5.1
 - DB: `infra/compose.yml` — MySQL 8.4, Flyway V1 12개 도메인 테이블
@@ -102,7 +103,7 @@ $env:DB_PASSWORD=(Get-Content .\infra\.env | Select-String '^FACTORYFLOW_DB_PASS
 Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 수 없습니다. GitHub Actions에서는 실제 Docker/MySQL 기반 테스트를 검증했습니다.
 
 
-## TASK-003A 품목·BOM API (코드 초안 / 테스트 미실행)
+## TASK-003A 품목·BOM API (CI 검증 완료)
 
 - `POST /api/v1/items`: 품목 등록, 대문자 SKU 정규화, UNIQUE(sku) 충돌 방어
 - `GET /api/v1/items`, `GET /api/v1/items/{id}`: 품목 목록·상세 조회 (타입/문자열 검색/페이지)
@@ -114,7 +115,7 @@ Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 �
 **테스트 상태:** GitHub Actions에서 Java 21 `clean test`, Testcontainers MySQL 8.4, Flyway/JPA 매핑 검증, 총 17개 테스트 통과. [실행 증거](docs/verification/TASK-004B-CI-실행-기록.md).
 
 
-## 현재 구현 후보 API (TASK-003B — 런타임 미검증)
+## TASK-003B 원자재 입고·재고 조회 API (CI 검증 완료)
 
 - `POST /api/v1/stock-receipts`: 원자재 LOT 입고 / 중복 요청에 201·200·409 분기
 - `GET /api/v1/stock-receipts/{id}`: 입고 내역 조회
@@ -134,7 +135,7 @@ Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 �
 - **과거안:** Cloudflare Tunnel은 상시 실행 호스트가 필요해 채택하지 않는다. 이유는 [ADR-010](docs/adr/ADR-010-무료배포-Cloudflare-Tunnel.md)과 [ADR-011](docs/adr/ADR-011-Oracle-Always-Free-배포-전환.md)에 기록했다.
 - 인증·인가가 완성되기 전에는 인터넷에 쓰기 API를 공개하지 않는다.
 
-> **검증 결과:** [GitHub Actions 성공 실행](https://github.com/jeon950523/factoryflow/actions/runs/42879590170) — Java 21 빌드·Testcontainers MySQL 기반 JUnit 17개 통과. **Oracle VM 배포/외부 접속/인증은 아직 완료되지 않았습니다.**
+> **검증 결과:** [TASK-004D GitHub Actions 성공 실행](https://github.com/jeon950523/factoryflow/actions/runs/42888753170) — Java 21 빌드·Testcontainers MySQL 기반 JUnit 29개 통과. **Oracle VM 배포/외부 접속/인증은 아직 완료되지 않았습니다.**
 
 ## TASK-004C 생산지시 DRAFT/BOM 스냅샷 (CI 22/22 통과)
 
@@ -143,3 +144,12 @@ Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 �
 - 중복 `clientRequestId` 동일 내용은 200 재조회, 다르면 409; `Math.multiplyExact`로 필요 수량 계산 오버플로 방어.
 - 아직 재고 예약·차감은 하지 않는다. [CI 22개 테스트 통과](https://github.com/jeon950523/factoryflow/actions/runs/42882000269).
 - [코드 선택 이유·테스트·시니어 검수·리팩터링 보고서](docs/task-reports/TASK-004C-생산지시-스냅샷-구현-검수.md)
+
+
+## TASK-004D 재고 예약·취소 (CI 29/29 통과)
+
+- `POST /api/v1/work-orders/{id}/reserve`: `DRAFT → RESERVED`, LOT FIFO 전량 예약. 실제 현재고는 변경하지 않는다.
+- `POST /api/v1/work-orders/{id}/cancel`: `DRAFT/RESERVED → CANCELED`, 예약 해제(`RELEASED`), 가용량 복구.
+- 원자재 품목 오름차순 → 생산지시 → LOT 잠금. 두 번째 자재 부족 시 모든 예약 변경과 이력이 전체 롤백된다.
+- 동일 생산지시 및 서로 다른 생산지시의 경쟁 예약 테스트를 포함한다.
+- [핵심 원리 모음](docs/learning/CORE_CONCEPTS.md) · [코드 설명/장단점/리팩터링 보고서](docs/task-reports/TASK-004D-원자재예약-취소-구현-검수.md) · [실제 CI 증거](docs/verification/TASK-004D-CI-실행-기록.md)

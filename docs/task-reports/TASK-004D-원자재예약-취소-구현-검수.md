@@ -1,6 +1,6 @@
 # TASK-004D — 원자재 전량 예약 / 예약 취소 구현·검수
 
-> 상태: 구현 초안 완료 / GitHub Actions CI 검증 진행 전
+> 상태: **구현 및 MySQL Testcontainers CI 검증 완료** / 2026-11-11  (기능 브랜치 기준)
 
 ## 목적 / 기존 시스템 연결
 - 생산지시 DRAFT에 복사된 BOM 스냅샷을 기준으로, 물리 현재고는 변경하지 않고 LOT별 예약 수량만 반영한다.
@@ -44,3 +44,27 @@
 
 ## 학습/면접 대비
 - [`docs/learning/CORE_CONCEPTS.md`](../learning/CORE_CONCEPTS.md)에 누적. 사용자 학습은 기능 구현 뒤 진행.
+
+## 실제 검증 결과
+- **실행:** GitHub Actions `backend/gradlew clean test --stacktrace` (Java 21, Testcontainers MySQL 8.4)
+- **결과:** `BUILD SUCCESSFUL` / JUnit XML 기준 29개 실행, 0 실패, 0 건너뜀
+- **이번 TASK 신규:** `WorkOrderReservationIntegrationTest` 7개 전부 통과
+- **근거:** https://github.com/jeon950523/factoryflow/actions/runs/42888753170
+- **정적 검사:** JDK 21 javac parse 75개 Java 소스 오류 0개 (실제 타입/링크는 CI 통합 컴파일로 확인)
+- **주의:** 이 검증은 기본 재고 예약·취소에 한정하며, 장시간 부하/고경합 성능이나 실제 운영 DB는 미검증이다.
+
+## 변경 파일 및 코드 설계 검수
+- `WorkOrderController`: 예약·취소 두 개의 명령 API 추가. HTTP 처리만 담당.
+- `WorkOrderReservationService`: Item→Order→LOT 순의 잠금, FIFO 배분, 전량 부족 처리, CANCEL 상태 전이의 단일 DB 트랜잭션.
+- `ItemRepository` 기존 `findForUpdate()` 재사용, `WorkOrderRepository` 잠금 조회 추가.
+- `InventoryLotRepository`: FIFO 잠금 쿼리 및 취소 시 개별 LOT 잠금.
+- `InventoryLotEntity`: 현재고를 건드리지 않는 `reserve/release`와 불변조건 보호.
+- `MaterialReservationEntity` 및 신규 Repository: 할당 이력 생성·상태 변경(RELEASED).
+- `WorkOrderEntity`: 허용 상태 전이만 수행하는 메서드.
+- 통합 테스트: FIFO, 부족 롤백, 취소·복구, 상태 충돌, 2개 작업 경쟁, 같은 작업 경쟁, 예약/취소 경쟁.
+
+## 검수 후 리팩터링 우선순위
+- **즉시 수정할 차단 오류:** 본 CI 검증 범위에서는 발견되지 않음.
+- **차기 작업:** `IN_PROGRESS`로 전환할 때 활성 예약만 소모하고 물리 재고·재고 이동 이력을 함께 저장하는 원자성 테스트.
+- **성능 측정 이후:** Item 선잠금/LOT 전수 잠금으로 인한 경합, LOT 선택 쿼리 최적화.
+- **과설계 보류:** Redis, Kafka, 분산락.
