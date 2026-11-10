@@ -91,6 +91,21 @@ public class StockMovementEntity {
         return movement;
     }
 
+    public static StockMovementEntity finishedShipment(Long itemId, Long lotId, Long shipmentId, long quantity) {
+        if (itemId == null || lotId == null || shipmentId == null || quantity <= 0) {
+            throw new IllegalArgumentException("Invalid finished shipment movement");
+        }
+        StockMovementEntity movement = new StockMovementEntity();
+        movement.inventoryLotId = lotId;
+        movement.itemId = itemId;
+        movement.movementType = MovementType.FINISHED_SHIPMENT;
+        movement.quantity = quantity;
+        movement.referenceType = ReferenceType.SHIPMENT;
+        movement.referenceId = shipmentId;
+        movement.createdAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        return movement;
+    }
+
     public Long getId() { return id; }
     public Long getInventoryLotId() { return inventoryLotId; }
     public Long getItemId() { return itemId; }

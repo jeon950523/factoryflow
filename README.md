@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-004E까지 구현·검증 / GitHub Actions Java 21 + Testcontainers MySQL 34개 테스트 통과 (2026-11-11)**
+> **TASK-004G까지 구현·검증 / GitHub Actions Java 21 + Testcontainers MySQL 45개 테스트 통과 (2026-11-11)**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -25,9 +25,10 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-004C · 생산지시 DRAFT/BOM 스냅샷 | CI 통합 테스트 검증 완료 | [작업 보고서](docs/task-reports/TASK-004C-생산지시-스냅샷-구현-검수.md) |
 | TASK-004D · FIFO LOT 재고 예약·취소 | MySQL 동시성/롤백 테스트 통과 | [구현·검수 보고서](docs/task-reports/TASK-004D-원자재예약-취소-구현-검수.md) |
 | TASK-004E · 생산 시작·소모·완료 | MySQL 트랜잭션/동시성 테스트 통과 | [구현·검수 보고서](docs/task-reports/TASK-004E-원자재소모-생산완료-구현-검수.md) |
-| TASK-004F 이후 · 품질검사·완제품 출고 | 계획 | [SSOT의 구현 범위](docs/FACTORYFLOW_SSOT_v0.1.md) |
+| TASK-004F · 품질검사·합격품 입고 | CI 동시성/롤백 테스트 완료 | [보고서](docs/task-reports/TASK-004F-품질검사-합격품입고-설계-검수.md) |
+| TASK-004G · 완제품 출고 | CI FIFO/동시성/멱등성 테스트 완료 | [보고서](docs/task-reports/TASK-004G-완제품출고-구현-검수.md) |
 
-**현재까지 Java 21/Spring Boot + MySQL 8.4 Testcontainers 기반 34개 테스트가 GitHub Actions에서 통과했습니다. 품질검사·완제품 출고·인증·배포는 아직 미구현입니다.**
+**현재까지 Java 21/Spring Boot + MySQL 8.4 Testcontainers 기반 45개 테스트가 GitHub Actions에서 통과했습니다. 인증·Vue 관리자 화면·실제 배포는 아직 미구현입니다.**
 
 ## 기술 방향 (계획)
 
@@ -162,3 +163,11 @@ Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 �
 - `POST /api/v1/work-orders/{id}/finish`: IN_PROGRESS → AWAITING_QC. 이 단계는 완제품 재고 증가 없음.
 - 중복 명령/동시 시작 요청 방어, DB 이동 이력 실패 주입 시 재고·예약·상태 전체 롤백을 검증했어.
 - [핵심 원리 누적 노트](docs/learning/CORE_CONCEPTS.md) · [TASK-004E 작업 보고서](docs/task-reports/TASK-004E-원자재소모-생산완료-구현-검수.md) · [실제 CI 증거](docs/verification/TASK-004E-CI-실행-기록.md)
+
+
+## TASK-004F~004G 품질검사·완제품 출고 (CI 45/45)
+- 품질검사 확정 후 합격품만 QC_PASS LOT로 입고. 동시 검사 시 JPA 영속성 컨텍스트의 이전 상태 재사용 오류를 수정했다.
+- POST /api/v1/shipments: 완료된 품질검사의 QC_PASS LOT에서 FIFO 전량 출고. 재고 부족 시 전체 롤백.
+- GET /api/v1/shipments/{id}: 출고 및 LOT 배분 이력 조회.
+- 같은 요청 키·내용 재전송은 기존 출고 반환, 같은 키·다른 수량은 409.
+- [핵심 개념 누적](docs/learning/CORE_CONCEPTS.md) · [TASK-004G 구현 보고서](docs/task-reports/TASK-004G-완제품출고-구현-검수.md) · [실제 CI 기록](docs/verification/TASK-004G-CI-실행-기록.md)

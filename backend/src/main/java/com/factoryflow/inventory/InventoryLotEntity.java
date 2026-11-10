@@ -124,6 +124,16 @@ public class InventoryLotEntity {
         reservedQty -= quantity;
     }
 
+    /** 출고는 품질검사를 통과한 완제품 LOT에서만 가능하다. */
+    public void shipFinished(long quantity) {
+        validatePositive(quantity);
+        if (sourceType != LotSourceType.QC_PASS || quantity > onHandQty - reservedQty) {
+            throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_FINISHED_STOCK",
+                    "출고 가능한 완제품 재고가 부족합니다.");
+        }
+        onHandQty -= quantity;
+    }
+
     private static void validatePositive(long quantity) {
         if (quantity <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_QUANTITY", "입고 수량은 1 이상이어야 합니다.");
