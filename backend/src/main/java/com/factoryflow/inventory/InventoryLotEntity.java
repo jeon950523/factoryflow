@@ -78,6 +78,24 @@ public class InventoryLotEntity {
         }
     }
 
+    /** 예약은 물리 현재고를 바꾸지 않는다. 같은 품목의 쓰기 명령은 Item을 먼저 잠근다. */
+    public void reserve(long quantity) {
+        validatePositive(quantity);
+        if (sourceType != LotSourceType.RAW_RECEIPT || quantity > onHandQty - reservedQty) {
+            throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_STOCK", "예약 가능한 원자재 재고가 부족합니다.");
+        }
+        reservedQty = Math.addExact(reservedQty, quantity);
+    }
+
+    /** 생산지시 취소는 해당 작업이 확보한 예약량만 되돌린다. */
+    public void release(long quantity) {
+        validatePositive(quantity);
+        if (quantity > reservedQty) {
+            throw new ApiException(HttpStatus.CONFLICT, "RESERVATION_INTEGRITY_CONFLICT", "LOT 예약 수량이 일치하지 않습니다.");
+        }
+        reservedQty -= quantity;
+    }
+
     private static void validatePositive(long quantity) {
         if (quantity <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_QUANTITY", "입고 수량은 1 이상이어야 합니다.");

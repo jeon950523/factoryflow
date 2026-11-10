@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -47,6 +49,32 @@ public class MaterialReservationEntity {
     private LocalDateTime releasedAt;
 
     protected MaterialReservationEntity() {
-        // Required by JPA; do not expose public mutation yet.
+        // Required by JPA.
     }
+
+    public static MaterialReservationEntity reserve(Long orderId, Long materialItemId, Long lotId, long quantity) {
+        if (orderId == null || materialItemId == null || lotId == null || quantity <= 0) {
+            throw new IllegalArgumentException("Invalid reservation");
+        }
+        MaterialReservationEntity reservation = new MaterialReservationEntity();
+        reservation.workOrderId = orderId;
+        reservation.materialItemId = materialItemId;
+        reservation.inventoryLotId = lotId;
+        reservation.quantity = quantity;
+        reservation.status = ReservationStatus.RESERVED;
+        reservation.createdAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        return reservation;
+    }
+
+    public void release() {
+        if (status != ReservationStatus.RESERVED) throw new IllegalStateException("Reservation already processed");
+        status = ReservationStatus.RELEASED;
+        releasedAt = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    }
+
+    public Long getWorkOrderId() { return workOrderId; }
+    public Long getMaterialItemId() { return materialItemId; }
+    public Long getInventoryLotId() { return inventoryLotId; }
+    public long getQuantity() { return quantity; }
+    public ReservationStatus getStatus() { return status; }
 }
