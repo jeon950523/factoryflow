@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-002·003A·003B 코드 초안 작성 / 빌드·DB 통합 테스트 미검증 (2026-11-11)**
+> **TASK-002·003A·003B 통합 / GitHub Actions Java 21 + Testcontainers MySQL 17개 테스트 통과 (2026-11-11)**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -19,12 +19,12 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | 작업 | 상태 | 문서 |
 |---|---|---|
 | TASK-001 · 요구사항·도메인·기술 설계 | 설계 초안 작성 | [SSOT v0.1](docs/FACTORYFLOW_SSOT_v0.1.md) |
-| TASK-002 · 개발 기반 구축 | 코드 초안 작성 / 실기동 검증 대기 | [구현·검수 기록](docs/TASK_002_구현_및_검수_기록.md) |
-| TASK-003A · 품목·BOM API | 코드 초안 작성 / 실기동 검증 대기 | [코드·설계 검수 보고서](docs/task-reports/TASK-003A-품목-BOM-구현-검수.md) |
-| TASK-003B · LOT 입고·멱등성 | 코드 초안 작성 / 실기동 검증 대기 | [구현·검수 보고서](docs/task-reports/TASK-003B-원자재입고-구현-검수.md) |
+| TASK-002 · 개발 기반 구축 | CI 빌드·MySQL 테스트 검증 완료 | [구현·검수 기록](docs/TASK_002_구현_및_검수_기록.md) |
+| TASK-003A · 품목·BOM API | CI 빌드·MySQL 테스트 검증 완료 | [코드·설계 검수 보고서](docs/task-reports/TASK-003A-품목-BOM-구현-검수.md) |
+| TASK-003B · LOT 입고·멱등성 | CI 빌드·MySQL 테스트 검증 완료 | [구현·검수 보고서](docs/task-reports/TASK-003B-원자재입고-구현-검수.md) |
 | TASK-004 이후 · 생산·품질·출고 | 계획 | [SSOT의 구현 범위](docs/FACTORYFLOW_SSOT_v0.1.md) |
 
-**현재는 TASK-002 기반 코드와 TASK-003A 품목·BOM, TASK-003B 원자재 입고 API 초안을 작성했으며, 실제 빌드·통합 테스트·배포 통과 여부는 CI에서 확인해야 합니다.** 생산 예약·QC·출고는 아직 미구현입니다.
+**TASK-002 기반·TASK-003A 품목/BOM·TASK-003B 원자재 입고 기능은 기능 브랜치의 CI에서 Java 21 빌드 및 MySQL 통합 테스트 17개를 통과했습니다. 생산 예약·QC·출고·인증·배포는 아직 미구현입니다.** 생산 예약·QC·출고는 아직 미구현입니다.
 
 ## 기술 방향 (계획)
 
@@ -98,7 +98,7 @@ docker compose --env-file .\infra\.env -f .\infra\compose.yml up -d
 $env:DB_PASSWORD=(Get-Content .\infra\.env | Select-String '^FACTORYFLOW_DB_PASSWORD=').ToString().Split('=',2)[1]; Set-Location .\backend; .\gradlew.bat clean test
 ```
 
-Docker 엔진이 없으면 Testcontainers 테스트는 실행할 수 없습니다. 현재 외부 의존성 다운로드와 빌드도 검증되지 않았습니다.
+Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 수 없습니다. GitHub Actions에서는 실제 Docker/MySQL 기반 테스트를 검증했습니다.
 
 
 ## TASK-003A 품목·BOM API (코드 초안 / 테스트 미실행)
@@ -110,7 +110,7 @@ Docker 엔진이 없으면 Testcontainers 테스트는 실행할 수 없습니�
 - [구현·검수·학습 보고서](docs/task-reports/TASK-003A-품목-BOM-구현-검수.md)
 - [작업별 문서화 규칙](docs/DEVELOPMENT_REPORTING_STANDARD.md)
 
-**테스트 상태:** JDK 21 SKU 검증 통과, Java 문법 파싱 통과. `./gradlew clean test`와 MySQL/Testcontainers는 외부 다운로드·Docker 부재로 아직 실행하지 못했습니다.
+**테스트 상태:** GitHub Actions에서 Java 21 `clean test`, Testcontainers MySQL 8.4, Flyway/JPA 매핑 검증, 총 17개 테스트 통과. [실행 증거](docs/verification/TASK-004B-CI-실행-기록.md).
 
 
 ## 현재 구현 후보 API (TASK-003B — 런타임 미검증)
@@ -133,4 +133,4 @@ Docker 엔진이 없으면 Testcontainers 테스트는 실행할 수 없습니�
 - **과거안:** Cloudflare Tunnel은 상시 실행 호스트가 필요해 채택하지 않는다. 이유는 [ADR-010](docs/adr/ADR-010-무료배포-Cloudflare-Tunnel.md)과 [ADR-011](docs/adr/ADR-011-Oracle-Always-Free-배포-전환.md)에 기록했다.
 - 인증·인가가 완성되기 전에는 인터넷에 쓰기 API를 공개하지 않는다.
 
-> **검증 상태:** 본 코드는 Github Actions에서 Gradle + Testcontainers MySQL 실제 실행이 확인되기 전까지 배포/통합 테스트 완료로 표시하지 않는다.
+> **검증 결과:** [GitHub Actions 성공 실행](https://github.com/jeon950523/factoryflow/actions/runs/42879590170) — Java 21 빌드·Testcontainers MySQL 기반 JUnit 17개 통과. **Oracle VM 배포/외부 접속/인증은 아직 완료되지 않았습니다.**
