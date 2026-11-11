@@ -31,9 +31,13 @@ async function load() {
   try {
     const orders = await get('/api/v1/work-orders',
       { status: statusFilter.value || undefined, page: page.value, size: 15 })
-    const names = await lookupItemNames(orders.content.map(row => row.finishedItemId))
-    itemNames.value = { ...itemNames.value, ...names }
     list.value = orders
+    try {
+      const names = await lookupItemNames(orders.content.map(row => row.finishedItemId))
+      itemNames.value = { ...itemNames.value, ...names }
+    } catch {
+      ui.notify('품목명 조회에 실패했습니다. 이름 대신 품목 ID로 표시합니다.', 'error')
+    }
   } catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
@@ -41,11 +45,15 @@ async function choose(id) {
   detailLoading.value = true; detailError.value = ''
   try {
     const detail = await get(`/api/v1/work-orders/${id}`)
-    const names = await lookupItemNames([detail.finishedItemId,
-      ...detail.materials.map(material => material.materialItemId)])
-    itemNames.value = { ...itemNames.value, ...names }
     selected.value = detail
     qcForm.value = { passedQty: detail.plannedQty, failedQty: 0 }
+    try {
+      const names = await lookupItemNames([detail.finishedItemId,
+        ...detail.materials.map(material => material.materialItemId)])
+      itemNames.value = { ...itemNames.value, ...names }
+    } catch {
+      ui.notify('자재명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
+    }
   } catch (e) { selected.value = null; detailError.value = e.message }
   finally { detailLoading.value = false }
 }

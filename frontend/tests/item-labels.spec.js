@@ -72,3 +72,13 @@ test('production form can select product ID 105 from server search', async ({ pa
   await page.locator('.item-search-option').filter({ hasText: '브래킷 105' }).click()
   await expect(page.locator('.dialog .item-search-toggle')).toContainText('FG-105 · 브래킷 105')
 })
+
+
+test('item name lookup outage keeps production order list usable with ID fallback', async ({ page }) => {
+  await page.route('**/api/v1/items/lookup?*', route =>
+    route.fulfill({ status: 503, contentType: 'application/json',
+      body: JSON.stringify({ message: 'lookup unavailable', errorCode: 'LOOKUP_UNAVAILABLE' }) }))
+  await page.goto('/orders')
+  await expect(page.getByRole('button', { name: 'WO-00021' })).toBeVisible()
+  await expect(page.locator('.data-table tbody')).toContainText('완제품 #105')
+})

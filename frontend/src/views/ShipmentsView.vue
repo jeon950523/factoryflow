@@ -18,9 +18,13 @@ async function load() {
   loading.value = true; error.value = ''
   try {
     const rows = await get('/api/v1/shipments', { page: page.value, size: 15 })
-    const names = await lookupItemNames(rows.content.map(row => row.finishedItemId))
-    itemNames.value = { ...itemNames.value, ...names }
     list.value = rows
+    try {
+      const names = await lookupItemNames(rows.content.map(row => row.finishedItemId))
+      itemNames.value = { ...itemNames.value, ...names }
+    } catch {
+      ui.notify('완제품명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
+    }
   } catch (e) { error.value = e.message }
   finally { loading.value = false }
 }
@@ -28,9 +32,13 @@ async function choose(id) {
   detailLoading.value = true; detailError.value = ''
   try {
     const detail = await get(`/api/v1/shipments/${id}`)
-    const names = await lookupItemNames([detail.finishedItemId])
-    itemNames.value = { ...itemNames.value, ...names }
     selected.value = detail
+    try {
+      const names = await lookupItemNames([detail.finishedItemId])
+      itemNames.value = { ...itemNames.value, ...names }
+    } catch {
+      ui.notify('완제품명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
+    }
   }
   catch (e) { selected.value = null; detailError.value = e.message }
   finally { detailLoading.value = false }
