@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { params, api, get, ApiError } from './api.js'
+import { params, api, get, post, loginForm, clearCsrfToken, ApiError } from './api.js'
 
 test('query params omit null and preserve zero', () => {
   assert.equal(params({ itemId: 12, page: 0, keyword: '' }), '?itemId=12&page=0')
@@ -62,4 +62,41 @@ test('AbortError stays distinguishable from real connection failures', async () 
   } finally {
     globalThis.fetch = previous
   }
+})
+
+
+test('POST first obtains CSRF token and sends it with JSON write request', async () => {
+  const old = globalThis.fetch
+  clearCsrfToken()
+  const calls = []
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options })
+    if (url === '/api/v1/auth/csrf') return { ok: true, status: 200, json: async () => ({ data: { token: 'test-csrf-token' } }) }
+    return { ok: true, status: 201, json: async () => ({ data: { id: 1 } }) }
+  }
+  try {
+    const result = await post('/api/v1/items', { name: '테스트' })
+    assert.deepEqual(result, { id: 1 })
+    assert.equal(calls.length, 2)
+    assert.equal(calls[1].options.headers['X-CSRF-TOKEN'], 'test-csrf-token')
+    assert.equal(calls[1].options.credentials, 'same-origin')
+  } finally { globalThis.fetch = old; clearCsrfToken() }
+})
+
+test('login uses form encoding, not raw JSON, and includes CSRF', async () => {
+  const old = globalThis.fetch
+  clearCsrfToken()
+  const calls = []
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options })
+    if (url === '/api/v1/auth/csrf') return { ok: true, status: 200, json: async () => ({ data: { token: 'csrf-login' } }) }
+    return { ok: true, status: 200, json: async () => ({ data: { username: 'admin', role: 'ADMIN' } }) }
+  }
+  try {
+    await loginForm('admin', 'a-secret-password')
+    assert.equal(calls[1].options.headers['Content-Type'], 'application/x-www-form-urlencoded')
+    assert.equal(calls[1].options.headers['X-CSRF-TOKEN'], 'csrf-login')
+    assert.match(calls[1].options.body, /username=admin/)
+    assert.match(calls[1].options.body, /password=a-secret-password/)
+  } finally { globalThis.fetch = old; clearCsrfToken() }
 })
