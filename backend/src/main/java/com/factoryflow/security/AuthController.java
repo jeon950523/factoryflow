@@ -1,7 +1,6 @@
 package com.factoryflow.security;
 
 import com.factoryflow.global.api.ApiResponse;
-import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
