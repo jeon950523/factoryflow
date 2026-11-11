@@ -116,7 +116,7 @@ onBeforeUnmount(stopRequest)
 </script>
 
 <template>
-  <div class="item-search-select">
+  <div class="item-search-select" @keydown.esc.stop.prevent="opened && toggle()">
     <div class="item-search-summary">
       <button type="button" class="item-search-toggle" :class="{ 'has-value': !!modelValue }"
               :disabled="disabled" :aria-expanded="opened" aria-haspopup="true" @click="toggle">
@@ -126,13 +126,13 @@ onBeforeUnmount(stopRequest)
               aria-label="선택한 품목 지우기" @click="clear"><X :size="15" /></button>
     </div>
     <div v-if="opened" class="item-search-panel">
-      <form class="item-search-bar" @submit.prevent="applySearch">
+      <div class="item-search-bar">
         <input v-model="keyword" type="search" maxlength="100" aria-label="품목 코드 또는 이름 검색"
-               placeholder="품목 코드 또는 이름 검색" />
-        <button type="submit" class="btn btn-small btn-outline" :disabled="loading">
+               placeholder="품목 코드 또는 이름 검색" @keyup.enter.prevent="applySearch" />
+        <button type="button" class="btn btn-small btn-outline" :disabled="loading" @click="applySearch">
           <Search :size="14" /> 검색
         </button>
-      </form>
+      </div>
       <p v-if="loading" class="item-search-message" role="status">품목을 검색하고 있습니다.</p>
       <div v-else-if="error" class="item-search-message" role="alert">
         {{ error }} <button type="button" class="row-link" @click="searchPage(page)">재시도</button>
