@@ -56,8 +56,8 @@ class DatabaseBaselineIntegrationTest {
 
     @Test
     void migrationAndJpaValidateShouldStartOnRealMySql() {
-        assertEquals(1, flyway.info().applied().length);
-        assertEquals(12, entityManagerFactory.getMetamodel().getEntities().size());
+        assertEquals(2, flyway.info().applied().length); // V1 domain schema + V2 users
+        assertEquals(13, entityManagerFactory.getMetamodel().getEntities().size());
         assertTrue(itemRepository.findById(-1L).isEmpty()); // Repository SELECT가 실제 MySQL에 닿는지 확인
         List<String> tables = jdbc.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()",
@@ -65,7 +65,8 @@ class DatabaseBaselineIntegrationTest {
         );
         assertTrue(tables.contains("inventory_lots"));
         assertTrue(tables.contains("stock_movements"));
-        assertEquals(13, tables.size()); // 12 domain tables + flyway_schema_history
+        assertTrue(tables.contains("app_users"));
+        assertEquals(14, tables.size()); // 13 tables + flyway_schema_history
     }
 
     @Test
