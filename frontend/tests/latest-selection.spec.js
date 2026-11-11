@@ -11,6 +11,8 @@ const reply = (route, data) => route.fulfill({
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/v1/**', route => {
     const path = new URL(route.request().url()).pathname
+    if (path === '/api/v1/auth/me') return reply(route, { username: 'fixture-admin', role: 'ADMIN' })
+    if (path === '/api/v1/auth/csrf') return reply(route, { token: 'fixture-csrf', headerName: 'X-CSRF-TOKEN' })
     if (path === '/api/v1/items/lookup') return reply(route, [product, raw])
     if (path === '/api/v1/items') return reply(route, { content: [product, raw], totalPages: 1, totalElements: 2 })
     return route.fulfill({ status: 404, contentType: 'application/json',

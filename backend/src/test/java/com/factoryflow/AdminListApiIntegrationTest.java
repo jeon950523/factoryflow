@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** 관리자 목록 조회 API: 상세 조회와 달리 N+1 없이 페이지·필터·정렬을 확인한다. */
 @Testcontainers
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 class AdminListApiIntegrationTest {
     @Container

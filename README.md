@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-005D 브라우저+실 MySQL 업무 E2E 성공 / 백엔드 53개, Node 12개, Chrome Fixture 8개, Chrome 실DB 2개 통과**
+> **TASK-006 세션 인증·CSRF·ADMIN/VIEWER 인가 CI 성공: 백엔드 JUnit 57/57, Node 23/23, Chrome Fixture 11/11, 실 MySQL 브라우저 2/2. 공개 배포 보안 검증은 별도.**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -28,9 +28,10 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-004F · 품질검사·합격품 입고 | CI 동시성/롤백 테스트 완료 | [보고서](docs/task-reports/TASK-004F-품질검사-합격품입고-설계-검수.md) |
 | TASK-004G · 완제품 출고 | CI FIFO/동시성/멱등성 테스트 완료 | [보고서](docs/task-reports/TASK-004G-완제품출고-구현-검수.md) |
 | TASK-004H · 전 업무 API E2E | CI 49/49 성공 | [보고서](docs/task-reports/TASK-004H-전업무-E2E-회귀검증.md) |
-| TASK-005A · Vue 3 관리자 UI | 프론트 코드·CI 빌드, 브라우저 QA 대기 | [보고서](docs/task-reports/TASK-005A-관리자UI-설계-구현-검수.md) |
+| TASK-005A~005D · Vue 3 관리자 화면/연속 조회 | Chrome 화면 11/11, 실 MySQL 브라우저 E2E 2/2 성공 | [005D 보고서](docs/task-reports/TASK-005D-실브라우저-동시성-검수.md) |
+| TASK-006 · 세션 인증·인가·CSRF | CI 백엔드 57/57, Node 23/23, Chrome 11/11, 실DB E2E 2/2 · 구현 검증 완료 | [TASK-006 검증](docs/verification/TASK-006-CI-검증.md) |
 
-**현재까지 Java 21/Spring Boot + MySQL 8.4 Testcontainers 기반 51개 테스트가 GitHub Actions에서 통과했습니다. Vue 3 관리자 화면과 실제 API 연동 코드를 추가했습니다. 실제 브라우저 클릭 QA·인증·공개 배포는 아직 미검증입니다.**
+**최신 TASK-006 PR 기준:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 Spring Boot·MySQL 브라우저 E2E **2개** 성공. **Oracle/Vercel 공개 배포, TLS·쿠키·프록시 실환경 보안 및 계정 복구는 미검증**입니다.
 
 ## 기술 방향 (계획)
 
@@ -79,7 +80,7 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 
 ## 공개 범위 및 보안
 
-구현 및 테스트 코드를 공개 저장소에서 관리합니다. DB 비밀번호, `.env`, 실제 개인정보, 내부 인프라 접속 정보는 Git에 올리지 않습니다. 인증·인가가 구현되기 전의 쓰기 API는 인터넷에 공개하지 않습니다.
+구현 및 테스트 코드를 공개 저장소에서 관리합니다. DB 비밀번호, `.env`, 실제 개인정보, 내부 인프라 접속 정보는 Git에 올리지 않습니다. 인증·인가 테스트는 구현·CI 검증했지만 TLS·Secure Cookie·동일 출처 Reverse Proxy와 로그인 제한을 검증하기 전에는 API를 인터넷에 공개하지 않습니다.
 
 ## TASK-002 개발 기반 (CI 검증 완료)
 
@@ -215,3 +216,12 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **실제 검증:** Node 12/12, Vite 빌드, Chrome Fixture 8/8, Chrome 실제 Spring/MySQL 2/2. 백엔드 Testcontainers 53/53은 기존 main 기준 유지(업무 코드 변경 없음).
 - [설계·코드 검수](docs/task-reports/TASK-005D-실브라우저-동시성-검수.md) · [실행 증거](docs/verification/TASK-005D-실브라우저-CI-기록.md) · [핵심 개념 누적](docs/learning/CORE_CONCEPTS.md).
 - 외부 서버에 배포한 것은 아니며 인증·인가 전 무인증 쓰기 API 외부 공개 금지.
+
+
+## TASK-006 보안 구현 (CI 검증 완료, 공개 배포 보안 게이트 별도)
+- Spring Security 세션 로그인/로그아웃, BCrypt12, HttpSession CSRF, ADMIN/VIEWER 서버 인가
+- Flyway V2 사용자 계정 테이블. 신규 DB 관리자는 FACTORYFLOW_ADMIN_USERNAME, FACTORYFLOW_ADMIN_PASSWORD 환경변수로만 생성(기본 비밀번호 없음)
+- Vue 로그인/계정관리/역할별 화면/세션 만료 처리. 기존 제조 업무 브라우저 테스트에 로그인·CSRF 연결
+- **GitHub Actions 검증:** [백엔드 57/57](https://github.com/jeon950523/factoryflow/actions/runs/43110093904), [프론트 Node 23/23 + Chrome 11/11](https://github.com/jeon950523/factoryflow/actions/runs/43110093813), [실 MySQL 브라우저 E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43110093834).
+- **인증 구현은 공개 배포 승인과 다름:** 비밀번호 복구·로그인 제한·HTTPS 프록시/쿠키/CSRF/CORS 운영검증 필요
+- [ADR](docs/adr/ADR-012-세션인증-동일출처-배포.md) · [시니어 검수](docs/task-reports/TASK-006-세션인증-역할보안-검수.md) · [핵심 학습](docs/learning/CORE_CONCEPTS.md)

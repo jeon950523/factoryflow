@@ -64,6 +64,8 @@ jobs:
           DB_USERNAME: factoryflow_ci
           DB_PASSWORD: test_password_only
           SPRING_PROFILES_ACTIVE: local
+          FACTORYFLOW_ADMIN_USERNAME: ciadmin
+          FACTORYFLOW_ADMIN_PASSWORD: ci-test-strong-password-only
         run: |
           jar_path="$(find backend/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' -print -quit)"
           if [ -z "$jar_path" ]; then
@@ -95,6 +97,9 @@ jobs:
           google-chrome --version
       - name: Browser commands against real API + MySQL
         working-directory: frontend
+        env:
+          E2E_ADMIN_USERNAME: ciadmin
+          E2E_ADMIN_PASSWORD: ci-test-strong-password-only
         run: npx playwright test --config playwright.live.config.js
       - name: Upload evidence on failure
         if: failure()

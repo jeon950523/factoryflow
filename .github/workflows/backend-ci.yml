@@ -3,6 +3,7 @@ name: Backend CI
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
@@ -35,13 +36,30 @@ jobs:
       - name: Build and test against Testcontainers MySQL
         working-directory: backend
         run: ./gradlew --no-daemon --stacktrace clean test
+      - name: Summarize JUnit XML results
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          totals = dict(tests=0, failures=0, errors=0, skipped=0)
+          for name in glob.glob("backend/build/test-results/test/TEST-*.xml"):
+              element = ET.parse(name).getroot()
+              for key in totals:
+                  totals[key] += int(element.attrib.get(key, 0))
+              if int(element.attrib.get("failures", 0)) or int(element.attrib.get("errors", 0)):
+                  print("FAILING:", name)
+                  for case in element.iter("testcase"):
+                      for kind in ("failure", "error"):
+                          for item in case.findall(kind):
+                              print(case.attrib.get("name"), (item.attrib.get("message") or "")[:1200])
+          print("JUnit totals:", totals)
+          PY
       - name: Upload test results even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: factoryflow-backend-test-results
           path: |
-            backend/build/test-results/test/
-            backend/build/reports/tests/test/
+            backend/build/test-results/test/*.xml
           if-no-files-found: ignore
           retention-days: 7

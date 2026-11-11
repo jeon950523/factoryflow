@@ -133,3 +133,15 @@
 - **효율:** MySQL+Spring+브라우저 전체 CI는 상대적으로 무거워 PR/main에서만 실행하고 빠른 Chrome Fixture/Node 검사는 기능 브랜치에서 유지.
 - **추후:** Vue composable로 요청 관리 중복 제거, Playwright 버전을 package-lock에 고정, 접근성·다중 사용자·운영 배포 테스트. 인증 없는 공용 배포는 하지 않음.
 - **나중에 설명할 문장:** "연속 클릭 시 오래된 응답이 최신 상세를 덮어쓰는 문제를 취소+버전 검사로 방지하고, 실제 Vue–Spring–MySQL 경로로 생산 전 과정의 재고 정합성을 검증했습니다."
+
+
+## 14. 세션 인증·역할 인가·CSRF — TASK-006
+- 목적: 무인증 쓰기 API를 **백엔드에서** 차단. Vue의 버튼 감춤은 접근 제어가 아니라 UX 보조.
+- 호출: Vue /login → GET /auth/csrf → form POST /auth/login(X-CSRF-TOKEN) → Spring Security Filter → DaoAuthenticationProvider → AppUserDetailsService → MySQL BCrypt 비교 → JSESSIONID(HttpOnly) → GET /auth/me로 이후 세션 확인.
+- 역할: ADMIN 제조 GET/POST 및 계정 관리, VIEWER 제조 GET 전용. admin/users 경로는 GET이어도 ADMIN만 허용.
+- POST 보안: HttpSessionCsrfTokenRepository, Spring XOR 요청 토큰. 로그인/로그아웃으로 CSRF secret이 바뀌므로 재조회.
+- 세션: 30분, HttpOnly, SameSite=Lax. 운영 HTTPS에서는 SESSION_COOKIE_SECURE=true 및 동일 출처 /api 프록시 필요.
+- 부트스트랩: 빈 DB에서 환경변수로만 초기 ADMIN 생성; 미설정 시 기동 거부. BCrypt 해시 저장 및 비밀번호 응답 제거.
+- 검증 계획: 기존 제조 MockMvc 테스트는 보안 필터 없이 비즈니스 회귀 확인, 보안 Testcontainers 전용 클래스는 필터 포함, 실제 Vue/Chrome/MySQL 통합은 로그인 후 사용.
+- 남은 위험: rate limit/계정 잠금/비밀번호 재설정/운영 TLS·프록시 확인, 접근성/세션 고장 회귀, 공인 배포 전 필수 검증.
+- 나중에 설명: 서버 세션과 CSRF로 안전한 상태 변경을 검증하고 ADMIN/VIEWER RBAC를 백엔드 필터에서 강제했습니다.
