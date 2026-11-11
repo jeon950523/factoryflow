@@ -2,8 +2,9 @@ name: FactoryFlow Fullstack Browser E2E
 
 on:
   workflow_dispatch:
+  # Fullstack browser runs are costly: test on PR and main, not every feature commit.
   push:
-    branches: [main, 'feature/**']
+    branches: [main]
     paths:
       - 'backend/**'
       - 'frontend/**'
