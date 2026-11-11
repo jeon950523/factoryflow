@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/info",
                         "/api/v1/auth/csrf", "/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/auth/me", "/api/v1/auth/logout").authenticated()
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("ADMIN", "VIEWER")
                 .requestMatchers("/api/v1/**").hasRole("ADMIN")
                 .anyRequest().denyAll())
