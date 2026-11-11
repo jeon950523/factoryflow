@@ -1,6 +1,8 @@
 package com.factoryflow.shipment;
 
 import com.factoryflow.global.api.ApiResponse;
+import com.factoryflow.global.api.PageResponse;
+import com.factoryflow.shipment.dto.ShipmentSummaryResponse;
 import com.factoryflow.shipment.dto.CreateShipmentRequest;
 import com.factoryflow.shipment.dto.ShipmentResponse;
 import jakarta.validation.Valid;
@@ -27,6 +29,13 @@ public class ShipmentController {
                     .body(ApiResponse.of(outcome.response()));
         }
         return ResponseEntity.ok(ApiResponse.of(outcome.response()));
+    }
+
+    @GetMapping
+    public ApiResponse<PageResponse<ShipmentSummaryResponse>> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.of(lookup.list(page, size));
     }
 
     @GetMapping("/{id}")
