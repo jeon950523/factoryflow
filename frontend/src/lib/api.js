@@ -20,14 +20,41 @@ export function params(query = {}) {
   return text ? `?${text}` : ''
 }
 
+let csrfToken = null
+let csrfPromise = null
+let onSessionExpired = null
+
+export function setSessionExpiredHandler(handler) { onSessionExpired = handler }
+export function clearCsrfToken() { csrfToken = null; csrfPromise = null }
+
+export async function ensureCsrfToken() {
+  if (csrfToken) return csrfToken
+  if (!csrfPromise) {
+    csrfPromise = api('/api/v1/auth/csrf').then(result => {
+      csrfToken = result.token
+      return csrfToken
+    }).finally(() => { csrfPromise = null })
+  }
+  return csrfPromise
+}
+
 export async function api(path, { method = 'GET', body, signal } = {}) {
+  const formBody = body instanceof URLSearchParams
+  const unsafe = !['GET','HEAD','OPTIONS'].includes(method.toUpperCase())
+  const csrf = unsafe ? await ensureCsrfToken() : null
   let response
   try {
     response = await fetch(`${baseUrl}${path}`, {
       method,
       signal,
-      headers: body === undefined ? { Accept: 'application/json' } : { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        ...(body === undefined ? {} : { 'Content-Type': formBody ? 'application/x-www-form-urlencoded' : 'application/json' }),
+        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+      },
+      body: body === undefined ? undefined : (formBody ? body.toString() : JSON.stringify(body)),
     })
   } catch (error) {
     if (error.name === 'AbortError') throw error
@@ -40,6 +67,10 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
     throw new ApiError('서버에서 올바르지 않은 JSON 응답을 받았습니다.', { status: response.status, code: 'INVALID_RESPONSE' })
   }
   if (!response.ok) {
+    if (response.status === 401 && path !== '/api/v1/auth/login' && path !== '/api/v1/auth/me') {
+      clearCsrfToken()
+      onSessionExpired?.()
+    }
     throw new ApiError(payload.message ?? `요청에 실패했습니다. (${response.status})`, {
       status: response.status,
       code: payload.errorCode ?? 'REQUEST_FAILED',
@@ -54,3 +85,8 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
 
 export const get = (path, query, options = {}) => api(`${path}${params(query)}`, options)
 export const post = (path, body) => api(path, { method: 'POST', body })
+
+export const loginForm = (username, password) => api('/api/v1/auth/login', {
+  method: 'POST', body: new URLSearchParams({ username, password }),
+})
+export const logoutSession = () => api('/api/v1/auth/logout', { method: 'POST' })
