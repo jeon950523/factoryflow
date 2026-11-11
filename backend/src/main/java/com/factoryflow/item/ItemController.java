@@ -6,6 +6,7 @@ import com.factoryflow.item.dto.CreateItemRequest;
 import com.factoryflow.item.dto.ItemResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +30,12 @@ public class ItemController {
         ItemResponse created = service.create(request);
         return ResponseEntity.created(URI.create("/api/v1/items/" + created.id()))
                 .body(ApiResponse.of(created));
+    }
+
+    /** Resolve visible item labels in one DB query instead of one request per table row. */
+    @GetMapping("/lookup")
+    public ApiResponse<List<ItemResponse>> lookup(@RequestParam List<Long> ids) {
+        return ApiResponse.of(service.lookup(ids));
     }
 
     @GetMapping("/{id}")

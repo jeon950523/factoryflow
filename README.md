@@ -196,4 +196,12 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - 빠른 연속 검색 시 이전 요청을 AbortController로 중단하여 오래된 응답이 최신 결과를 덮어쓰지 않게 함.
 - 실제 MySQL 105건 테스트에서 11페이지 5개 반환 확인, 백엔드 52/52 통과. 프론트 Node 테스트 6/6 및 Vite 빌드 통과.
 - [작업별 코드·장단점·리팩터링 보고서](docs/task-reports/TASK-005B-검색형품목선택-구현-검수.md) · [검증 증거](docs/verification/TASK-005B-CI-검증.md) · [핵심 학습 모음](docs/learning/CORE_CONCEPTS.md).
-- 참고: 일부 기존 목록/상세의 이름 해석은 여전히 앞쪽 100개 품목 캐시에 의존하며, 미검색 항목은 ID로 표시할 수 있음. 실제 브라우저 UI/접근성 검증은 후속 과제.
+- 참고: TASK-005C에서 목록/상세 첫 100개 이름 캐시 문제를 해결함. 브라우저 실제 동작은 테스트 API 응답 기준으로 검증했으며 실 MySQL을 연결한 브라우저 E2E·스크린리더 QA는 후속 과제.
+
+
+## TASK-005C — 생산·출고·BOM의 품목명 정확도 및 실제 Chrome QA
+- 신규 **GET /api/v1/items/lookup?ids=105,205**: 화면에 필요한 품목 ID만 1회 DB 조회로 해결(한 요청 최대 100개, 중복 제거, 입력 순서 유지).
+- Vue 목록/상세는 실제 필요한 품목 ID를 50개 단위로 묶어 이름·SKU를 조회. 101번째 이후 품목도 정확한 정보 표시. 이름 조회만 실패하면 업무 목록·작업 가능 상태는 유지하고 ID 대체 표시와 경고를 제공.
+- [실제 MySQL CI](docs/verification/TASK-005C-CI-브라우저-검증.md): JUnit **53/53**. [Frontend CI](docs/verification/TASK-005C-CI-브라우저-검증.md): Node **10/10**, Vite 빌드, **Chrome 브라우저 스모크 5/5**.
+- 테스트 브라우저의 API 응답은 고정 Fixture이며, 실제 배포·인증/인가·라이브 MySQL 통합 브라우저 E2E와는 구별.
+- [TASK-005C 코드·의사결정·장단점·리팩터링 보고서](docs/task-reports/TASK-005C-품목일괄조회-브라우저검증.md) · [핵심 개념 모음](docs/learning/CORE_CONCEPTS.md).

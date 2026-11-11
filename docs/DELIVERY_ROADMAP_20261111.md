@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 1 | 기존 코드 통합 및 CI 빌드·MySQL 테스트 | GitHub Actions `clean test` 초록색, Testcontainers 실행 로그, Flyway/JPA 검증 | **CI 51/51 통과 · 완료** |
 | 2 | 생산지시·예약·품질검사·출고 | SSOT 불변조건 및 동시성·실패 롤백 테스트 통과 | **전체 API 골든 시나리오·부족 재고 롤백·멱등성·전량 불합격 보호 포함 실제 MySQL CI 49/49 성공 · 백엔드 2단계 완료. 실브라우저/배포 검증은 3~5단계** |
-| 3 | Vue 3 관리자 화면 | API 연결, 정상 업무 시나리오 클릭 시연 | **6개 UI·API 연동·프론트 CI 구현. 실제 클릭 QA 대기** |
+| 3 | Vue 3 관리자 화면 | API 연결, 정상 업무 시나리오 클릭 시연 | **6개 UI·API 연동 구현, Chrome 데스크톱 클릭 스모크 5개 통과(API Fixture). 실 DB를 연결한 사용자 흐름 QA·접근성 추가 검증 대기** |
 | 4 | 로그인·인가·공개 배포 보안 | 무인증 쓰기 차단, 역할 분리, 비밀 관리, CORS·CSRF 정책 | 계획 |
 | 5 | Vercel + Oracle Cloud Always Free | Vercel UI에서 Oracle VM API 접근, TLS, 인증, DB 백업/복원, 무료 할당량 검증 | 계획 |
 
