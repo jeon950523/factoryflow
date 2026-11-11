@@ -215,3 +215,11 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **실제 검증:** Node 12/12, Vite 빌드, Chrome Fixture 8/8, Chrome 실제 Spring/MySQL 2/2. 백엔드 Testcontainers 53/53은 기존 main 기준 유지(업무 코드 변경 없음).
 - [설계·코드 검수](docs/task-reports/TASK-005D-실브라우저-동시성-검수.md) · [실행 증거](docs/verification/TASK-005D-실브라우저-CI-기록.md) · [핵심 개념 누적](docs/learning/CORE_CONCEPTS.md).
 - 외부 서버에 배포한 것은 아니며 인증·인가 전 무인증 쓰기 API 외부 공개 금지.
+
+
+## TASK-006 보안 구현 (기능 브랜치, CI 검증 진행 중)
+- Spring Security 세션 로그인/로그아웃, BCrypt12, HttpSession CSRF, ADMIN/VIEWER 서버 인가
+- Flyway V2 사용자 계정 테이블. 신규 DB 관리자는 FACTORYFLOW_ADMIN_USERNAME, FACTORYFLOW_ADMIN_PASSWORD 환경변수로만 생성(기본 비밀번호 없음)
+- Vue 로그인/계정관리/역할별 화면/세션 만료 처리. 기존 제조 업무 브라우저 테스트에 로그인·CSRF 연결
+- **인증 구현은 공개 배포 승인과 다름**: 비밀번호 복구·로그인 제한·HTTPS 프록시/쿠키/CSRF/CORS 운영검증 필요
+- [ADR](docs/adr/ADR-012-세션인증-동일출처-배포.md) · [시니어 검수](docs/task-reports/TASK-006-세션인증-역할보안-검수.md) · [핵심 학습](docs/learning/CORE_CONCEPTS.md)
