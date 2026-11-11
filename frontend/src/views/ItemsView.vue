@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { Plus, Search, Layers, Package, X, RefreshCw, ArrowRight } from 'lucide-vue-next'
 import { get, post } from '../lib/api.js'
+import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId, itemSkuOrId } from '../lib/itemNames.js'
 import { number, dateTime } from '../lib/format.js'
 import { useUiStore } from '../stores/ui.js'
@@ -11,6 +12,8 @@ import PageControls from '../components/PageControls.vue'
 import ItemSearchSelect from '../components/ItemSearchSelect.vue'
 
 const ui = useUiStore()
+const listGate = createLatestRequest(), detailGate = createLatestRequest()
+onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
 const items = ref({ content: [], totalElements: 0, totalPages: 0 })
 const page = ref(0)
 const keyword = ref('')
@@ -31,27 +34,37 @@ function rememberMaterial(item) {
 }
 
 async function load() {
+  const request = listGate.begin()
   busy.value = true; error.value = ''
   try {
-    items.value = await get('/api/v1/items',
-      { page: page.value, size: 15, itemType: filter.value || undefined, keyword: keyword.value || undefined })
-  } catch (e) { error.value = e.message }
-  finally { busy.value = false }
+    const result = await get('/api/v1/items',
+      { page: page.value, size: 15, itemType: filter.value || undefined, keyword: keyword.value || undefined },
+      { signal: request.signal })
+    if (request.isCurrent()) items.value = result
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) error.value = e.message
+  } finally {
+    if (request.isCurrent()) busy.value = false
+  }
 }
 async function pick(item) {
+  const request = detailGate.begin()
   selected.value = item; selectedBom.value = null; bomError.value = ''; bomNameWarning.value = ''
   if (item.itemType !== 'FINISHED_GOOD') return
   try {
-    const bom = await get(`/api/v1/boms/${item.id}`)
+    const bom = await get(`/api/v1/boms/${item.id}`, undefined, { signal: request.signal })
+    if (!request.isCurrent()) return
     selectedBom.value = bom
     try {
-      const names = await lookupItemNames(bom.components.map(component => component.rawItemId))
+      const names = await lookupItemNames(bom.components.map(component => component.rawItemId), { signal: request.signal })
+      if (!request.isCurrent()) return
       itemNames.value = { ...itemNames.value, ...names }
-    } catch {
-      bomNameWarning.value = '원자재명 조회에 실패했습니다. 품목 ID로 표시합니다.'
+    } catch (e) {
+      if (request.isCurrent() && !isAbortError(e)) bomNameWarning.value = '원자재명 조회에 실패했습니다. 품목 ID로 표시합니다.'
     }
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e) && e.status !== 404) bomError.value = e.message
   }
-  catch (e) { if (e.status !== 404) bomError.value = e.message }
 }
 async function createItem() {
   saving.value = true

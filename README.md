@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-005A Vue 3 관리자 화면 / 백엔드 MySQL 51개 + 프론트 빌드 검증 (2026-11-11)**
+> **TASK-005D 브라우저+실 MySQL 업무 E2E 성공 / 백엔드 53개, Node 12개, Chrome Fixture 8개, Chrome 실DB 2개 통과**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -205,3 +205,13 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - [실제 MySQL CI](docs/verification/TASK-005C-CI-브라우저-검증.md): JUnit **53/53**. [Frontend CI](docs/verification/TASK-005C-CI-브라우저-검증.md): Node **10/10**, Vite 빌드, **Chrome 브라우저 스모크 5/5**.
 - 테스트 브라우저의 API 응답은 고정 Fixture이며, 실제 배포·인증/인가·라이브 MySQL 통합 브라우저 E2E와는 구별.
 - [TASK-005C 코드·의사결정·장단점·리팩터링 보고서](docs/task-reports/TASK-005C-품목일괄조회-브라우저검증.md) · [핵심 개념 모음](docs/learning/CORE_CONCEPTS.md).
+
+
+## TASK-005D — 실제 DB 관리자 브라우저 E2E와 연속 조회 경합
+- **실제 업무 검증:** GitHub Actions MySQL 8.4 → Java 21/Spring Boot/Flyway → Vite → Chrome. 품목/BOM 초기 데이터만 API로 준비하고, **입고·생산지시·예약·소모·QC·출고는 Vue 화면에서 처리**한다.
+- **재고 검증:** 원자재 25 입고 → 20 소모(남은 5), QC 합격8/불합격2 → 완제품 3 출고(남은 5). 물리 재고 이동 이력과 예약고도 확인.
+- **재고 부족:** 3개 있는 원자재가 4개 필요한 생산지시에서 예약 거부, DRAFT 상태 유지, 현재고3·예약고0.
+- **연속 클릭 레이스 수정:** 생산지시·출고·BOM·LOT 조회에서 이전 GET 취소 및 최신 요청 시퀀스 확인. A→B 클릭 시 오래된 A 응답이 B 상세를 덮어쓰지 않음.
+- **실제 검증:** Node 12/12, Vite 빌드, Chrome Fixture 8/8, Chrome 실제 Spring/MySQL 2/2. 백엔드 Testcontainers 53/53은 기존 main 기준 유지(업무 코드 변경 없음).
+- [설계·코드 검수](docs/task-reports/TASK-005D-실브라우저-동시성-검수.md) · [실행 증거](docs/verification/TASK-005D-실브라우저-CI-기록.md) · [핵심 개념 누적](docs/learning/CORE_CONCEPTS.md).
+- 외부 서버에 배포한 것은 아니며 인증·인가 전 무인증 쓰기 API 외부 공개 금지.
