@@ -38,3 +38,15 @@
 
 ## 6. 설명용 요약
 FactoryFlow의 제조 API에 서버 세션 인증과 CSRF 보호를 적용하고 관리자는 조회/쓰기, 조회자는 읽기만 가능하게 했습니다. 프론트 버튼 숨김에 의존하지 않고 백엔드 필터에서 실제 권한을 강제합니다.
+
+## 7. TASK-006 인증 경합 추가 검수
+
+- 기준 PR: #12, `feature/task-006-session-security` (TASK-005D main과 분리).
+- 변경 위치: `frontend/src/lib/api.js`, `frontend/src/stores/auth.js`, `frontend/src/lib/api.security.test.js`.
+- 로그인 성공과 후속 CSRF 조회를 분리. 로그인이 성공한 뒤 CSRF 재조회 장애 때문에 잘못된 로그인 실패 UI가 발생하지 않도록 한다.
+- 동시 라우터 가드는 진행 중인 `/auth/me` Promise를 공유. 로그인/로그아웃 세대가 바뀌면 이전 응답은 사용자 상태를 덮어쓰지 못한다.
+- 403은 VIEWER 권한 거부일 수도 있으므로 단순 로그아웃하지 않고 `/auth/me`로 확인한다. 오래된 요청의 401/403은 새 세션을 무효화하지 않는다.
+- 기능적 비용: 진단용 `/auth/me` GET은 업무 API 403 발생 시에만 수행. 네트워크 장애 시 기존 403을 보존한다.
+- 단위 테스트: Node fetch 모의 9개 시나리오. 로컬 독립 테스트 9/9 통과(2026-11-12).
+- **미검증:** CI 전체 Node 테스트·Vue 빌드·Spring Security+Testcontainers·실 MySQL+Chrome E2E. 완료 전 공개 배포나 main 병합 금지.
+- 후속 리팩터링: 운영 배포에서 로그인 시도 제한·HTTPS·Secure Cookie·프록시 헤더·세션/CSRF 실환경 확인.

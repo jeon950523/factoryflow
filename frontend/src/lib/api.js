@@ -22,26 +22,63 @@ export function params(query = {}) {
 
 let csrfToken = null
 let csrfPromise = null
+let csrfGeneration = 0
+let sessionProbe = null
 let onSessionExpired = null
 
 export function setSessionExpiredHandler(handler) { onSessionExpired = handler }
-export function clearCsrfToken() { csrfToken = null; csrfPromise = null }
+export function clearCsrfToken() {
+  csrfGeneration += 1
+  csrfToken = null
+  csrfPromise = null
+}
 
 export async function ensureCsrfToken() {
   if (csrfToken) return csrfToken
   if (!csrfPromise) {
-    csrfPromise = api('/api/v1/auth/csrf').then(result => {
+    const generation = csrfGeneration
+    const request = api('/api/v1/auth/csrf').then(result => {
+      // Discard an older token after login/logout rotated the server session.
+      if (generation !== csrfGeneration) return ensureCsrfToken()
       csrfToken = result.token
       return csrfToken
-    }).finally(() => { csrfPromise = null })
+    }).finally(() => {
+      if (csrfPromise === request) csrfPromise = null
+    })
+    csrfPromise = request
   }
   return csrfPromise
+}
+
+async function checkSessionAfterForbidden(generation) {
+  // A stale 403 from a previous login must not inspect or revoke a new session.
+  if (generation !== csrfGeneration) return
+  if (!sessionProbe || sessionProbe.generation !== generation) {
+    const promise = fetch(`${baseUrl}/api/v1/auth/me`, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    }).then(response => {
+      if (response.status === 401 && generation === csrfGeneration) {
+        clearCsrfToken()
+        onSessionExpired?.()
+      }
+    }).catch(() => {
+      // If this diagnostic request fails, preserve the original 403.
+    }).finally(() => {
+      if (sessionProbe?.promise === promise) sessionProbe = null
+    })
+    sessionProbe = { generation, promise }
+  }
+  await sessionProbe.promise
 }
 
 export async function api(path, { method = 'GET', body, signal } = {}) {
   const formBody = body instanceof URLSearchParams
   const unsafe = !['GET','HEAD','OPTIONS'].includes(method.toUpperCase())
   const csrf = unsafe ? await ensureCsrfToken() : null
+  const requestGeneration = csrfGeneration
   let response
   try {
     response = await fetch(`${baseUrl}${path}`, {
@@ -67,9 +104,15 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
     throw new ApiError('서버에서 올바르지 않은 JSON 응답을 받았습니다.', { status: response.status, code: 'INVALID_RESPONSE' })
   }
   if (!response.ok) {
-    if (response.status === 401 && path !== '/api/v1/auth/login' && path !== '/api/v1/auth/me') {
+    if (response.status === 401 && requestGeneration === csrfGeneration
+        && path !== '/api/v1/auth/login' && path !== '/api/v1/auth/me') {
       clearCsrfToken()
       onSessionExpired?.()
+    } else if (response.status === 403 && requestGeneration === csrfGeneration
+        && path.startsWith('/api/v1/') && !path.startsWith('/api/v1/auth/')) {
+      // VIEWER permission denial must not force logout; an expired session must.
+      await checkSessionAfterForbidden(requestGeneration)
+      if (requestGeneration === csrfGeneration) clearCsrfToken()
     }
     throw new ApiError(payload.message ?? `요청에 실패했습니다. (${response.status})`, {
       status: response.status,
