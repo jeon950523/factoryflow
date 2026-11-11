@@ -1,10 +1,15 @@
 package com.factoryflow.production;
 
+import com.factoryflow.global.api.PageResponse;
 import com.factoryflow.global.error.ApiException;
+import com.factoryflow.production.dto.WorkOrderSummaryResponse;
 import com.factoryflow.production.dto.WorkOrderResponse;
 import com.factoryflow.production.validation.CanonicalWorkOrder;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +22,15 @@ public class WorkOrderLookupService {
     public WorkOrderLookupService(WorkOrderRepository orders, WorkOrderMaterialRepository materials) {
         this.orders = orders;
         this.materials = materials;
+    }
+
+    public PageResponse<WorkOrderSummaryResponse> list(WorkOrderStatus status, int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PAGINATION", "page는 0 이상, size는 1~100이어야 합니다.");
+        }
+        var paging = PageRequest.of(page, size, Sort.by("createdAt").descending().and(Sort.by("id").descending()));
+        Page<WorkOrderEntity> found = status == null ? orders.findAll(paging) : orders.findByStatus(status, paging);
+        return PageResponse.from(found.map(WorkOrderSummaryResponse::from));
     }
 
     public WorkOrderResponse getById(Long id) {

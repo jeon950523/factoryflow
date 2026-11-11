@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-004H 전체 업무 API 회귀 검증 / GitHub Actions Java 21 + Testcontainers MySQL 49개 테스트 통과 (2026-11-11)**
+> **TASK-005A Vue 3 관리자 화면 / 백엔드 MySQL 51개 + 프론트 빌드 검증 (2026-11-11)**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -28,8 +28,9 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-004F · 품질검사·합격품 입고 | CI 동시성/롤백 테스트 완료 | [보고서](docs/task-reports/TASK-004F-품질검사-합격품입고-설계-검수.md) |
 | TASK-004G · 완제품 출고 | CI FIFO/동시성/멱등성 테스트 완료 | [보고서](docs/task-reports/TASK-004G-완제품출고-구현-검수.md) |
 | TASK-004H · 전 업무 API E2E | CI 49/49 성공 | [보고서](docs/task-reports/TASK-004H-전업무-E2E-회귀검증.md) |
+| TASK-005A · Vue 3 관리자 UI | 프론트 코드·CI 빌드, 브라우저 QA 대기 | [보고서](docs/task-reports/TASK-005A-관리자UI-설계-구현-검수.md) |
 
-**현재까지 Java 21/Spring Boot + MySQL 8.4 Testcontainers 기반 49개 테스트가 GitHub Actions에서 통과했습니다. 백엔드 MockMvc 기반 API E2E 검증을 완료했지만 Vue 관리자 화면·인증·실제 배포는 미구현입니다.**
+**현재까지 Java 21/Spring Boot + MySQL 8.4 Testcontainers 기반 51개 테스트가 GitHub Actions에서 통과했습니다. Vue 3 관리자 화면과 실제 API 연동 코드를 추가했습니다. 실제 브라우저 클릭 QA·인증·공개 배포는 아직 미검증입니다.**
 
 ## 기술 방향 (계획)
 
@@ -179,3 +180,12 @@ Docker 엔진이 없으면 로컬에서 Testcontainers 테스트는 실행할 �
 - 실패/복구: 두 번째 자재 부족 예약 롤백, 추가 입고 후 예약·취소, 요청 재전송 멱등성, 전량 불합격 제품 출고 차단.
 - 실제 Spring HTTP 컨트롤러부터 MySQL 커밋 상태까지 Testcontainers/MockMvc로 검사. 아직 웹 브라우저나 배포 서버를 포함한 E2E는 아님.
 - [TASK-004H 보고서](docs/task-reports/TASK-004H-전업무-E2E-회귀검증.md) · [CI 증거](docs/verification/TASK-004H-CI-실행-기록.md) · [핵심 학습](docs/learning/CORE_CONCEPTS.md)
+
+
+## TASK-005A 관리자 UI
+
+Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, 생산지시·품질검사, 완제품 출고, 재고 이동 이력 화면을 구현했습니다. 데이터는 실제 Spring Boot API만 사용하며 가짜 통계는 없습니다.
+
+로컬 개발: `cd frontend` → `npm ci` → `npm run dev` (API 127.0.0.1:8080 프록시).
+
+[외부 ERP UI 참고](docs/design/ADMIN_UI_REFERENCES.md) · [작업 보고서](docs/task-reports/TASK-005A-관리자UI-설계-구현-검수.md) · [핵심 학습](docs/learning/TASK-005A-관리자UI-학습핵심.md) · [CI 검증](docs/verification/TASK-005A-CI-검증.md). 인증·인가 전에는 외부 공개 배포하지 않습니다.

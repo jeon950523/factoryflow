@@ -1,10 +1,14 @@
 package com.factoryflow.shipment;
 
+import com.factoryflow.global.api.PageResponse;
 import com.factoryflow.global.error.ApiException;
+import com.factoryflow.shipment.dto.ShipmentSummaryResponse;
 import com.factoryflow.shipment.dto.ShipmentResponse;
 import com.factoryflow.shipment.validation.CanonicalShipment;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +21,15 @@ public class ShipmentLookupService {
     public ShipmentLookupService(ShipmentRepository shipments, ShipmentAllocationRepository allocations) {
         this.shipments = shipments;
         this.allocations = allocations;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ShipmentSummaryResponse> list(int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PAGINATION", "page는 0 이상, size는 1~100이어야 합니다.");
+        }
+        var sorted = PageRequest.of(page, size, Sort.by("createdAt").descending().and(Sort.by("id").descending()));
+        return PageResponse.from(shipments.findAll(sorted).map(ShipmentSummaryResponse::from));
     }
 
     @Transactional(readOnly = true)
