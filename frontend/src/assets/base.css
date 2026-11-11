@@ -35,3 +35,6 @@
 .item-search-pager button:hover:not(:disabled){background:#eef8f5}
 .component-input-row .field-label{min-width:0}
 .component-input-row .item-search-select{min-width:160px}
+
+.field-label>.field-title{color:#536b78}
+.field-label .required-mark{color:#d87969;font-style:normal}
