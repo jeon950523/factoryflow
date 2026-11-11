@@ -119,3 +119,17 @@
 - **실제 테스트:** MySQL Testcontainers 53/53, Node 10/10, 실제 GitHub Actions Ubuntu 24.04의 Google Chrome에서 Playwright 스모크 5/5. Chrome에는 테스트 Fixture API를 사용하므로 실 DB 브라우저 통합 검증이라고 말하지 않는다.
 - **시니어 검수:** 현재 ID 맵이 각 화면별로 분리되어 불필요한 API 호출이 있을 수 있음. 캐싱/요청 취소/DTO 확장은 실측 뒤에; 재고 정합성 로직은 손대지 않음.
 - **다시 공부할 질문:** 왜 레코드 15개마다 GET /items/{id}를 15번 호출하는 방식이 좋지 않은가? 이름 API 장애 시에도 생산지시 목록을 보여줘야 하는 이유는? MockMvc 실제 MySQL 테스트와 Chrome Fixture 테스트 각각 무엇을 보증하는가?
+
+
+## 13. 최신 응답 우선 처리 및 실제 MySQL 브라우저 E2E — TASK-005D
+- **원인:** 목록에서 A→B 연속 클릭 시 늦게 도착한 A GET 응답이 B의 최신 상세를 덮어쓸 수 있음. BOM/LOT에서도 재현 가능한 비동기 경쟁 조건.
+- **해결:** latestRequest.js의 begin()은 AbortController로 이전 요청을 중단하고 revision을 증가시킨다. isCurrent()가 true인 응답만 상태에 반영하고, unmount 시 cancel() 한다. 실제 취소와 이미 완료된 응답의 오래된 수정 방지를 동시에 수행.
+- **상태 변경 주의:** 생산지시 작업 전 대상 orderId를 캡처해, 다른 행으로 이동한 후 이전 작업 성공이 현재 선택을 되돌리지 않게 함.
+- **빠른 회귀:** Chrome Fixture 테스트에서 생산지시·출고·BOM의 느린 첫 응답/빠른 두 번째 응답을 재현. Node 12개, 브라우저 8개 성공.
+- **실DB 회귀:** MySQL 8.4 서비스 컨테이너, 실제 Spring Boot+Flyway 기동, Vue Vite 프록시, Chrome Playwright를 같은 CI 내에서 연결하여 업무 버튼으로 입고→생산→QC→출고. 2/2 통과.
+- **재고 결과:** 원자재 현재고5, 예약0, 완제품 현재고5, 예약0. RAW_RECEIPT25, RAW_CONSUMPTION20, FINISHED_RECEIPT8, FINISHED_SHIPMENT3. 부족 자재 예약은 409, DRAFT/현재고 유지.
+- **실제 CI 오류:** Gradle bootJar는 성공했지만 실행 스크립트에서 JAR 이름을 하드코딩해 서버 기동 실패. 빌드 산출물 검색으로 수정 후 통과. 앱 오류와 CI 환경 오류를 구분.
+- **대안/장단점:** AbortController만 사용하면 응답 완료 직전 타이밍 방어가 모호하고, revision만 사용하면 불필요한 네트워크가 지속될 수 있어 둘 다 사용. 반면 각 Vue View에 요청 상태 코드가 반복됨.
+- **효율:** MySQL+Spring+브라우저 전체 CI는 상대적으로 무거워 PR/main에서만 실행하고 빠른 Chrome Fixture/Node 검사는 기능 브랜치에서 유지.
+- **추후:** Vue composable로 요청 관리 중복 제거, Playwright 버전을 package-lock에 고정, 접근성·다중 사용자·운영 배포 테스트. 인증 없는 공용 배포는 하지 않음.
+- **나중에 설명할 문장:** "연속 클릭 시 오래된 응답이 최신 상세를 덮어쓰는 문제를 취소+버전 검사로 방지하고, 실제 Vue–Spring–MySQL 경로로 생산 전 과정의 재고 정합성을 검증했습니다."
