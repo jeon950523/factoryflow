@@ -24,8 +24,9 @@ jobs:
       # Pin the Playwright runner. The existing npm lock remains the app dependency source of truth.
       - name: Install browser smoke runner
         run: npm install --no-save --no-package-lock @playwright/test@1.56.1
-      - name: Install Chromium browser
-        run: npx playwright install --with-deps chromium
+      # GitHub Ubuntu 24.04 image includes Chrome. Avoid multi-minute browser downloads.
+      - name: Check preinstalled Chrome
+        run: google-chrome --version
       - name: Browser UI smoke with isolated API fixtures
         run: npx playwright test --config playwright.config.js
       - uses: actions/upload-artifact@v4
