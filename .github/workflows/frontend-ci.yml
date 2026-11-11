@@ -21,6 +21,21 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # Pin the Playwright runner. The existing npm lock remains the app dependency source of truth.
+      - name: Install browser smoke runner
+        run: npm install --no-save --no-package-lock @playwright/test@1.56.1
+      - name: Install Chromium browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser UI smoke with isolated API fixtures
+        run: npx playwright test --config playwright.config.js
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: factoryflow-ui-browser-failures
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: success()
         with:
