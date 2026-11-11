@@ -146,6 +146,27 @@ class ItemBomApiIntegrationTest {
         org.junit.jupiter.api.Assertions.assertEquals(0L, count);
     }
 
+
+    @Test
+    void itemSearchMustReachRowsBeyondFirstHundred() throws Exception {
+        String marker = "PICK" + UUID.randomUUID().toString().substring(0, 8);
+        for (int i = 0; i < 105; i++) {
+            jdbc.update("""
+                    INSERT INTO items(sku,name,item_type,unit,active)
+                    VALUES (?,?,'RAW_MATERIAL','EA',1)
+                    """, "RM-" + marker + "-" + String.format("%03d", i), "검색 원자재 " + marker);
+        }
+        mvc.perform(get("/api/v1/items")
+                        .param("itemType", "RAW_MATERIAL")
+                        .param("keyword", marker)
+                        .param("page", "10").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(105))
+                .andExpect(jsonPath("$.data.totalPages").value(11))
+                .andExpect(jsonPath("$.data.content.length()").value(5))
+                .andExpect(jsonPath("$.data.content[4].sku").value("RM-" + marker + "-104"));
+    }
+
     private Long createItem(String prefix, String name, String type) throws Exception {
         String sku = prefix + UUID.randomUUID().toString().substring(0, 8);
         mvc.perform(post("/api/v1/items").contentType(MediaType.APPLICATION_JSON)
