@@ -167,6 +167,28 @@ class ItemBomApiIntegrationTest {
                 .andExpect(jsonPath("$.data.content[4].sku").value("RM-" + marker + "-104"));
     }
 
+    @Test
+    void bulkLookupShouldResolveAnyItemIncludingBeyondHundredWithoutPerRowRequests() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        for (int i = 0; i < 105; i++) {
+            jdbc.update("INSERT INTO items(sku,name,item_type,unit,active) VALUES(?,?,'RAW_MATERIAL','EA',1)",
+                    "RM-BULK-" + suffix + "-" + String.format("%03d", i), "품목 " + i);
+        }
+        Long first = jdbc.queryForObject("SELECT id FROM items WHERE sku=?", Long.class, "RM-BULK-" + suffix + "-000");
+        Long last = jdbc.queryForObject("SELECT id FROM items WHERE sku=?", Long.class, "RM-BULK-" + suffix + "-104");
+        mvc.perform(get("/api/v1/items/lookup").param("ids", last + "," + first + "," + last))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].id").value(last))
+                .andExpect(jsonPath("$.data[0].name").value("품목 104"))
+                .andExpect(jsonPath("$.data[1].id").value(first));
+        mvc.perform(get("/api/v1/items/lookup").param("ids", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_ITEM_IDS"));
+        mvc.perform(get("/api/v1/items/lookup").param("ids", "-1,2"))
+                .andExpect(status().isBadRequest());
+    }
+
     private Long createItem(String prefix, String name, String type) throws Exception {
         String sku = prefix + UUID.randomUUID().toString().substring(0, 8);
         mvc.perform(post("/api/v1/items").contentType(MediaType.APPLICATION_JSON)

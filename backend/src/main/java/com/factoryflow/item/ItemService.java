@@ -5,6 +5,12 @@ import com.factoryflow.global.error.ApiException;
 import com.factoryflow.item.dto.CreateItemRequest;
 import com.factoryflow.item.dto.ItemResponse;
 import java.util.Locale;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.LinkedHashSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +42,20 @@ public class ItemService {
             // existsBySku is a friendly pre-check; UNIQUE(sku) is the final guard against races.
             throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESOURCE", "품목 등록이 충돌했습니다.");
         }
+    }
+
+    public List<ItemResponse> lookup(List<Long> ids) {
+        if (ids == null || ids.isEmpty() || ids.size() > 100
+                || ids.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ITEM_IDS",
+                    "조회할 품목 ID를 1~100개 지정해야 하며 모두 양수여야 합니다.");
+        }
+        // Duplicated requested IDs are returned once and results follow request order.
+        List<Long> orderedIds = List.copyOf(new LinkedHashSet<>(ids));
+        Map<Long, ItemResponse> found = itemRepository.findAllById(orderedIds).stream()
+                .map(ItemResponse::from)
+                .collect(Collectors.toMap(ItemResponse::id, Function.identity()));
+        return orderedIds.stream().map(found::get).filter(Objects::nonNull).toList();
     }
 
     public ItemResponse get(Long id) {
