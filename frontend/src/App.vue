@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { LayoutDashboard, Boxes, Warehouse, ClipboardList, Truck, ArrowLeftRight, Factory, PanelLeftClose, PanelLeftOpen, RefreshCw, X, ChevronRight, ShieldAlert } from 'lucide-vue-next'
 import { useUiStore } from './stores/ui.js'
 import { useAuthStore } from './stores/auth.js'
 import { Users, LogOut } from 'lucide-vue-next'
 
-const route = useRoute()
+const route = useRoute(), router = useRouter()
 const ui = useUiStore()
 const auth = useAuthStore()
 const sidebarOpen = ref(true)
@@ -21,7 +21,10 @@ const navGroups = [
 const title = computed(() => route.meta.title ?? '운영 개요')
 const subtitle = computed(() => route.meta.subtitle ?? '')
 function refresh() { reloadKey.value += 1 }
-async function signOut() { await auth.logout(); }
+async function signOut() {
+  try { await auth.logout() } catch { ui.notify('로그아웃 과정에서 오류가 발생했습니다.', 'error') }
+  await router.replace('/login')
+}
 </script>
 
 <template>
