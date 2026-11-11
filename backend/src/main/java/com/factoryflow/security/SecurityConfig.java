@@ -4,6 +4,7 @@ import com.factoryflow.global.api.ApiResponse;
 import com.factoryflow.security.AuthController.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             UserDetailsService userDetailsService,
                                             PasswordEncoder encoder,
