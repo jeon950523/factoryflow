@@ -27,6 +27,8 @@ test('viewer may browse but cannot access account screen or create inventory', a
 })
 
 test('admin login submits CSRF-protected form and exposes account management', async ({ page }) => {
+  await page.route('**/api/v1/**', route =>
+    reply(route, 200, { data: { content: [], totalElements: 0, totalPages: 0 } }))
   await page.route('**/api/v1/auth/me', route =>
     reply(route, 401, { errorCode: 'UNAUTHENTICATED', message: '로그인이 필요합니다.' }))
   await page.route('**/api/v1/auth/csrf', route =>
@@ -36,8 +38,6 @@ test('admin login submits CSRF-protected form and exposes account management', a
     csrfWasSent = route.request().headers()['x-csrf-token'] === 'masked-csrf-test'
     return reply(route, 200, { data: { username: 'ciadmin', role: 'ADMIN' } })
   })
-  await page.route('**/api/v1/**', route =>
-    reply(route, 200, { data: { content: [], totalElements: 0, totalPages: 0 } }))
   await page.goto('/login')
   await page.locator('input[name=username]').fill('ciadmin')
   await page.locator('input[name=password]').fill('some-test-password')
