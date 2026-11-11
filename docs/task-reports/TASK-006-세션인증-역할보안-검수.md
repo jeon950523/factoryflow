@@ -1,13 +1,13 @@
 # TASK-006 — Spring Security 세션·CSRF·역할 기반 인가 시니어 검수
 
-상태: 코드 구현 및 GitHub CI 검증 진행 중. 테스트가 끝나기 전 성공이라고 주장하지 않는다.
+상태: 2026-11-12 기준 기능 구현·CI 검증 완료. 공개 배포와 운영 보안 검증은 미완료.
 
 ## 1. 목적
 로그인 없이 입고·생산·검사·출고 명령을 전송할 수 있던 보안 경계를 Spring Security에서 차단한다.
 
 ## 2. 전체 호출 순서
 - 최초 DB: Flyway V2 app_users 생성 → 환경변수 ADMIN 부트스트랩(새 DB, 미설정 기동 거부).
-- 로그인: Vue LoginView → GET /auth/csrf → POST /auth/login(form + CSRF header) → Spring Security Filter → DaoAuthenticationProvider/UserDetailsService → BCrypt + MySQL → 세션 회전 → JSON 사용자 정보 → CSRF 재요청.
+- 로그인: Vue LoginView → GET /auth/csrf → POST /auth/login(form + CSRF header) → Spring Security Filter → DaoAuthenticationProvider/UserDetailsService → BCrypt + MySQL → 세션 회전 → JSON 사용자 정보 → 최초 쓰기 요청 시 CSRF 재조회.
 - 조회: Vue 라우터 GET /auth/me → 세션과 Role 검증 → Controller GET → Service.
 - 쓰기: Vue api.post + X-CSRF-TOKEN → 세션 인증+ADMIN Role+CSRF 검증 → 기존 제조 Controller/Service/JPA.
 - 로그아웃: POST /auth/logout → HttpSession 폐기, Vue 인증 상태 초기화 후 /login.
@@ -48,5 +48,14 @@ FactoryFlow의 제조 API에 서버 세션 인증과 CSRF 보호를 적용하고
 - 403은 VIEWER 권한 거부일 수도 있으므로 단순 로그아웃하지 않고 `/auth/me`로 확인한다. 오래된 요청의 401/403은 새 세션을 무효화하지 않는다.
 - 기능적 비용: 진단용 `/auth/me` GET은 업무 API 403 발생 시에만 수행. 네트워크 장애 시 기존 403을 보존한다.
 - 단위 테스트: Node fetch 모의 9개 시나리오. 로컬 독립 테스트 9/9 통과(2026-11-12).
-- **미검증:** CI 전체 Node 테스트·Vue 빌드·Spring Security+Testcontainers·실 MySQL+Chrome E2E. 완료 전 공개 배포나 main 병합 금지.
+- **CI 성공 확인:** Backend 57/57, Frontend Node 23/23 · Vite 빌드 · Chrome Fixture 11/11, Fullstack MySQL+Chrome 2/2. 운영 배포 보안 검증 이전 외부 공개 금지.
 - 후속 리팩터링: 운영 배포에서 로그인 시도 제한·HTTPS·Secure Cookie·프록시 헤더·세션/CSRF 실환경 확인.
+
+## 8. CI 실제 실행 증거 및 판정
+
+- [Backend CI](https://github.com/jeon950523/factoryflow/actions/runs/43110093904): Java 21, Testcontainers MySQL 8.4, `clean test` / **JUnit 57·실패 0·오류 0·스킵 0**.
+- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43110093813): Node 23/23, Vite 프로덕션 빌드 성공, Chrome Fixture 11/11.
+- [Fullstack Browser E2E](https://github.com/jeon950523/factoryflow/actions/runs/43110093834): Spring Boot·Flyway·MySQL 기동 성공, 로그인+CSRF 포함 정상 제조 업무 1건 및 재고 부족 롤백 1건, **2/2**.
+- 검증된 코드 SHA: `eb5e8780380f0c4ffe9b160f1196b1485f53bdfb`. CI 실행 뒤 문서만 갱신하며 애플리케이션 코드는 변경하지 않음.
+- **검증 경계:** CI는 테스트 격리 환경. 외부 Vercel/Oracle, 실제 HTTPS Proxy, Secure/SameSite Cookie, 세션 제한·관리자 복구·사용자 비활성화 정책은 검증되지 않음.
+- 최종 판단: **TASK-006 MVP 인증·인가 구현 완료 / 인터넷 공개 배포 보류**. 실무 전환 단계에서 로그인 시도 제한, 세션·쿠키 실환경 검증, 관리자 계정 복구, 감사로그를 우선 처리.
