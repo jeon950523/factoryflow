@@ -52,5 +52,5 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   return payload.data
 }
 
-export const get = (path, query) => api(`${path}${params(query)}`)
+export const get = (path, query, options = {}) => api(`${path}${params(query)}`, options)
 export const post = (path, body) => api(path, { method: 'POST', body })
