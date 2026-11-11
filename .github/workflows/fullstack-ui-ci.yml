@@ -64,7 +64,14 @@ jobs:
           DB_PASSWORD: test_password_only
           SPRING_PROFILES_ACTIVE: local
         run: |
-          nohup java -jar backend/build/libs/factoryflow-0.1.0-SNAPSHOT.jar > /tmp/factoryflow-server.log 2>&1 &
+          jar_path="$(find backend/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' -print -quit)"
+          if [ -z "$jar_path" ]; then
+            find backend/build/libs -maxdepth 1 -type f -print
+            echo 'Spring Boot executable JAR missing'
+            exit 1
+          fi
+          echo "Starting $jar_path"
+          nohup java -jar "$jar_path" > /tmp/factoryflow-server.log 2>&1 &
           echo $! > /tmp/factoryflow-server.pid
           for n in $(seq 1 90); do
             if curl --silent --fail http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
