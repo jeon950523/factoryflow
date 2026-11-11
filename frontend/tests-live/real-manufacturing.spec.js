@@ -2,10 +2,11 @@ import { test, expect } from '@playwright/test'
 
 /**
  * No API mocks. Browser -> Vite proxy -> real Spring Boot -> MySQL 8.4.
- * Non-production CI database only; this application has no authentication yet.
+ * Non-production CI database only; session login required before business operations.
  */
 async function postData(request, path, payload) {
-  const response = await request.post(path, { data: payload })
+  const csrf = await getData(request, '/api/v1/auth/csrf')
+  const response = await request.post(path, { data: payload, headers: { 'X-CSRF-TOKEN': csrf.token } })
   expect(response.status(), await response.text()).toBe(201)
   return (await response.json()).data
 }
@@ -14,6 +15,15 @@ async function getData(request, path) {
   const response = await request.get(path)
   expect(response.ok(), await response.text()).toBeTruthy()
   return (await response.json()).data
+}
+
+async function loginAsAdmin(page) {
+  await page.goto('/login')
+  await page.locator('input[name=username]').fill(process.env.E2E_ADMIN_USERNAME)
+  await page.locator('input[name=password]').fill(process.env.E2E_ADMIN_PASSWORD)
+  await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/')
+  await expect(page.locator('.topbar')).toContainText(process.env.E2E_ADMIN_USERNAME)
 }
 
 async function selectItem(page, sku) {
@@ -25,7 +35,9 @@ async function selectItem(page, sku) {
   await expect(page.locator('.dialog .item-search-toggle')).toContainText(sku)
 }
 
-test('real backend and MySQL: receipt → reserve → consume → QC → shipment', async ({ page, request }) => {
+test('real backend and MySQL: receipt → reserve → consume → QC → shipment', async ({ page }) => {
+  await loginAsAdmin(page)
+  const request = page.request
   const id = Date.now().toString(36).toUpperCase()
   const rawSku = 'RM-LIVE-' + id
   const finishedSku = 'FG-LIVE-' + id
@@ -93,7 +105,9 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
 })
 
 
-test('real database: shortage from Vue reservation button must preserve DRAFT and unreserved stock', async ({ page, request }) => {
+test('real database: shortage from Vue reservation button must preserve DRAFT and unreserved stock', async ({ page }) => {
+  await loginAsAdmin(page)
+  const request = page.request
   const id = Date.now().toString(36).toUpperCase()
   const raw = await postData(request, '/api/v1/items', {
     sku: 'RM-SHORT-' + id, name: '부족 재료 ' + id, itemType: 'RAW_MATERIAL',

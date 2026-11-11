@@ -14,6 +14,8 @@ test.beforeEach(async ({ page }) => {
     const url = new URL(route.request().url())
     const name = url.pathname
     let data
+    if (name === '/api/v1/auth/me') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { username: 'fixture-admin', role: 'ADMIN' } }) })
+    if (name === '/api/v1/auth/csrf') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { token: 'fixture-csrf', headerName: 'X-CSRF-TOKEN' } }) })
     if (name === '/api/v1/items/lookup') {
       const ids = (url.searchParams.get('ids') ?? '').split(',').map(Number)
       data = items.filter(item => ids.includes(item.id))
