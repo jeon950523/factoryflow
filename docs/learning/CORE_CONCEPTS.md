@@ -71,3 +71,16 @@
 - **원자성:** LOT.onHand 감소, shipments, shipment_allocations, stock_movements(FINISHED_SHIPMENT) 모두 같은 DB 트랜잭션.
 - **장점/단점:** 데이터 정합성 및 LOT 추적이 명확 / 동일 품목 선잠금으로 경합 가능, 부분 출고·반품 미지원.
 - **실측:** GitHub Actions MySQL CI 45/45 통과. 대량 트래픽 성능은 측정하지 않았으며 후속 검증 과제다.
+
+
+## 10. 전체 제조 업무 API E2E — TASK-004H
+- **목적:** 단위/개별 API 테스트 통과만으로는 업무 단계 간 수량 정합성이 검증되지 않는다. 원자재 입고부터 검사·출고까지 실제 HTTP 컨트롤러를 순서대로 호출하고, 커밋된 DB 상태를 대조한다.
+- **도구:** MockMvc는 Spring Controller/Service/Repository 경로를 호출하지만 실제 외부 네트워크·브라우저는 포함하지 않는다. Testcontainers MySQL 8.4로 DB 종류와 제약을 일치시킨다.
+- **검증 책임:** 업무 데이터 생성·변경은 모두 API 호출로 처리. JdbcTemplate은 결과 DB 조회에만 사용한다.
+- **트랜잭션:** 테스트 클래스에서 Transactional로 전체 실행을 묶지 않는다. 각 HTTP 요청의 트랜잭션 커밋을 개별적으로 검증한다.
+- **재고 불변식:** available = onHand - reserved. 물리 현재고 = RAW_RECEIPT + FINISHED_RECEIPT - RAW_CONSUMPTION - FINISHED_SHIPMENT. 예약은 물리 이동에 포함하지 않는다.
+- **정상 흐름:** 철판 LOT 30+70, 볼트 200 → 제품 50 생산(철판 50/볼트 100 소모) → QC 합격 47·불합격 3 → 완제품 10 출고 → 최종 완제품 37.
+- **보호 시나리오:** 두 번째 재료 부족 시 전량 예약 롤백; 추가 입고 후 예약·취소; 중복 요청 재전송/키 충돌; 전량 불합격 LOT 미생성·출고 불허.
+- **검증:** CI 49개 테스트 성공. 신규 E2E 4개. 브라우저/로그인/Oracle 배포 경로는 아직 미검증.
+- **장단점:** 실제 MySQL 트랜잭션/제약과 통합 흐름의 재현성 향상 / 컨테이너 구동비용과 테스트별 반복 준비 부담. 안정적으로 반복 확인한 뒤 Fixture/컨테이너 공유 최적화.
+- **학습 질문:** API 경유로 데이터 준비하는 이유는? 테스트에 Transactional을 붙이면 왜 커밋 검증을 왜곡할 수 있나? MockMvc 통합 E2E와 실제 브라우저 E2E는 무엇이 다른가?
