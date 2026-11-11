@@ -189,3 +189,11 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 로컬 개발: `cd frontend` → `npm ci` → `npm run dev` (API 127.0.0.1:8080 프록시).
 
 [외부 ERP UI 참고](docs/design/ADMIN_UI_REFERENCES.md) · [작업 보고서](docs/task-reports/TASK-005A-관리자UI-설계-구현-검수.md) · [핵심 학습](docs/learning/TASK-005A-관리자UI-학습핵심.md) · [CI 검증](docs/verification/TASK-005A-CI-검증.md). 인증·인가 전에는 외부 공개 배포하지 않습니다.
+
+
+## TASK-005B — 100개 이상 품목 검색형 선택기 (CI 검증 완료)
+- 입고·생산지시·출고·BOM 원자재 선택을 서버 검색 + 10건 단위 페이지 이동 컴포넌트로 교체. 첫 100건 제한으로 선택하지 못하던 문제 개선.
+- 빠른 연속 검색 시 이전 요청을 AbortController로 중단하여 오래된 응답이 최신 결과를 덮어쓰지 않게 함.
+- 실제 MySQL 105건 테스트에서 11페이지 5개 반환 확인, 백엔드 52/52 통과. 프론트 Node 테스트 6/6 및 Vite 빌드 통과.
+- [작업별 코드·장단점·리팩터링 보고서](docs/task-reports/TASK-005B-검색형품목선택-구현-검수.md) · [검증 증거](docs/verification/TASK-005B-CI-검증.md) · [핵심 학습 모음](docs/learning/CORE_CONCEPTS.md).
+- 참고: 일부 기존 목록/상세의 이름 해석은 여전히 앞쪽 100개 품목 캐시에 의존하며, 미검색 항목은 ID로 표시할 수 있음. 실제 브라우저 UI/접근성 검증은 후속 과제.
