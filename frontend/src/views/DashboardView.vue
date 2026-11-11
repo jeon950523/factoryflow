@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Boxes, ClipboardList, Factory, CircleCheck, ArrowUpRight, ArrowRight, Warehouse, Truck, RefreshCw } from 'lucide-vue-next'
 import { get } from '../lib/api.js'
+import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
 import { number, dateTime } from '../lib/format.js'
 import StatusBadge from '../components/StatusBadge.vue'
 import AsyncState from '../components/AsyncState.vue'
@@ -11,6 +12,7 @@ const loading = ref(true)
 const error = ref('')
 const totals = ref({ items: 0, draft: 0, reserved: 0, active: 0, qc: 0, completed: 0 })
 const orders = ref([])
+const itemNames = ref({})
 const inventory = ref([])
 const workStatuses = ['DRAFT', 'RESERVED', 'IN_PROGRESS', 'AWAITING_QC', 'COMPLETED']
 
@@ -25,6 +27,7 @@ async function refresh() {
       ...workStatuses.map(status => get('/api/v1/work-orders', { status, page: 0, size: 1 })),
     ])
     totals.value = { items: items.totalElements, draft: counts[0].totalElements, reserved: counts[1].totalElements, active: counts[2].totalElements, qc: counts[3].totalElements, completed: counts[4].totalElements }
+    itemNames.value = await lookupItemNames(recent.content.map(order => order.finishedItemId))
     orders.value = recent.content
     inventory.value = stock.content
   } catch (e) { error.value = e.message }
@@ -54,7 +57,7 @@ onMounted(refresh)
       </section>
     </div>
     <div class="section-grid dashboard-columns lower-grid">
-      <section class="surface-card"><div class="card-header"><div><span class="section-kicker">RECENT ORDERS</span><h2>최근 생산지시</h2><p>최신 6건</p></div><RouterLink class="text-link" to="/orders">자세히 보기 <ArrowUpRight :size="15" /></RouterLink></div><div class="table-scroll"><table class="data-table"><thead><tr><th>생산지시</th><th>완제품 ID</th><th>계획 수량</th><th>상태</th></tr></thead><tbody><tr v-for="order in orders" :key="order.id"><td><RouterLink class="row-link" :to="{ path: '/orders', query: { id: order.id } }">{{ order.orderNo }}</RouterLink><small class="cell-sub">{{ dateTime(order.createdAt) }}</small></td><td>#{{ order.finishedItemId }}</td><td class="number-cell">{{ number(order.plannedQty) }}</td><td><StatusBadge :status="order.status" /></td></tr><tr v-if="!orders.length"><td colspan="4" class="table-empty">아직 생산지시가 없습니다.</td></tr></tbody></table></div></section>
+      <section class="surface-card"><div class="card-header"><div><span class="section-kicker">RECENT ORDERS</span><h2>최근 생산지시</h2><p>최신 6건</p></div><RouterLink class="text-link" to="/orders">자세히 보기 <ArrowUpRight :size="15" /></RouterLink></div><div class="table-scroll"><table class="data-table"><thead><tr><th>생산지시</th><th>완제품</th><th>계획 수량</th><th>상태</th></tr></thead><tbody><tr v-for="order in orders" :key="order.id"><td><RouterLink class="row-link" :to="{ path: '/orders', query: { id: order.id } }">{{ order.orderNo }}</RouterLink><small class="cell-sub">{{ dateTime(order.createdAt) }}</small></td><td>{{ itemNameOrId(itemNames, order.finishedItemId, "완제품") }}</td><td class="number-cell">{{ number(order.plannedQty) }}</td><td><StatusBadge :status="order.status" /></td></tr><tr v-if="!orders.length"><td colspan="4" class="table-empty">아직 생산지시가 없습니다.</td></tr></tbody></table></div></section>
       <section class="surface-card"><div class="card-header"><div><span class="section-kicker">STOCK SNAPSHOT</span><h2>품목 재고 요약</h2><p>첫 8개 품목 · 가용 수량</p></div><RouterLink class="text-link" to="/inventory">재고 전체 보기 <ArrowUpRight :size="15" /></RouterLink></div><div class="table-scroll"><table class="data-table"><thead><tr><th>품목</th><th>현재고</th><th>예약</th><th>가용</th></tr></thead><tbody><tr v-for="item in inventory" :key="item.itemId"><td><strong>{{ item.name }}</strong><small class="cell-sub">{{ item.sku }}</small></td><td class="number-cell">{{ number(item.onHand) }}</td><td class="number-cell">{{ number(item.reserved) }}</td><td class="number-cell" :class="{ 'number-alert': item.available === 0 }">{{ number(item.available) }}</td></tr><tr v-if="!inventory.length"><td colspan="4" class="table-empty">재고 정보가 없습니다.</td></tr></tbody></table></div></section>
     </div>
   </AsyncState>
