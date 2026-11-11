@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { Plus, RefreshCw, ClipboardList, X, ArrowRight, CheckCheck, CircleAlert } from 'lucide-vue-next'
 import { get, post } from '../lib/api.js'
+import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId, itemSkuOrId } from '../lib/itemNames.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
 import { useUiStore } from '../stores/ui.js'
@@ -12,6 +13,8 @@ import PageControls from '../components/PageControls.vue'
 import ItemSearchSelect from '../components/ItemSearchSelect.vue'
 
 const route = useRoute(), ui = useUiStore()
+const listGate = createLatestRequest(), detailGate = createLatestRequest()
+onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
 const loading = ref(false), error = ref(''), page = ref(0)
 const statusFilter = ref(''), list = ref({ content: [], totalPages: 0, totalElements: 0 })
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
@@ -27,35 +30,51 @@ const transitions = {
 const actions = computed(() => selected.value ? transitions[selected.value.status] ?? [] : [])
 const selectedItemName = computed(() => itemNameOrId(itemNames.value, selected.value?.finishedItemId, '완제품'))
 async function load() {
+  const request = listGate.begin()
   loading.value = true; error.value = ''
   try {
     const orders = await get('/api/v1/work-orders',
-      { status: statusFilter.value || undefined, page: page.value, size: 15 })
+      { status: statusFilter.value || undefined, page: page.value, size: 15 },
+      { signal: request.signal })
+    if (!request.isCurrent()) return
     list.value = orders
     try {
-      const names = await lookupItemNames(orders.content.map(row => row.finishedItemId))
+      const names = await lookupItemNames(orders.content.map(row => row.finishedItemId), { signal: request.signal })
+      if (!request.isCurrent()) return
       itemNames.value = { ...itemNames.value, ...names }
-    } catch {
-      ui.notify('품목명 조회에 실패했습니다. 이름 대신 품목 ID로 표시합니다.', 'error')
+    } catch (e) {
+      if (request.isCurrent() && !isAbortError(e)) ui.notify('품목명 조회에 실패했습니다. 이름 대신 품목 ID로 표시합니다.', 'error')
     }
-  } catch (e) { error.value = e.message }
-  finally { loading.value = false }
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) error.value = e.message
+  } finally {
+    if (request.isCurrent()) loading.value = false
+  }
 }
 async function choose(id) {
+  const request = detailGate.begin()
   detailLoading.value = true; detailError.value = ''
   try {
-    const detail = await get(`/api/v1/work-orders/${id}`)
+    const detail = await get(`/api/v1/work-orders/${id}`, undefined, { signal: request.signal })
+    if (!request.isCurrent()) return
     selected.value = detail
     qcForm.value = { passedQty: detail.plannedQty, failedQty: 0 }
     try {
       const names = await lookupItemNames([detail.finishedItemId,
-        ...detail.materials.map(material => material.materialItemId)])
+        ...detail.materials.map(material => material.materialItemId)], { signal: request.signal })
+      if (!request.isCurrent()) return
       itemNames.value = { ...itemNames.value, ...names }
-    } catch {
-      ui.notify('자재명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
+    } catch (e) {
+      if (request.isCurrent() && !isAbortError(e)) ui.notify('자재명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
     }
-  } catch (e) { selected.value = null; detailError.value = e.message }
-  finally { detailLoading.value = false }
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) {
+      selected.value = null
+      detailError.value = e.message
+    }
+  } finally {
+    if (request.isCurrent()) detailLoading.value = false
+  }
 }
 async function createOrder() {
   const qty = Number(createForm.value.plannedQty)
@@ -73,18 +92,19 @@ async function runAction(action) {
   if (!selected.value || acting.value) return
   if (action === 'cancel' && !window.confirm('생산지시를 취소하고 예약된 재고를 해제하시겠습니까?')) return
   acting.value = true
+  const actionOrderId = selected.value.id
   try {
     if (action === 'inspection') {
       const passedQty = Number(qcForm.value.passedQty), failedQty = Number(qcForm.value.failedQty)
       if (![passedQty, failedQty].every(v => Number.isSafeInteger(v) && v >= 0) || passedQty + failedQty !== Number(selected.value.plannedQty)) {
         ui.notify('합격과 불합격 수량 합계가 생산 계획 수량과 같아야 합니다.', 'error'); return
       }
-      await post(`/api/v1/work-orders/${selected.value.id}/inspection`, { passedQty, failedQty })
+      await post(`/api/v1/work-orders/${actionOrderId}/inspection`, { passedQty, failedQty })
     } else {
-      await post(`/api/v1/work-orders/${selected.value.id}/${action}`)
+      await post(`/api/v1/work-orders/${actionOrderId}/${action}`)
     }
     ui.notify(action === 'inspection' ? '품질검사를 확정하고 합격품을 재고에 반영했습니다.' : '생산지시 상태를 변경했습니다.')
-    await Promise.all([choose(selected.value.id), load()])
+    await Promise.all([selected.value?.id === actionOrderId ? choose(actionOrderId) : Promise.resolve(), load()])
   } catch (e) { ui.notify(e.message, 'error') }
   finally { acting.value = false }
 }

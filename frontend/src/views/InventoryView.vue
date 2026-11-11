@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { Plus, RefreshCw, Warehouse, X, Layers } from 'lucide-vue-next'
 import { get, post } from '../lib/api.js'
+import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
 import { useUiStore } from '../stores/ui.js'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -10,6 +11,8 @@ import PageControls from '../components/PageControls.vue'
 import ItemSearchSelect from '../components/ItemSearchSelect.vue'
 
 const ui = useUiStore()
+const listGate = createLatestRequest(), lotGate = createLatestRequest()
+onBeforeUnmount(() => { listGate.cancel(); lotGate.cancel() })
 const page = ref(0), list = ref({ content: [], totalPages: 0, totalElements: 0 })
 const loading = ref(false), error = ref('')
 const itemFilter = ref(''), lotPage = ref(0), lots = ref({ content: [], totalPages: 0, totalElements: 0 })
@@ -18,19 +21,31 @@ const drawer = ref(false), saving = ref(false)
 const receipt = ref({ itemId: '', lotCode: '', quantity: 1, requestKey: requestKey('REC') })
 
 async function load() {
+  const request = listGate.begin()
   loading.value = true; error.value = ''
   try {
-    list.value = await get('/api/v1/inventory', { page: page.value, size: 15 })
-  } catch (e) { error.value = e.message }
-  finally { loading.value = false }
+    const data = await get('/api/v1/inventory', { page: page.value, size: 15 }, { signal: request.signal })
+    if (request.isCurrent()) list.value = data
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) error.value = e.message
+  } finally {
+    if (request.isCurrent()) loading.value = false
+  }
 }
 async function loadLots() {
+  const request = lotGate.begin()
   lots.value = { content: [], totalElements: 0, totalPages: 0 }
   if (!itemFilter.value) return
   lotsLoading.value = true; lotsError.value = ''
-  try { lots.value = await get('/api/v1/inventory/lots', { itemId: itemFilter.value, page: lotPage.value, size: 15 }) }
-  catch (e) { lotsError.value = e.message }
-  finally { lotsLoading.value = false }
+  try {
+    const data = await get('/api/v1/inventory/lots',
+      { itemId: itemFilter.value, page: lotPage.value, size: 15 }, { signal: request.signal })
+    if (request.isCurrent()) lots.value = data
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) lotsError.value = e.message
+  } finally {
+    if (request.isCurrent()) lotsLoading.value = false
+  }
 }
 async function choose(item) { itemFilter.value = String(item.itemId); lotPage.value = 0; await loadLots() }
 function openReceipt() { receipt.value = { itemId: '', lotCode: '', quantity: 1, requestKey: requestKey('REC') }; drawer.value = true }

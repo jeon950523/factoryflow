@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { Truck, Plus, RefreshCw, X, PackageCheck } from 'lucide-vue-next'
 import { get, post } from '../lib/api.js'
+import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
 import { useUiStore } from '../stores/ui.js'
@@ -10,38 +11,54 @@ import PageControls from '../components/PageControls.vue'
 import ItemSearchSelect from '../components/ItemSearchSelect.vue'
 
 const ui = useUiStore()
+const listGate = createLatestRequest(), detailGate = createLatestRequest()
+onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
 const page = ref(0), list = ref({ content: [], totalPages: 0, totalElements: 0 })
 const loading = ref(false), error = ref(''), drawer = ref(false), saving = ref(false)
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
 const shipment = ref({ requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1 })
 async function load() {
+  const request = listGate.begin()
   loading.value = true; error.value = ''
   try {
-    const rows = await get('/api/v1/shipments', { page: page.value, size: 15 })
+    const rows = await get('/api/v1/shipments', { page: page.value, size: 15 }, { signal: request.signal })
+    if (!request.isCurrent()) return
     list.value = rows
     try {
-      const names = await lookupItemNames(rows.content.map(row => row.finishedItemId))
+      const names = await lookupItemNames(rows.content.map(row => row.finishedItemId), { signal: request.signal })
+      if (!request.isCurrent()) return
       itemNames.value = { ...itemNames.value, ...names }
-    } catch {
-      ui.notify('완제품명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
+    } catch (e) {
+      if (request.isCurrent() && !isAbortError(e)) ui.notify('완제품명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
     }
-  } catch (e) { error.value = e.message }
-  finally { loading.value = false }
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) error.value = e.message
+  } finally {
+    if (request.isCurrent()) loading.value = false
+  }
 }
 async function choose(id) {
+  const request = detailGate.begin()
   detailLoading.value = true; detailError.value = ''
   try {
-    const detail = await get(`/api/v1/shipments/${id}`)
+    const detail = await get(`/api/v1/shipments/${id}`, undefined, { signal: request.signal })
+    if (!request.isCurrent()) return
     selected.value = detail
     try {
-      const names = await lookupItemNames([detail.finishedItemId])
+      const names = await lookupItemNames([detail.finishedItemId], { signal: request.signal })
+      if (!request.isCurrent()) return
       itemNames.value = { ...itemNames.value, ...names }
-    } catch {
-      ui.notify('완제품명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
+    } catch (e) {
+      if (request.isCurrent() && !isAbortError(e)) ui.notify('완제품명 조회에 실패했습니다. 품목 ID로 표시합니다.', 'error')
     }
+  } catch (e) {
+    if (request.isCurrent() && !isAbortError(e)) {
+      selected.value = null
+      detailError.value = e.message
+    }
+  } finally {
+    if (request.isCurrent()) detailLoading.value = false
   }
-  catch (e) { selected.value = null; detailError.value = e.message }
-  finally { detailLoading.value = false }
 }
 function openCreate() { shipment.value = { requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1 }; drawer.value = true }
 async function submit() {
