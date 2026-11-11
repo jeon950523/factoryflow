@@ -46,6 +46,7 @@ async function searchPage(nextPage = 0) {
   const signal = activeController.signal
   loading.value = true
   error.value = ''
+  page.value = nextPage // 실패해도 재시도 시 사용자가 요청했던 페이지를 유지한다.
   try {
     const result = await get('/api/v1/items', {
       itemType: props.itemType,
@@ -119,7 +120,7 @@ onBeforeUnmount(stopRequest)
   <div class="item-search-select" @keydown.esc.stop.prevent="opened && toggle()">
     <div class="item-search-summary">
       <button type="button" class="item-search-toggle" :class="{ 'has-value': !!modelValue }"
-              :disabled="disabled" :aria-expanded="opened" aria-haspopup="true" @click="toggle">
+              :disabled="disabled" :aria-expanded="opened" :aria-label="placeholder + ': ' + selectedLabel" aria-haspopup="true" @click="toggle">
         <span>{{ selectedLabel }}</span><ChevronDown :size="16" aria-hidden="true" />
       </button>
       <button v-if="modelValue && !disabled" type="button" class="item-search-clear"
