@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { params, api, ApiError } from './api.js'
+import { params, api, get, ApiError } from './api.js'
 
 test('query params omit null and preserve zero', () => {
   assert.equal(params({ itemId: 12, page: 0, keyword: '' }), '?itemId=12&page=0')
@@ -26,4 +26,40 @@ test('network failure is reported explicitly', async () => {
   globalThis.fetch = async () => { throw new TypeError('offline') }
   try { await assert.rejects(() => api('/api/v1/items'), error => error instanceof ApiError && error.code === 'NETWORK_ERROR') }
   finally { globalThis.fetch = prev }
+})
+
+
+test('GET forwards server search filters and AbortController signal', async () => {
+  const previous = globalThis.fetch
+  const controller = new AbortController()
+  let requestedUrl = ''
+  let requestedSignal = null
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = url
+    requestedSignal = options.signal
+    return { ok: true, status: 200, json: async () => ({ data: { content: [], totalPages: 0 } }) }
+  }
+  try {
+    await get('/api/v1/items', { itemType: 'RAW_MATERIAL', keyword: '철판', page: 10, size: 10 }, { signal: controller.signal })
+    assert.match(requestedUrl, /itemType=RAW_MATERIAL/)
+    assert.match(requestedUrl, /keyword=%EC%B2%A0%ED%8C%90/)
+    assert.match(requestedUrl, /page=10/)
+    assert.strictEqual(requestedSignal, controller.signal)
+  } finally {
+    globalThis.fetch = previous
+  }
+})
+
+test('AbortError stays distinguishable from real connection failures', async () => {
+  const previous = globalThis.fetch
+  globalThis.fetch = async () => {
+    const error = new Error('aborted')
+    error.name = 'AbortError'
+    throw error
+  }
+  try {
+    await assert.rejects(() => get('/api/v1/items'), error => error.name === 'AbortError')
+  } finally {
+    globalThis.fetch = previous
+  }
 })
