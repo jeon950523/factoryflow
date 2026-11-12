@@ -155,4 +155,31 @@ class SessionSecurityIntegrationTest {
                 .andExpect(jsonPath("$.errorCode").value("INVALID_CREDENTIALS"));
         mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void repeatedLoginAttemptsReturn429WithoutBypassingCsrfOrCreatingLogin() throws Exception {
+        // Unique valid-looking name: the result must not disclose whether the account exists.
+        String probe = "probe" + UUID.randomUUID().toString().substring(0, 8);
+        MockHttpSession session = new MockHttpSession();
+        String token = csrf(session);
+        for (int attempt = 0; attempt < 8; attempt++) {
+            mvc.perform(post("/api/v1/auth/login").session(session)
+                            .header("X-CSRF-TOKEN", token)
+                            .param("username", probe).param("password", "wrong-password"))
+                    .andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post("/api/v1/auth/login").session(session)
+                        .header("X-CSRF-TOKEN", token)
+                        .param("username", probe).param("password", "wrong-password"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .exists("Retry-After"))
+                .andExpect(jsonPath("$.errorCode").value("LOGIN_RATE_LIMITED"));
+        // CSRF protection is ahead of the limiter.
+        mvc.perform(post("/api/v1/auth/login").session(session)
+                        .param("username", probe).param("password", password))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/auth/me").session(session))
+                .andExpect(status().isUnauthorized());
+    }
 }

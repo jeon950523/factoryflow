@@ -4,6 +4,7 @@ import com.factoryflow.global.api.ApiResponse;
 import com.factoryflow.security.AuthController.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
@@ -28,16 +30,25 @@ public class SecurityConfig {
     }
 
     @Bean
+    LoginAttemptLimiter loginAttemptLimiter() {
+        return new LoginAttemptLimiter(Clock.systemUTC());
+    }
+
+    @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             UserDetailsService userDetailsService,
                                             PasswordEncoder encoder,
+                                            LoginAttemptLimiter limiter,
                                             ObjectMapper json) throws Exception {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(encoder);
         HttpSessionCsrfTokenRepository csrfRepo = new HttpSessionCsrfTokenRepository();
 
         http.authenticationProvider(provider);
+        // The CSRF filter runs earlier; this filter reserves a slot before BCrypt.
+        http.addFilterBefore(new LoginRateLimitFilter(limiter, json),
+                UsernamePasswordAuthenticationFilter.class);
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/info",
@@ -56,8 +67,10 @@ public class SecurityConfig {
                 .loginProcessingUrl("/api/v1/auth/login")
                 .usernameParameter("username")
                 .passwordParameter("password")
-                .successHandler((request, response, authentication) ->
-                    write(response, 200, json, ApiResponse.of(CurrentUser.from(authentication))))
+                .successHandler((request, response, authentication) -> {
+                    limiter.authenticated(authentication.getName());
+                    write(response, 200, json, ApiResponse.of(CurrentUser.from(authentication)));
+                })
                 .failureHandler((request, response, exception) ->
                     write(response, 401, json, new AuthError("INVALID_CREDENTIALS",
                             "아이디 또는 비밀번호가 올바르지 않습니다."))))
@@ -76,7 +89,7 @@ public class SecurityConfig {
     public record AuthError(String errorCode, String message) { }
     public record LogoutResult(boolean loggedOut) { }
 
-    private static void write(HttpServletResponse response, int status,
+    static void write(HttpServletResponse response, int status,
                               ObjectMapper json, Object body) throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
