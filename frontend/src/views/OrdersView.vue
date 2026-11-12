@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, ClipboardList, X, ArrowRight, CheckCheck, CircleAlert } from 'lucide-vue-next'
 import { get, post } from '../lib/api.js'
 import { useAuthStore } from '../stores/auth.js'
@@ -13,7 +13,7 @@ import AsyncState from '../components/AsyncState.vue'
 import PageControls from '../components/PageControls.vue'
 import ItemSearchSelect from '../components/ItemSearchSelect.vue'
 
-const route = useRoute(), ui = useUiStore()
+const route = useRoute(), router = useRouter(), ui = useUiStore()
 const auth = useAuthStore()
 const listGate = createLatestRequest(), detailGate = createLatestRequest()
 onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
@@ -121,6 +121,14 @@ function changeFilter() {
   detailGate.cancel()
   detailLoading.value = false
   detailError.value = ''
+  const selectedStatus = statusFilter.value
+  const queryStatus = typeof route.query.status === 'string' ? route.query.status : ''
+  if (selectedStatus !== queryStatus || route.query.id !== undefined) {
+    // App.vue keys RouterView by route.fullPath, so this causes one fresh load.
+    // The filter survives reloads and copied links; any selected order is cleared.
+    router.replace({ path: '/orders', query: selectedStatus ? { status: selectedStatus } : {} })
+    return
+  }
   load()
 }
 onMounted(async () => {

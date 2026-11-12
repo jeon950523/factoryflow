@@ -71,3 +71,16 @@ test('inventory LOT action is keyboard accessible and selects the correct item',
   await expect(page.getByRole('heading', { name: '산업용 강판 · LOT 상세' })).toBeVisible()
   await expect(page.getByText('STEEL-A01')).toBeVisible()
 })
+
+test('production status filter is reflected in URL and persists through refresh', async ({ page }) => {
+  await page.goto('/orders?status=DRAFT')
+  const filter = page.getByRole('combobox', { name: '진행 상태' })
+  await expect(filter).toHaveValue('DRAFT')
+  await filter.selectOption('COMPLETED')
+  await expect(page).toHaveURL(/\/orders\?status=COMPLETED/)
+  await expect(page.getByRole('button', { name: 'WO-DEMO-COMPLETE' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'WO-DEMO-READY' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('combobox', { name: '진행 상태' })).toHaveValue('COMPLETED')
+  await expect(page.getByRole('button', { name: 'WO-DEMO-COMPLETE' })).toBeVisible()
+})
