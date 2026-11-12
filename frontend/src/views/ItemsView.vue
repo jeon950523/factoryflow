@@ -210,7 +210,7 @@ onMounted(() => { load(); restoreItem() })
       </AsyncState>
     </section>
 
-    <section ref="detailSection" class="erp-items-sheet erp-item-detail" aria-labelledby="item-detail-title">
+    <section ref="detailSection" class="erp-items-sheet erp-item-detail detail-panel" aria-labelledby="item-detail-title">
       <div class="erp-items-heading erp-item-detail-heading">
         <div><h2 id="item-detail-title">품목 상세 · BOM</h2>
           <p>선택 품목의 기본 정보와 완제품 1개당 소요 원자재를 확인합니다.</p></div>
