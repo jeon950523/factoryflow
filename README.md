@@ -225,3 +225,12 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **GitHub Actions 검증:** [백엔드 57/57](https://github.com/jeon950523/factoryflow/actions/runs/43110093904), [프론트 Node 23/23 + Chrome 11/11](https://github.com/jeon950523/factoryflow/actions/runs/43110093813), [실 MySQL 브라우저 E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43110093834).
 - **인증 구현은 공개 배포 승인과 다름:** 비밀번호 복구·로그인 제한·HTTPS 프록시/쿠키/CSRF/CORS 운영검증 필요
 - [ADR](docs/adr/ADR-012-세션인증-동일출처-배포.md) · [시니어 검수](docs/task-reports/TASK-006-세션인증-역할보안-검수.md) · [핵심 학습](docs/learning/CORE_CONCEPTS.md)
+
+## TASK-007A — 로그인 무차별 시도 제한 (CI 검증 완료)
+
+- 비밀번호 BCrypt 검증 전에 Spring Security 필터를 거치는 **5분 슬라이딩 윈도**를 적용.
+- 계정별 8회와 서버가 인식한 접속원별 120회를 독립 적용; 동시에 들어오는 로그인도 원자적으로 횟수를 예약.
+- 한도 초과 시 **HTTP 429 / Retry-After / LOGIN_RATE_LIMITED**; 로그인 성공 시 계정 버킷만 초기화.
+- [Backend CI](https://github.com/jeon950523/factoryflow/actions/runs/43191465084) **JUnit 64/64**, [Chrome+실 MySQL E2E](https://github.com/jeon950523/factoryflow/actions/runs/43191465294) **2/2** 통과.
+- **주의:** 단일 JVM 인메모리·프록시 IP 공유·사용자 계정 잠금 방해(DoS) 가능성 때문에 이 기능만으로 공개 배포 승인 불가. 엣지 제한·HTTPS·쿠키·관리자 계정 복구는 후속 작업.
+- [시니어 검수](docs/task-reports/TASK-007A-로그인제한-검수.md) · [테스트 근거](docs/verification/TASK-007A-CI-검증.md)
