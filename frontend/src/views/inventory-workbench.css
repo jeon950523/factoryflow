@@ -1,0 +1,58 @@
+/* TASK-012: inventory/master balance -> selected LOTs -> receiving, ERP-style.
+   Local selectors avoid changing the item, production, shipping and login pages. */
+.erp-inventory { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.erp-inventory-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; background: #fff; border: 1px solid #d9e2e6; border-radius: 4px;
+}
+.erp-inventory-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; }
+.erp-inventory-filters label { color: #435f6a; font-size: 13px; font-weight: 700; }
+.erp-inventory-filters select { min-width: 171px; font-size: 13px; }
+.erp-inventory-sheet {
+  background: #fff; border: 1px solid #d9e2e6; border-radius: 4px;
+  overflow: hidden; min-width: 0;
+}
+.erp-inventory-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 15px;
+  padding: 18px 20px 15px; border-bottom: 1px solid #e3e9ed;
+}
+.erp-inventory-head h2 { margin: 0; font-size: 17px; color: #253d4b; font-weight: 750; }
+.erp-inventory-head h2 small { margin-left: 8px; color: #566f7b; font-size: 13px; font-weight: 650; }
+.erp-inventory-head p { margin: 6px 0 0; color: #637c88; font-size: 12px; line-height: 1.55; }
+.erp-inventory-table td, .erp-inventory-table th,
+.erp-lot-table td, .erp-lot-table th { padding: 11px 18px; font-size: 13px; }
+.erp-inventory-table td:first-child { min-width: 196px; }
+.erp-inventory-table td:nth-child(6) { min-width: 98px; }
+.erp-inventory-table .row-action { font-size: 13px; font-weight: 750; }
+.erp-inventory-table tbody tr.selected td { background: #eaf4f2; }
+.erp-lot-link {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 7px;
+  border: 1px solid #cbdedb; border-radius: 4px;
+  background: #f7fbfa; color: #19685f; font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.erp-lot-link:hover { background: #eaf5f2; }
+.erp-lot-link:focus-visible, .erp-inventory-table .row-action:focus-visible {
+  outline: 2px solid #23877a; outline-offset: 3px;
+}
+.erp-lot-section { scroll-margin-top: 86px; }
+.erp-lot-empty {
+  display: flex; gap: 12px; align-items: center; padding: 27px 20px;
+  color: #637d89; font-size: 13px; line-height: 1.6;
+}
+.erp-lot-empty svg { flex-shrink: 0; color: #6b918b; }
+.erp-lot-summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 9px 19px;
+  padding: 14px 20px; border-bottom: 1px solid #e3e9ed;
+  color: #617986; font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.erp-lot-summary span { white-space: nowrap; }
+.erp-lot-summary strong { margin-left: 5px; color: #2c4c59; font-size: 13px; }
+.erp-lot-table th:nth-child(1), .erp-lot-table td:nth-child(1) { min-width: 155px; }
+.erp-lot-table th:nth-child(3), .erp-lot-table td:nth-child(3) { min-width: 152px; }
+.erp-lot-section .state-box { min-height: 140px; padding: 26px; }
+.erp-inventory .dialog-header p { margin-top: 6px; font-size: 12px; color: #637c88; }
+@media (max-width: 850px) {
+  .erp-inventory-toolbar { align-items: flex-start; flex-direction: column; }
+  .erp-inventory-head { align-items: flex-start; flex-direction: column; }
+}
