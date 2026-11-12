@@ -65,7 +65,7 @@ async function signOut() {
       </header>
       <main class="page-content">
         <div v-if="isDemoMode" class="demo-banner" role="note">
-          <div><strong>브라우저 체험 모드</strong><span>샘플 데이터는 이 브라우저의 IndexedDB에만 저장됩니다. 실제 서버 인증·MySQL 트랜잭션·다중 사용자 동기화는 수행하지 않습니다.</span></div>
+          <div><strong>브라우저 체험 모드</strong><span>샘플 데이터는 이 브라우저의 IndexedDB에만 저장됩니다. 실제 서버 인증·MySQL 트랜잭션·다중 사용자 동기화는 수행하지 않습니다.</span><small class="demo-hint">체험 순서: 품목·BOM 확인 → 재고·입고 → 생산지시 WO-DEMO-READY → 자재 예약 → 생산 시작 → 품질검사 → 출고</small></div>
           <button type="button" class="btn btn-outline" @click="resetDemo"><RotateCcw :size="15" /> 샘플 초기화</button>
         </div>
         <div class="page-heading"><div><div class="eyebrow">FACTORY OPERATIONS</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div><div class="heading-aside"><span class="outline-pill"><span class="pulse-dot"></span>{{ isDemoMode ? '로컬 시뮬레이션 데이터' : '실제 API 데이터' }}</span></div></div>
