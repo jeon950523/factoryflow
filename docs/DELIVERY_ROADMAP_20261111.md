@@ -24,3 +24,11 @@
 - `factoryflow.kro.kr`은 Vercel 커스텀 도메인 연결이 완료되었으므로, 사용자 시연은 서버 없이 **IndexedDB 데모**로 제공.
 - 실제 Spring Security/CSRF/BCrypt/MySQL 업무 트랜잭션은 GitHub Actions로 검증하며, 데모 데이터와 실제 업무 DB를 혼동하지 않는다.
 - 후속 서버가 준비될 때만 API 모드로 전환한다(별도 실환경 QA 필요). [ADR-013](adr/ADR-013-프론트데모-실백엔드분리.md).
+
+## TASK-009 — 제조 업무 중심 UI 재구성
+
+- **결정:** 기존 Spring Boot·MySQL API를 변경하지 않고, Vue 관리자 화면의 작업 우선순위·표 가독성·키보드 작업 접근성을 개선한다.
+- **현 상태:** 작업 대기(초안/예약/검사), 생산 진행, 완료, 조회한 재고 품목의 가용재고 0을 기존 데이터만으로 표시한다.
+- **검증:** Frontend Node 37/37, Chrome fixture 11/11, Vercel형 Demo Chrome 6/6 및 Spring Boot·MySQL E2E 2/2 성공.
+- **향후 과제:** 업무 사용자 실측 피드백, 표 밀도·대비의 시각 검토, API 집계 호출 최적화 필요 여부 성능 측정. 설비 가동률/작업조/재고 임계치 등 미구현 데이터 사용 금지.
+- [검수 문서](task-reports/TASK-009-제조업무형UI-검수.md)
