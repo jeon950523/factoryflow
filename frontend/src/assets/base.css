@@ -50,3 +50,13 @@
 .login-card button[type=submit]{min-height:46px;justify-content:center}
 .user-table-panel{max-width:1100px}.users-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
 .users-form .field-label{display:grid;gap:8px}.users-form .full-row{grid-column:1/-1}
+
+/* Public demo disclosure, visible on every manufacturing page. */
+.demo-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:13px 17px;margin-bottom:18px;background:#fff8e9;border:1px solid #ead6ac;border-radius:12px;color:#654c21}
+.demo-banner>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.demo-banner strong{font-weight:800;font-size:14px}
+.demo-banner span{font-size:12px;line-height:1.6}
+.demo-banner .btn{flex-shrink:0;display:flex;align-items:center;gap:6px;white-space:nowrap}
+@media(max-width:740px){.demo-banner{align-items:flex-start;flex-direction:column}.demo-banner .btn{align-self:flex-start}}
+
+.demo-banner .demo-hint{font-size:11px;color:#8e6320;line-height:1.6;font-weight:600}

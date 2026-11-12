@@ -1,0 +1,51 @@
+import { test, expect } from '@playwright/test'
+
+test('public production build opens an honest no-login browser demo and never contacts real API', async ({ page }) => {
+  const sent = []
+  page.on('request', request => {
+    if (request.url().includes('/api/v1/')) sent.push(request.url())
+  })
+  await page.goto('/login')
+  await expect(page.getByRole('heading', { name: '운영 개요' })).toBeVisible()
+  await expect(page.getByText('브라우저 체험 모드')).toBeVisible()
+  await expect(page.getByText('실제 서버 인증·MySQL 트랜잭션·다중 사용자 동기화는 수행하지 않습니다.')).toBeVisible()
+  await expect(page.getByRole('link', { name: '계정 관리' })).toHaveCount(0)
+  await page.goto('/orders')
+  await expect(page.getByRole('button', { name: 'WO-DEMO-READY' })).toBeVisible()
+  expect(sent).toEqual([])
+})
+
+test('IndexedDB retains manufacturing actions on reload and user can reset sample data', async ({ page }) => {
+  await page.goto('/orders')
+  await expect(page.getByRole('button', { name: 'WO-DEMO-READY' })).toBeVisible()
+  await page.getByRole('button', { name: 'WO-DEMO-READY' }).click()
+  await expect(page.getByRole('button', { name: '자재 예약' })).toBeVisible()
+  await page.getByRole('button', { name: '자재 예약' }).click()
+  await expect(page.getByRole('button', { name: '생산 시작' })).toBeVisible()
+  await page.reload()
+  await page.getByRole('button', { name: 'WO-DEMO-READY' }).click()
+  await expect(page.getByRole('button', { name: '생산 시작' })).toBeVisible()
+  await page.getByRole('button', { name: '생산 시작' }).click()
+  await expect(page.getByRole('button', { name: '생산 완료' })).toBeVisible()
+  await page.getByRole('button', { name: '생산 완료' }).click()
+  await expect(page.getByRole('button', { name: '품질검사 확정' })).toBeVisible()
+  await page.getByRole('button', { name: '품질검사 확정' }).click()
+  await expect(page.getByText('이 생산지시는 더 이상 실행할 작업이 없습니다.')).toBeVisible()
+  await page.goto('/shipments')
+  await expect(page.getByRole('button', { name: '출고 등록' })).toBeVisible()
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: '샘플 초기화' }).click()
+  await page.goto('/orders')
+  await page.getByRole('button', { name: 'WO-DEMO-READY' }).click()
+  await expect(page.getByRole('button', { name: '자재 예약' })).toBeVisible()
+})
+
+test('direct SPA route and inventory summaries survive refreshing the production preview', async ({ page }) => {
+  await page.goto('/inventory')
+  await expect(page.getByRole('heading', { name: '재고 · 입고' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '산업용 강판' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('button', { name: '산업용 강판' })).toBeVisible()
+  await page.getByRole('button', { name: '산업용 강판' }).click()
+  await expect(page.getByText('STEEL-A01')).toBeVisible()
+})

@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Boxes, ClipboardList, Factory, CircleCheck, ArrowUpRight, ArrowRight, Warehouse, Truck, RefreshCw } from 'lucide-vue-next'
-import { get } from '../lib/api.js'
+import { get, isDemoMode } from '../lib/api.js'
 import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
 import { number, dateTime } from '../lib/format.js'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -51,9 +51,9 @@ onMounted(refresh)
       <div class="metric-card"><div class="metric-head"><span>생산 완료</span><span class="metric-icon green"><CircleCheck :size="18" /></span></div><div class="metric-value">{{ number(totals.completed) }}<span class="unit">건</span></div><p>품질검사까지 확정된 지시</p></div>
     </div>
     <div class="section-grid dashboard-columns">
-      <section class="surface-card"><div class="card-header"><div><span class="section-kicker">PRODUCTION OVERVIEW</span><h2>생산지시 진행 현황</h2><p>상태별 실제 등록 건수</p></div><RouterLink class="text-link" to="/orders">전체 보기 <ArrowUpRight :size="15" /></RouterLink></div>
+      <section class="surface-card"><div class="card-header"><div><span class="section-kicker">PRODUCTION OVERVIEW</span><h2>생산지시 진행 현황</h2><p>{{ isDemoMode ? '이 브라우저의 체험용 등록 건수' : '상태별 실제 등록 건수' }}</p></div><RouterLink class="text-link" to="/orders">전체 보기 <ArrowUpRight :size="15" /></RouterLink></div>
         <div class="progress-list"><div v-for="row in [{ key: 'DRAFT', name: '생산 대기', count: totals.draft, color: '#9aa5b1' }, { key: 'RESERVED', name: '자재 예약', count: totals.reserved, color: '#3e9bd3' }, { key: 'IN_PROGRESS', name: '생산 진행', count: totals.active, color: '#1f9587' }, { key: 'AWAITING_QC', name: '품질검사 대기', count: totals.qc, color: '#e3ab5b' }, { key: 'COMPLETED', name: '생산 완료', count: totals.completed, color: '#4daa83' }]" :key="row.key" class="progress-row"><span class="progress-name"><i :style="{ background: row.color }"></i>{{ row.name }}</span><div class="progress-track"><div :style="{ background: row.color, width: `${Math.max(row.count ? 5 : 0, (row.count / Math.max(1, totals.draft + totals.reserved + totals.active + totals.qc + totals.completed)) * 100)}%` }"></div></div><strong>{{ number(row.count) }}</strong></div></div>
-        <div class="card-note">상태별 수치는 전체 생산지시 데이터를 기준으로 조회합니다.</div>
+        <div class="card-note">{{ isDemoMode ? '상태별 수치는 이 브라우저에 저장된 체험 데이터 기준입니다.' : '상태별 수치는 전체 생산지시 데이터를 기준으로 조회합니다.' }}</div>
       </section>
       <section class="surface-card quick-panel"><div class="card-header"><div><span class="section-kicker">QUICK ACTIONS</span><h2>빠른 작업</h2><p>주요 운영 업무로 이동</p></div></div>
         <RouterLink class="quick-action" to="/items"><span class="quick-icon"><Boxes :size="19" /></span><span><strong>품목 및 BOM 관리</strong><small>원자재·완제품 등록과 구성 설정</small></span><ArrowRight :size="18" /></RouterLink>

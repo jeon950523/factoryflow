@@ -4,7 +4,9 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { LayoutDashboard, Boxes, Warehouse, ClipboardList, Truck, ArrowLeftRight, Factory, PanelLeftClose, PanelLeftOpen, RefreshCw, X, ChevronRight, ShieldAlert } from 'lucide-vue-next'
 import { useUiStore } from './stores/ui.js'
 import { useAuthStore } from './stores/auth.js'
-import { Users, LogOut } from 'lucide-vue-next'
+import { Users, LogOut, RotateCcw } from 'lucide-vue-next'
+import { isDemoMode } from './lib/api.js'
+import { resetDemoData } from './lib/demo/store.js'
 
 const route = useRoute(), router = useRouter()
 const ui = useUiStore()
@@ -21,6 +23,16 @@ const navGroups = [
 const title = computed(() => route.meta.title ?? '운영 개요')
 const subtitle = computed(() => route.meta.subtitle ?? '')
 function refresh() { reloadKey.value += 1 }
+async function resetDemo() {
+  if (!window.confirm('이 브라우저의 체험용 품목·LOT·생산지시·출고 기록을 샘플 초기 상태로 되돌릴까요?')) return
+  try {
+    await resetDemoData()
+    reloadKey.value += 1
+    ui.notify('이 브라우저의 데모 데이터를 초기화했습니다.')
+  } catch (error) {
+    ui.notify(error.message || '데모 데이터를 초기화하지 못했습니다.', 'error')
+  }
+}
 async function signOut() {
   try { await auth.logout() } catch { ui.notify('로그아웃 과정에서 오류가 발생했습니다.', 'error') }
   await router.replace('/login')
@@ -39,20 +51,24 @@ async function signOut() {
       <nav class="side-navigation">
         <div v-for="group in navGroups" :key="group.title" class="nav-group">
           <span class="nav-caption">{{ group.title }}</span>
-          <RouterLink v-for="entry in group.entries.filter(x => !x.adminOnly || auth.user?.role === 'ADMIN')" :key="entry.path" :to="entry.path" class="nav-link" :title="entry.title" :class="{ active: route.path === entry.path }">
+          <RouterLink v-for="entry in group.entries.filter(x => !x.adminOnly || (!isDemoMode && auth.user?.role === 'ADMIN'))" :key="entry.path" :to="entry.path" class="nav-link" :title="entry.title" :class="{ active: route.path === entry.path }">
             <component :is="entry.icon" :size="18" :stroke-width="1.9" /><span>{{ entry.title }}</span>
           </RouterLink>
         </div>
       </nav>
-      <div class="sidebar-bottom"><div class="workspace-environment"><span class="env-indicator"></span><span>DEVELOPMENT</span></div><p>데이터는 실제 백엔드 API에서만 조회합니다.</p></div>
+      <div class="sidebar-bottom"><div class="workspace-environment"><span class="env-indicator"></span><span>{{ isDemoMode ? 'BROWSER DEMO' : 'DEVELOPMENT' }}</span></div><p>{{ isDemoMode ? '데이터는 이 브라우저에만 저장됩니다. 실제 서버·MySQL은 사용하지 않습니다.' : '데이터는 실제 백엔드 API에서 조회합니다.' }}</p></div>
     </aside>
     <div class="main-area">
       <header class="topbar">
         <div class="topbar-left"><button type="button" class="icon-btn" :title="sidebarOpen ? '메뉴 접기' : '메뉴 열기'" @click="sidebarOpen = !sidebarOpen"><PanelLeftClose v-if="sidebarOpen" :size="19"/><PanelLeftOpen v-else :size="19" /></button><span class="breadcrumb-home">FactoryFlow</span><ChevronRight :size="14" class="breadcrumb-arrow" /><span class="breadcrumb-current">{{ title }}</span></div>
-        <div class="topbar-right"><span class="preview-tag"><ShieldAlert :size="14" /> {{ auth.user?.role === 'ADMIN' ? '관리자' : '조회 전용' }} · {{ auth.user?.username }}</span><button type="button" class="icon-btn" title="화면 새로고침" @click="refresh"><RefreshCw :size="18" /></button><button type="button" class="icon-btn" title="로그아웃" aria-label="로그아웃" @click="signOut"><LogOut :size="18" /></button><span class="profile-avatar">{{ auth.user?.username?.slice(0, 2)?.toUpperCase() || 'FF' }}</span></div>
+        <div class="topbar-right"><span class="preview-tag"><ShieldAlert :size="14" /> {{ isDemoMode ? '체험 사용자 · 서버 인증 없음' : (auth.user?.role === 'ADMIN' ? '관리자' : '조회 전용') + ' · ' + auth.user?.username }}</span><button type="button" class="icon-btn" title="화면 새로고침" @click="refresh"><RefreshCw :size="18" /></button><button v-if="!isDemoMode" type="button" class="icon-btn" title="로그아웃" aria-label="로그아웃" @click="signOut"><LogOut :size="18" /></button><span class="profile-avatar">{{ auth.user?.username?.slice(0, 2)?.toUpperCase() || 'FF' }}</span></div>
       </header>
       <main class="page-content">
-        <div class="page-heading"><div><div class="eyebrow">FACTORY OPERATIONS</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div><div class="heading-aside"><span class="outline-pill"><span class="pulse-dot"></span>실제 API 데이터</span></div></div>
+        <div v-if="isDemoMode" class="demo-banner" role="note">
+          <div><strong>브라우저 체험 모드</strong><span>샘플 데이터는 이 브라우저의 IndexedDB에만 저장됩니다. 실제 서버 인증·MySQL 트랜잭션·다중 사용자 동기화는 수행하지 않습니다.</span><small class="demo-hint">체험 순서: 품목·BOM 확인 → 재고·입고 → 생산지시 WO-DEMO-READY → 자재 예약 → 생산 시작 → 품질검사 → 출고</small></div>
+          <button type="button" class="btn btn-outline" @click="resetDemo"><RotateCcw :size="15" /> 샘플 초기화</button>
+        </div>
+        <div class="page-heading"><div><div class="eyebrow">FACTORY OPERATIONS</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div><div class="heading-aside"><span class="outline-pill"><span class="pulse-dot"></span>{{ isDemoMode ? '로컬 시뮬레이션 데이터' : '실제 API 데이터' }}</span></div></div>
         <RouterView :key="`${route.fullPath}-${reloadKey}`" />
       </main>
       <footer class="app-footer">FactoryFlow <span>·</span> Manufacturing operations, made clear. <span class="footer-side">© 2026 · Portfolio environment</span></footer>

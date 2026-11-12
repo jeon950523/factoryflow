@@ -29,6 +29,9 @@ jobs:
         run: google-chrome --version
       - name: Browser UI smoke with isolated API fixtures
         run: npx playwright test --config playwright.config.js
+      # Production preview must use IndexedDB, not HTTP /api or server fixtures.
+      - name: Browser demo smoke with real IndexedDB (production bundle)
+        run: npx playwright test --config playwright.demo.config.js
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

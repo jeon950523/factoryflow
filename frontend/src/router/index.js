@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
+import { isDemoMode } from '../lib/api.js'
 
 export const routes = [
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { title: '관리자 로그인' } },
@@ -20,6 +21,6 @@ router.beforeEach(async to => {
   if (!auth.ready) await auth.bootstrap()
   if (to.name === 'login') return auth.user ? '/' : true
   if (!auth.user) return { path: '/login', query: { redirect: to.fullPath } }
-  if (to.meta.adminOnly && auth.user.role !== 'ADMIN') return '/'
+  if (to.meta.adminOnly && (isDemoMode || auth.user.role !== 'ADMIN')) return '/'
   return true
 })
