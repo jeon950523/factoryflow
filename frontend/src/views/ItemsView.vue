@@ -124,7 +124,7 @@ function openItem(item) {
 }
 async function restoreItem() {
   const id = route.query.itemId
-  if (typeof id !== 'string' || !/^[1-9]\\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return
+  if (typeof id !== 'string' || !/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return
   const request = detailGate.begin()
   try {
     const item = await get(`/api/v1/items/${id}`, undefined, { signal: request.signal })
