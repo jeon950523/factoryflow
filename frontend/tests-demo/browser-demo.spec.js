@@ -49,3 +49,25 @@ test('direct SPA route and inventory summaries survive refreshing the production
   await page.getByRole('button', { name: '산업용 강판' }).click()
   await expect(page.getByText('STEEL-A01')).toBeVisible()
 })
+
+test('operator dashboard prioritizes real state counts and opens filtered production work', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('지금 처리할 업무')).toBeVisible()
+  await expect(page.getByText('자재 예약 대기', { exact: true })).toBeVisible()
+  await expect(page.getByText('표시 품목 중 가용재고 0')).toBeVisible()
+  await expect(page.getByText('창고 전체 경보 아님')).toBeVisible()
+  await page.getByRole('link', { name: '자재 예약 대기 1건 보기' }).click()
+  await expect(page).toHaveURL(/\/orders\?status=DRAFT/)
+  await expect(page.getByRole('button', { name: 'WO-DEMO-READY' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'WO-DEMO-COMPLETE' })).toHaveCount(0)
+})
+
+test('inventory LOT action is keyboard accessible and selects the correct item', async ({ page }) => {
+  await page.goto('/inventory')
+  const openLot = page.getByRole('button', { name: '산업용 강판 LOT 보기' })
+  await expect(openLot).toBeVisible()
+  await openLot.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: '산업용 강판 · LOT 상세' })).toBeVisible()
+  await expect(page.getByText('STEEL-A01')).toBeVisible()
+})
