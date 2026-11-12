@@ -21,7 +21,7 @@
 .erp-shipment-ref { color:#526d78; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
 .erp-shipment-empty { display:flex; gap:12px; align-items:center; padding:28px 20px; color:#657d89; font-size:13px; }
 .erp-shipment-empty svg { flex-shrink:0; color:#75918c; }
-.erp-shipment-meta { display:grid; grid-template-columns:.7fr 1.4fr .8fr 1fr; gap:12px; padding:21px 20px; }
+.erp-shipment-meta { display:grid; grid-template-columns:.6fr 1.25fr 1.4fr .75fr 1fr; gap:12px; padding:21px 20px; }
 .erp-shipment-meta > div { display:flex; flex-direction:column; gap:8px; min-width:0; }
 .erp-shipment-meta small { color:#718792; font-size:11px; font-weight:650; }
 .erp-shipment-meta strong { color:#2d4856; font-size:13px; font-weight:750; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }

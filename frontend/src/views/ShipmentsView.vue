@@ -171,6 +171,7 @@ onMounted(() => {
         <div v-else>
           <div class="erp-shipment-meta" aria-label="선택 출고 기본 정보">
             <div><small>출고 번호</small><strong>#{{ selected.id }}</strong></div>
+            <div><small>출고 요청 키</small><strong>{{ selected.requestKey }}</strong></div>
             <div><small>완제품</small><strong>{{ itemNameOrId(itemNames, selected.finishedItemId, '완제품') }}</strong></div>
             <div><small>출고 수량</small><strong>{{ number(selected.quantity) }} EA</strong></div>
             <div><small>처리 시각</small><strong>{{ dateTime(selected.createdAt) }}</strong></div>
