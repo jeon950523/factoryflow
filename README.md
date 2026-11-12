@@ -234,3 +234,13 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - [Backend CI](https://github.com/jeon950523/factoryflow/actions/runs/43191465084) **JUnit 64/64**, [Chrome+실 MySQL E2E](https://github.com/jeon950523/factoryflow/actions/runs/43191465294) **2/2** 통과.
 - **주의:** 단일 JVM 인메모리·프록시 IP 공유·사용자 계정 잠금 방해(DoS) 가능성 때문에 이 기능만으로 공개 배포 승인 불가. 엣지 제한·HTTPS·쿠키·관리자 계정 복구는 후속 작업.
 - [시니어 검수](docs/task-reports/TASK-007A-로그인제한-검수.md) · [테스트 근거](docs/verification/TASK-007A-CI-검증.md)
+
+## TASK-007B — 운영 배포 기반 (설정 CI 통과 · 외부 미배포)
+
+- 등록 도메인: **factoryflow.kro.kr** (Vercel Vue3), API 예정: **api.factoryflow.kro.kr** (Oracle VM Caddy/Spring Boot).
+- [배포 설정 CI](https://github.com/jeon950523/factoryflow/actions/runs/43202990848): Vercel JSON, Docker Compose 노출 포트, Caddy 구문, Java21 멀티스테이지 운영 이미지 빌드 및 non-root 검사 성공.
+- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43202990778): Node 23/23, Chrome 11/11, Vite build 성공.
+- [Backend CI](https://github.com/jeon950523/factoryflow/actions/runs/43202990845): Testcontainers JUnit 64/64 (실패·오류·스킵 0).
+- [실제 MySQL+Chrome 업무 E2E](https://github.com/jeon950523/factoryflow/actions/runs/43202990622): 2/2 통과.
+- **운영 승인 아님:** DNS A 값, Oracle 공인 IP·VM, Caddy 실제 TLS, Secure Cookie 실환경 검사, 프록시 rate-limit IP 식별, DB 백업 복원 및 계정 복구 전까지 외부 공개하지 않음.
+- [배포 지침](infra/DEPLOYMENT_007B.md) · [검수 보고서](docs/task-reports/TASK-007B-운영배포기반-검수.md) · [CI 실행 기록](docs/verification/TASK-007B-배포설정-검증.md).
