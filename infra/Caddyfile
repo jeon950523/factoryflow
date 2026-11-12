@@ -1,0 +1,11 @@
+# api.factoryflow.kro.kr DNS A record must resolve to the VM before TLS can work.
+# Install Caddy on the Oracle VM host, not inside Docker Compose.
+api.factoryflow.kro.kr {
+    encode zstd gzip
+    header {
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        Cache-Control "no-store"
+    }
+    reverse_proxy 127.0.0.1:8080
+}

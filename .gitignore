@@ -32,3 +32,8 @@ Thumbs.db
 *.log
 logs/
 *.tmp
+
+# DB backups can contain production records
+infra/backups/
+*.sql
+*.sql.gz

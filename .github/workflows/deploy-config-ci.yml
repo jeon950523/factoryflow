@@ -1,0 +1,61 @@
+name: FactoryFlow Deploy Config CI
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - "backend/Dockerfile"
+      - "backend/.dockerignore"
+      - "backend/src/main/resources/application-prod.yml"
+      - "frontend/vercel.json"
+      - ".github/workflows/deploy-config-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - "backend/Dockerfile"
+      - "backend/.dockerignore"
+      - "backend/src/main/resources/application-prod.yml"
+      - "frontend/vercel.json"
+      - ".github/workflows/deploy-config-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Vercel rewrite target
+        run: |
+          python3 - <<'PY'
+          import json
+          data = json.load(open("frontend/vercel.json"))
+          assert data["rewrites"][0] == {"source": "/api/:path*", "destination": "https://api.factoryflow.kro.kr/api/:path*"}
+          assert data["rewrites"][1] == {"source": "/(.*)", "destination": "/index.html"}
+          print("Vercel rewrites OK")
+          PY
+      - name: Validate Compose and network exposure
+        run: |
+          docker compose --env-file infra/.env.prod.example -f infra/compose.prod.yml config --quiet
+          python3 - <<'PY'
+          import json, subprocess
+          c = json.loads(subprocess.check_output([
+              "docker", "compose", "--env-file", "infra/.env.prod.example",
+              "-f", "infra/compose.prod.yml", "config", "--format", "json"
+          ], text=True))
+          assert "ports" not in c["services"]["mysql"]
+          ports = c["services"]["backend"]["ports"]
+          assert len(ports) == 1 and ports[0]["host_ip"] == "127.0.0.1"
+          assert c["services"]["backend"]["environment"]["SPRING_PROFILES_ACTIVE"] == "prod"
+          print("MySQL is private and Spring Boot is host-loopback only")
+          PY
+      - name: Validate Caddy syntax
+        run: docker run --rm -v "$PWD/infra/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Build production container without deployment
+        run: docker build -f backend/Dockerfile -t factoryflow:task007b backend
+      - name: Verify runtime does not run as root
+        run: test "$(docker image inspect factoryflow:task007b --format '{{.Config.User}}')" = "10001:10001"
