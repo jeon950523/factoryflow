@@ -270,3 +270,15 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **검증:** [Frontend CI: Node 37/37, Chrome Fixture 11/11, Demo Chrome 7/7](https://github.com/jeon950523/factoryflow/actions/runs/43296997198), [Spring Boot + MySQL Chrome E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43296997468).
 - **주의:** Vercel 공개 도메인의 최신 빌드 전파·시각적 가독성·현장 사용자 시험은 별도 확인 필요.
 - [TASK-010 검수 보고서](docs/task-reports/TASK-010-ERP작업목록UI-검수.md).
+
+## TASK-011 — 생산지시·품질검사 업무 화면 재설계
+
+- **핵심:** 기존 좌우 2열 카드식 생산지시 화면을 **전체 너비 업무 목록 → 하단 선택 지시 상세·원자재·상태 처리** 구조로 변경. TASK-010 운영 개요의 작업 목록과 동일한 정보 구조 적용.
+- **현장 업무 동선:** `/orders` 상태 필터 → 지시번호 선택 또는 **상세 보기** 링크 → 상세 수량/상태·원자재 스냅샷 확인 → 예약·생산·QC 명령 실행.
+- **직접 링크:** `/orders?id=생산지시ID`로 상세를 열면 새로고침 후에도 해당 지시를 조회. 상태 필터 화면에서 신규 지시를 생성해도 새 상세 URL로 이동.
+- **품질검사:** 합격+불합격이 계획 수량과 일치하는 안전 정수일 때만 확정 버튼 활성화. 최종 서버의 수량 검증은 그대로 유지.
+- **역할 경계:** VIEWER는 지시·원자재 정보를 읽지만 작업 실행 및 생산지시 생성 버튼이 표시되지 않음.
+- **기술:** 화면별 `orders-workbench.css` 분리. Spring Boot·MySQL·IndexedDB 제조 엔진은 변경하지 않음. 현재 API가 제공하지 않는 **LOT별 예약 상세·검사 이력·설비 정보**는 표시하지 않음.
+- **검증:** [Frontend Node 37/37 · 기존 Chrome 12/12 · IndexedDB Chrome 10/10](https://github.com/jeon950523/factoryflow/actions/runs/43306931753), [Spring Boot/MySQL 실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43306931723).
+- **한계:** 실제 현장 사용자 검수 및 Vercel 운영 최신 화면의 시각적 적합성은 추가 확인 필요. QC 합격 수량 기본 입력은 향후 명시적 확인 UX 개선 후보.
+- [TASK-011 시니어 검수 보고서](docs/task-reports/TASK-011-생산지시-품질검사UI-검수.md) · [CI 근거](docs/verification/TASK-011-제조업무UI-CI.md).
