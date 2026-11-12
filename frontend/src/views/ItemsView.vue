@@ -199,8 +199,8 @@ onMounted(() => { load(); restoreItem() })
                 <td>{{ item.unit || 'EA' }}</td>
                 <td><span class="tiny-dot" :class="item.active ? 'active' : 'inactive'"></span>
                   {{ item.active ? '사용 중' : '비활성' }}</td>
-                <td><button type="button" class="erp-items-open" :aria-label="`${item.name} 상세 보기`"
-                  @click="openItem(item)">상세 보기 <ArrowRight :size="14" /></button></td>
+                <td><RouterLink class="erp-items-open" :aria-label="`${item.name} 상세 보기`"
+                  :to="{ path: '/items', query: listQuery({ itemId: item.id }) }">상세 보기 <ArrowRight :size="14" /></RouterLink></td>
               </tr>
             </tbody>
           </table>

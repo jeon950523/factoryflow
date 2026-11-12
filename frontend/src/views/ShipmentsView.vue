@@ -143,9 +143,10 @@ onMounted(() => {
                 <td>{{ itemNameOrId(itemNames, row.finishedItemId, '완제품') }}</td>
                 <td class="number-cell">{{ number(row.quantity) }} EA</td>
                 <td>{{ dateTime(row.createdAt) }}</td>
-                <td><button type="button" class="erp-shipment-open"
-                  :aria-label="`${row.requestKey} 상세 보기`" @click="openShipment(row)">
-                  상세 보기 <ArrowRight :size="14" /></button></td>
+                <td><RouterLink class="erp-shipment-open"
+                  :aria-label="`${row.requestKey} 상세 보기`"
+                  :to="{ path: '/shipments', query: { id: String(row.id) } }">
+                  상세 보기 <ArrowRight :size="14" /></RouterLink></td>
               </tr>
             </tbody>
           </table>
