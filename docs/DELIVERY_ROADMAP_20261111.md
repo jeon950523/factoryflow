@@ -17,3 +17,13 @@
 - **검증:** Frontend Node 37/37, fixture Chrome 13/13, 브라우저 데모 Chrome 14/14, Spring Boot·MySQL E2E 2/2.
 - **후속:** TASK-013 품목·BOM/출고 화면, TASK-014 재고 이동 이력과 전체 디자인 일관성 및 PC 실제 배포 QA.
 - **주의:** 실DB 권한·멱등성/동시성 규칙은 변경하지 않았으며 UI 검사가 상용 재고관리 성능 검증을 의미하지는 않는다.
+
+## TASK-013 — 품목·BOM·완제품 출고 UI 업무형 전환
+
+- 기존 품목/BOM, 출고 화면의 좌우 2열 카드 구조를 제거하고, 전체 너비 목록 → 하단 상세/구성표로 재구성.
+- 품목 필터와 상세 선택은 `itemType/keyword/page/itemId` URL을 사용. 직접 URL에서 `GET /items/{id}`를 추가로 조회하는 비용은 복원 정확성을 위한 선택.
+- 출고는 `GET /shipments/{id}`의 실제 LOT 배분 ID·수량·합계, 출고 요청 키를 표시하고 `/inventory?itemType=FINISHED_GOOD&itemId=...`에서 현행 LOT 잔량 확인.
+- 기존 POST /items, POST /boms, POST /shipments와 DB·IndexedDB 도메인 규칙은 미수정.
+- **검증 통과:** Node 37/37, fixture Chrome 14/14, demo Chrome 19/19, 실DB Chrome E2E 2/2.
+- **발견·수정:** 역할이 겹치는 상세 버튼 → 링크로 분리; 선택 품목 단건 GET fixture 추가; 출고 요청 키 누락 복원; 토스트가 모달 하단 확정 버튼 클릭을 가리는 스택 순서 개선.
+- **남은 일:** TASK-014 이동 이력 및 공통 스타일 통합, 실제 Vercel 화면 PC 시각·키보드 QA. BOM 수정/버전·반품은 MVP 밖.

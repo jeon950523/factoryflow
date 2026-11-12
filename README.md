@@ -293,3 +293,13 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **검증:** [Frontend Node 37/37·fixture Chrome 13/13·IndexedDB Chrome 14/14](https://github.com/jeon950523/factoryflow/actions/runs/43313017588), [Spring Boot+MySQL 실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43313017639).
 - **한계:** 가용재고 0은 재고 부족 임계치가 아니다. 화면의 가용 0 수는 현재 페이지 품목 기준이며, 실 Vercel 화면/현장 작업자 시각 QA는 별도.
 - [TASK-012 시니어 검수](docs/task-reports/TASK-012-재고LOT입고UI-검수.md) · [CI 검증 근거](docs/verification/TASK-012-재고LOT입고UI-CI.md).
+
+## TASK-013 — 품목·BOM 및 완제품 출고 ERP형 화면 전환
+
+- **품목 기준 정보:** 좌우 장식형 카드 대신 전체 너비 품목 목록 → 선택 품목 기본정보 → BOM 원자재·완제품 1개당 소요량 표. 유형/키워드/페이지/상세 ID의 URL 상태를 보존.
+- **업무 연결:** 품목 등록 후 `/items?itemId=ID`에서 선택 항목 복원, 완제품에 BOM 등록, 원자재는 `/inventory?itemType=RAW_MATERIAL&itemId=ID`로 LOT 조회 연결.
+- **출고 업무:** 전체 너비 출고 이력 → `/shipments?id=ID` 상세 → 서버가 반환한 실제 `allocations[{lotId,quantity}]` 표·합계. 출고 멱등성 `requestKey`와 기존 FIFO 규칙 유지.
+- **데이터 한계:** 출고 응답은 LOT 코드가 아닌 LOT **ID**만 제공하며, 출고 취소/반품·BOM 수정/버전 관리는 구현되지 않음. 실제 Vercel 데모는 브라우저 IndexedDB이며 Java/MySQL 공개 배포가 아님.
+- **수정:** 모달보다 높은 토스트가 등록 버튼을 가리던 문제를 z-index 순서 교정으로 해결.
+- **검증:** [Frontend Node 37/37·Chrome fixture 14/14·IndexedDB Chrome 19/19](https://github.com/jeon950523/factoryflow/actions/runs/43321664299), [Spring Boot+MySQL 8.4 실DB Chrome E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43321663928).
+- **문서:** [TASK-013 시니어 검수](docs/task-reports/TASK-013-품목BOM-출고UI-검수.md) · [CI 근거](docs/verification/TASK-013-품목출고UI-CI.md).
