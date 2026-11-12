@@ -46,3 +46,30 @@ test('admin login submits CSRF-protected form and exposes account management', a
   expect(csrfWasSent).toBe(true)
   await expect(page.getByRole('link', { name: '계정 관리' })).toBeVisible()
 })
+
+test('VIEWER sees the production order detail and material table but no write commands', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const path = new URL(route.request().url()).pathname
+    const item = { id: 105, name: '실습 완제품', sku: 'FG-VIEW', itemType: 'FINISHED_GOOD' }
+    const material = { id: 205, name: '실습 원자재', sku: 'RM-VIEW', itemType: 'RAW_MATERIAL' }
+    const order = { id: 21, orderNo: 'WO-VIEW-21', finishedItemId: 105,
+      plannedQty: 5, status: 'DRAFT', createdAt: '2026-11-12T00:00:00Z' }
+    const result = path === '/api/v1/auth/me'
+      ? { username: 'viewer-example', role: 'VIEWER' }
+      : path === '/api/v1/work-orders'
+        ? { content: [order], totalElements: 1, totalPages: 1 }
+        : path === '/api/v1/work-orders/21'
+          ? { ...order, materials: [{ materialItemId: 205, requiredQty: 10 }] }
+          : path === '/api/v1/items/lookup' ? [item, material] : null
+    return result === null
+      ? route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ message: 'Unknown route' }) })
+      : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: result }) })
+  })
+  await page.goto('/orders?id=21')
+  const detail = page.locator('.detail-panel')
+  await expect(detail).toContainText('WO-VIEW-21')
+  await expect(detail.getByRole('table', { name: '선택 생산지시 소요 원자재' })).toContainText('실습 원자재')
+  await expect(detail.getByText('현재 계정은 조회 전용입니다.')).toBeVisible()
+  await expect(detail.getByRole('button', { name: '자재 예약' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '생산지시 생성' })).toHaveCount(0)
+})

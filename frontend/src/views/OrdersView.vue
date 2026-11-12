@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, ClipboardList, X, ArrowRight, CheckCheck, CircleAlert } from 'lucide-vue-next'
+import './orders-workbench.css'
 import { get, post } from '../lib/api.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
@@ -24,6 +25,7 @@ const initialStatus = typeof route.query.status === 'string' && statusValues.has
   ? route.query.status : ''
 const statusFilter = ref(initialStatus), list = ref({ content: [], totalPages: 0, totalElements: 0 })
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
+const requestedDetailId = ref(null), detailSection = ref(null)
 const showCreate = ref(false), saving = ref(false), acting = ref(false)
 const createForm = ref({ finishedItemId: '', plannedQty: 1, clientRequestId: requestKey('WO') })
 const qcForm = ref({ passedQty: 0, failedQty: 0 })
@@ -34,6 +36,24 @@ const transitions = {
   AWAITING_QC: [{ op: 'inspection', label: '품질검사 확정', primary: true }],
 }
 const actions = computed(() => selected.value ? transitions[selected.value.status] ?? [] : [])
+const stages = [
+  { label: '초안', key: 'DRAFT' },
+  { label: '예약', key: 'RESERVED' },
+  { label: '생산', key: 'IN_PROGRESS' },
+  { label: '검사', key: 'AWAITING_QC' },
+  { label: '완료', key: 'COMPLETED' },
+]
+const currentStage = computed(() => stages.findIndex(stage => stage.key === selected.value?.status))
+const qcValid = computed(() => {
+  if (!selected.value || selected.value.status !== 'AWAITING_QC') return false
+  const passed = Number(qcForm.value.passedQty)
+  const failed = Number(qcForm.value.failedQty)
+  return [passed, failed].every(v => Number.isSafeInteger(v) && v >= 0)
+    && passed + failed === Number(selected.value.plannedQty)
+})
+function nextAction(status) {
+  return transitions[status]?.find(action => action.primary)?.label ?? '—'
+}
 const selectedItemName = computed(() => itemNameOrId(itemNames.value, selected.value?.finishedItemId, '완제품'))
 async function load() {
   const request = listGate.begin()
@@ -58,6 +78,7 @@ async function load() {
   }
 }
 async function choose(id) {
+  requestedDetailId.value = id
   const request = detailGate.begin()
   detailLoading.value = true; detailError.value = ''
   try {
@@ -65,6 +86,8 @@ async function choose(id) {
     if (!request.isCurrent()) return
     selected.value = detail
     qcForm.value = { passedQty: detail.plannedQty, failedQty: 0 }
+    await nextTick()
+    if (request.isCurrent()) detailSection.value?.scrollIntoView({ behavior: 'auto', block: 'start' })
     try {
       const names = await lookupItemNames([detail.finishedItemId,
         ...detail.materials.map(material => material.materialItemId)], { signal: request.signal })
@@ -88,9 +111,12 @@ async function createOrder() {
   saving.value = true
   try {
     const created = await post('/api/v1/work-orders', { ...createForm.value, finishedItemId: Number(createForm.value.finishedItemId), plannedQty: qty })
-    showCreate.value = false; ui.notify(`생산지시 ${created.orderNo}를 생성했습니다.`)
-    page.value = 0; statusFilter.value = ''; await load(); await choose(created.id)
+    showCreate.value = false
+    ui.notify(`생산지시 ${created.orderNo}를 생성했습니다.`)
     createForm.value = { finishedItemId: '', plannedQty: 1, clientRequestId: requestKey('WO') }
+    // Keep the new detail addressable after refresh even when created from a
+    // filtered list. App.vue remounts RouterView when fullPath changes.
+    await router.replace({ path: '/orders', query: { id: created.id } })
   } catch (e) { ui.notify(e.message, 'error') }
   finally { saving.value = false }
 }
@@ -114,10 +140,19 @@ async function runAction(action) {
   } catch (e) { ui.notify(e.message, 'error') }
   finally { acting.value = false }
 }
-function changePage(next) { page.value = next; load() }
+function changePage(next) {
+  page.value = next
+  selected.value = null
+  requestedDetailId.value = null
+  detailGate.cancel()
+  detailLoading.value = false
+  detailError.value = ''
+  load()
+}
 function changeFilter() {
   page.value = 0
   selected.value = null
+  requestedDetailId.value = null
   detailGate.cancel()
   detailLoading.value = false
   detailError.value = ''
@@ -131,15 +166,191 @@ function changeFilter() {
   }
   load()
 }
-onMounted(async () => {
-  await load()
-  if (route.query.id) await choose(route.query.id)
+onMounted(() => {
+  load()
+  if (route.query.id) choose(route.query.id)
 })
 </script>
 <template>
-  <div class="toolbar-card"><div class="toolbar-left"><label class="filter-field"><span>진행 상태</span><select v-model="statusFilter" class="select-filter" @change="changeFilter"><option value="">전체 상태</option><option value="DRAFT">초안</option><option value="RESERVED">자재 예약</option><option value="IN_PROGRESS">생산 중</option><option value="AWAITING_QC">검사 대기</option><option value="COMPLETED">완료</option><option value="CANCELED">취소</option></select></label><button type="button" class="btn btn-subtle" @click="load"><RefreshCw :size="16"/> 새로고침</button></div><button v-if="auth.canWrite" type="button" class="btn btn-primary" @click="showCreate = true"><Plus :size="17" /> 생산지시 생성</button></div>
-  <div class="section-grid order-workspace"><section class="surface-card"><div class="card-header compact"><div><h2>생산지시 목록 <small class="header-count" aria-live="polite">{{ number(list.totalElements) }}건</small></h2><p>지시번호를 선택하면 원자재 소요량과 다음 작업을 확인할 수 있습니다.</p></div></div><AsyncState :loading="loading" :error="error" :empty="!list.content.length" label="생산지시가 없습니다. 오른쪽 위에서 새 생산지시를 생성하세요." @retry="load"><div class="table-scroll"><table class="data-table"><thead><tr><th>지시번호 / 등록일</th><th>완제품</th><th class="right">계획 수량</th><th>진행 상태</th></tr></thead><tbody><tr v-for="order in list.content" :key="order.id" :class="{ selected: selected?.id === order.id }"><td><button type="button" class="row-action" :aria-pressed="selected?.id === order.id" @click="choose(order.id)">{{ order.orderNo }}</button><small class="cell-sub">{{ dateTime(order.createdAt) }}</small></td><td>{{ itemNameOrId(itemNames, order.finishedItemId, '완제품') }}</td><td class="number-cell">{{ number(order.plannedQty) }}</td><td><StatusBadge :status="order.status" /></td></tr></tbody></table></div><PageControls :page="page" :total-pages="list.totalPages" :total-elements="list.totalElements" @change="changePage" /></AsyncState></section>
-    <section class="surface-card detail-panel"><div class="card-header compact"><div><h2>생산지시 상세</h2><p>선택한 지시의 원자재와 실행 가능한 업무</p></div></div><AsyncState :loading="detailLoading" :error="detailError" @retry="selected && choose(selected.id)"><div v-if="!selected" class="detail-placeholder"><ClipboardList :size="35" :stroke-width="1.5"/><h3>생산지시를 선택해 주세요</h3><p>지시별 필요 원자재와 작업 상태를 확인할 수 있습니다.</p></div><div v-else class="detail-body"><div class="detail-title"><span class="detail-avatar"><ClipboardList :size="24" /></span><div><strong>{{ selected.orderNo }}</strong><span>{{ selectedItemName }}</span></div></div><div class="status-overview"><StatusBadge :status="selected.status" /><span>계획 수량 <strong>{{ number(selected.plannedQty) }} EA</strong></span></div><div class="stage-track"><div v-for="(stage, idx) in [{ label: '초안', key: 'DRAFT' },{ label: '예약', key: 'RESERVED' },{ label: '생산', key: 'IN_PROGRESS' },{ label: '검사', key: 'AWAITING_QC' },{ label: '완료', key: 'COMPLETED' }]" :key="stage.key" :class="['stage-step', { done: idx <= ['DRAFT','RESERVED','IN_PROGRESS','AWAITING_QC','COMPLETED'].indexOf(selected.status) && selected.status !== 'CANCELED' }]"><span class="stage-number">{{ idx + 1 }}</span><small>{{ stage.label }}</small></div></div><div class="subsection-heading"><div><h3>필요 원자재</h3></div></div><div class="material-list"><div v-for="material in selected.materials" :key="material.materialItemId" class="material-row"><span><strong>{{ itemNameOrId(itemNames, material.materialItemId, "원자재") }}</strong> <small class="material-code">{{ itemSkuOrId(itemNames, material.materialItemId) }}</small></span><strong>{{ number(material.requiredQty) }} EA</strong></div></div><div class="subsection-heading"><div><h3>다음 실행 작업</h3></div></div><div v-if="selected.status === 'AWAITING_QC'" class="qc-inline"><div class="qc-explainer"><CircleAlert :size="17"/><span>검사 합격 수량만 완제품 재고로 반영됩니다. 두 수량의 합계는 {{ number(selected.plannedQty) }}이어야 합니다.</span></div><div class="form-row"><label class="field-label">합격 수량<input v-model.number="qcForm.passedQty" type="number" min="0" step="1" /></label><label class="field-label">불합격 수량<input v-model.number="qcForm.failedQty" type="number" min="0" step="1" /></label></div><strong class="quantity-total">총 {{ number(Number(qcForm.passedQty) + Number(qcForm.failedQty)) }} / {{ number(selected.plannedQty) }} EA</strong></div><p v-if="!actions.length" class="small-empty">이 생산지시는 더 이상 실행할 작업이 없습니다.</p><div v-if="auth.canWrite" class="action-stack"><button v-for="action in actions" :key="action.op" type="button" :disabled="acting" :class="['btn', action.danger ? 'btn-danger-outline' : 'btn-primary', 'btn-wide']" @click="runAction(action.op)"><CheckCheck v-if="action.op === 'inspection'" :size="18" /><ArrowRight v-else :size="18" />{{ action.label }}</button></div></div></AsyncState></section>
+  <div class="erp-orders">
+    <div class="erp-orders-toolbar">
+      <div class="erp-toolbar-controls">
+        <label class="erp-filter-label" for="work-order-status">
+          진행 상태
+          <select id="work-order-status" v-model="statusFilter" class="select-filter" @change="changeFilter">
+            <option value="">전체 상태</option>
+            <option value="DRAFT">초안</option>
+            <option value="RESERVED">자재 예약</option>
+            <option value="IN_PROGRESS">생산 중</option>
+            <option value="AWAITING_QC">검사 대기</option>
+            <option value="COMPLETED">완료</option>
+            <option value="CANCELED">취소</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn-subtle" @click="load"><RefreshCw :size="16" /> 새로고침</button>
+      </div>
+      <button v-if="auth.canWrite" type="button" class="btn btn-primary" @click="showCreate = true">
+        <Plus :size="17" /> 생산지시 생성
+      </button>
+    </div>
+
+    <section class="erp-orders-sheet" aria-labelledby="erp-orders-heading">
+      <header class="erp-sheet-head">
+        <div>
+          <h2 id="erp-orders-heading">생산지시 목록 <small aria-live="polite">{{ number(list.totalElements) }}건</small></h2>
+          <p>번호를 선택하면 아래에서 원자재 소요량과 다음 처리 단계를 확인할 수 있습니다.</p>
+        </div>
+      </header>
+      <AsyncState :loading="loading" :error="error" :empty="!list.content.length"
+        label="해당 조건의 생산지시가 없습니다. 진행 상태 필터를 변경해 보세요." @retry="load">
+        <div class="table-scroll">
+          <table class="data-table erp-orders-table" aria-label="생산지시 목록">
+            <thead>
+              <tr>
+                <th scope="col">생산지시 / 등록일</th>
+                <th scope="col">완제품</th>
+                <th scope="col" class="right">계획 수량</th>
+                <th scope="col">진행 상태</th>
+                <th scope="col">다음 작업</th>
+                <th scope="col">상세</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in list.content" :key="order.id" :class="{ selected: selected?.id === order.id }">
+                <td>
+                  <button type="button" class="row-action" :aria-pressed="selected?.id === order.id"
+                    @click="choose(order.id)">{{ order.orderNo }}</button>
+                  <small class="cell-sub">{{ dateTime(order.createdAt) }}</small>
+                </td>
+                <td>{{ itemNameOrId(itemNames, order.finishedItemId, '완제품') }}</td>
+                <td class="number-cell">{{ number(order.plannedQty) }} EA</td>
+                <td><StatusBadge :status="order.status" /></td>
+                <td>{{ nextAction(order.status) }}</td>
+                <td><RouterLink class="erp-table-detail" :to="{ path: '/orders', query: { id: order.id } }"
+                  :aria-label="order.orderNo + ' 상세 보기'">상세 보기 <ArrowRight :size="14" /></RouterLink></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <PageControls :page="page" :total-pages="list.totalPages"
+          :total-elements="list.totalElements" @change="changePage" />
+      </AsyncState>
+    </section>
+
+    <section ref="detailSection" class="erp-orders-sheet detail-panel" aria-labelledby="erp-detail-heading">
+      <header class="erp-sheet-head erp-detail-head">
+        <div>
+          <h2 id="erp-detail-heading">생산지시 상세 및 처리</h2>
+          <p>선택한 생산지시의 작업 단계와 자재·품질 처리 내용을 확인합니다.</p>
+        </div>
+        <span v-if="selected" class="erp-detail-ref">{{ selected.orderNo }}</span>
+      </header>
+      <AsyncState :loading="detailLoading" :error="detailError"
+        @retry="requestedDetailId && choose(requestedDetailId)">
+        <div v-if="!selected" class="erp-detail-placeholder">
+          <ClipboardList :size="22" :stroke-width="1.7" />
+          <span>위 생산지시 목록에서 지시번호 또는 ‘상세 보기’를 선택해 주세요.</span>
+        </div>
+        <div v-else class="erp-detail-content">
+          <div class="erp-order-meta">
+            <div><small>생산지시번호</small><strong>{{ selected.orderNo }}</strong></div>
+            <div><small>완제품</small><strong>{{ selectedItemName }}</strong></div>
+            <div><small>계획 수량</small><strong class="erp-tabular">{{ number(selected.plannedQty) }} EA</strong></div>
+            <div><small>진행 상태</small><StatusBadge :status="selected.status" /></div>
+          </div>
+
+          <div class="erp-stage-strip" aria-label="생산지시 진행 단계">
+            <div v-for="(stage, idx) in stages" :key="stage.key"
+              :class="['erp-stage', { complete: selected.status !== 'CANCELED' && idx < currentStage, current: selected.status !== 'CANCELED' && idx === currentStage }]">
+              <span>{{ idx + 1 }}. {{ stage.label }}</span>
+            </div>
+          </div>
+          <p v-if="selected.status === 'CANCELED'" class="erp-canceled-note">취소된 생산지시입니다. 예약된 자재는 취소 처리 시 해제됩니다.</p>
+
+          <div class="erp-detail-layout">
+            <section class="erp-material-section" aria-labelledby="erp-material-heading">
+              <div class="erp-subheading">
+                <h3 id="erp-material-heading">소요 원자재</h3>
+                <p>BOM 기반 생산지시 생성 시점의 필요 수량</p>
+              </div>
+              <div class="table-scroll">
+                <table class="erp-material-table" aria-label="선택 생산지시 소요 원자재">
+                  <thead><tr>
+                    <th scope="col">원자재 / SKU</th>
+                    <th scope="col" class="erp-qty-col">필요 수량</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr v-for="material in selected.materials" :key="material.materialItemId">
+                      <td><strong>{{ itemNameOrId(itemNames, material.materialItemId, '원자재') }}</strong>
+                        <small>{{ itemSkuOrId(itemNames, material.materialItemId) }}</small></td>
+                      <td class="erp-qty-col erp-tabular">{{ number(material.requiredQty) }} EA</td>
+                    </tr>
+                    <tr v-if="!selected.materials.length"><td colspan="2" class="erp-material-empty">등록된 소요 원자재가 없습니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="erp-note">실제 LOT별 예약·소모 상세는 이 화면의 조회 API에서 제공하지 않습니다.</p>
+            </section>
+
+            <section class="erp-action-section" aria-labelledby="erp-action-heading">
+              <div class="erp-subheading">
+                <h3 id="erp-action-heading">현재 단계의 처리</h3>
+                <p>생산지시 상태에 따라 실행 가능한 작업만 표시됩니다.</p>
+              </div>
+              <div v-if="selected.status === 'AWAITING_QC'" class="qc-inline erp-qc-form">
+                <p class="erp-qc-intro"><CircleAlert :size="17" />합격 수량만 완제품 LOT 재고로 반영됩니다.</p>
+                <div class="form-row">
+                  <label class="field-label">합격 수량<input v-model.number="qcForm.passedQty" type="number" min="0" step="1" :disabled="acting" /></label>
+                  <label class="field-label">불합격 수량<input v-model.number="qcForm.failedQty" type="number" min="0" step="1" :disabled="acting" /></label>
+                </div>
+                <p :class="['erp-qc-total', { invalid: !qcValid }]" role="status">
+                  입력 합계 {{ number(Number(qcForm.passedQty) + Number(qcForm.failedQty)) }} / 계획 {{ number(selected.plannedQty) }} EA
+                  <span>{{ qcValid ? '합계 일치' : '수량 합계 또는 입력값 확인 필요' }}</span>
+                </p>
+              </div>
+
+              <p v-if="!actions.length" class="small-empty">이 생산지시는 더 이상 실행할 작업이 없습니다.</p>
+              <p v-if="actions.length && !auth.canWrite" class="erp-readonly">현재 계정은 조회 전용입니다. 작업 실행은 관리자만 가능합니다.</p>
+              <div v-if="auth.canWrite && actions.length" class="action-stack">
+                <button v-for="action in actions" :key="action.op" type="button"
+                  :disabled="acting || (action.op === 'inspection' && !qcValid)"
+                  :class="['btn', action.danger ? 'btn-danger-outline' : 'btn-primary']"
+                  @click="runAction(action.op)">
+                  <CheckCheck v-if="action.op === 'inspection'" :size="17" />
+                  <ArrowRight v-else :size="17" />{{ action.label }}
+                </button>
+              </div>
+              <p v-if="selected.status === 'DRAFT'" class="erp-note">자재 예약은 원자재 전량을 확보할 수 있을 때만 성공합니다.</p>
+              <p v-else-if="selected.status === 'RESERVED'" class="erp-note">생산 시작 시 예약된 원자재가 소모됩니다.</p>
+              <p v-else-if="selected.status === 'IN_PROGRESS'" class="erp-note">생산 완료 후 품질검사를 확정해야 완제품 재고가 반영됩니다.</p>
+            </section>
+          </div>
+        </div>
+      </AsyncState>
+    </section>
+
+    <div v-if="showCreate" class="dialog-backdrop" @click.self="showCreate = false">
+      <section class="dialog" role="dialog" aria-modal="true" aria-label="생산지시 생성">
+        <header class="dialog-header">
+          <div><h2>생산지시 생성</h2></div>
+          <button type="button" class="icon-btn" aria-label="닫기" @click="showCreate = false"><X :size="20" /></button>
+        </header>
+        <form @submit.prevent="createOrder">
+          <div class="dialog-body">
+            <div class="field-label"><span class="field-title">완제품 <em class="required-mark">*</em></span>
+              <ItemSearchSelect v-model="createForm.finishedItemId" item-type="FINISHED_GOOD"
+                placeholder="완제품 검색 · 선택" :disabled="saving" /></div>
+            <label class="field-label">계획 수량 (EA) <span>*</span>
+              <input v-model.number="createForm.plannedQty" type="number" min="1" step="1" required :disabled="saving" />
+            </label>
+            <div class="info-hint">생산지시 생성은 DRAFT 상태만 만듭니다. 원자재 예약은 생성 후 별도 작업으로 진행합니다. 선택한 완제품의 BOM이 등록되어 있어야 합니다.</div>
+          </div>
+          <footer class="dialog-footer">
+            <button type="button" class="btn btn-outline" :disabled="saving" @click="showCreate = false">취소</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving || !createForm.finishedItemId">{{ saving ? '생성 중...' : '생산지시 생성' }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
   </div>
-  <div v-if="showCreate" class="dialog-backdrop" @click.self="showCreate = false"><section class="dialog" role="dialog" aria-modal="true" aria-label="생산지시 생성"><header class="dialog-header"><div><h2>생산지시 생성</h2></div><button type="button" class="icon-btn" aria-label="닫기" @click="showCreate = false"><X :size="20" /></button></header><form @submit.prevent="createOrder"><div class="dialog-body"><div class="field-label"><span class="field-title">완제품 <em class="required-mark">*</em></span><ItemSearchSelect v-model="createForm.finishedItemId" item-type="FINISHED_GOOD" placeholder="완제품 검색 · 선택" :disabled="saving" /></div><label class="field-label">계획 수량 (EA) <span>*</span><input v-model.number="createForm.plannedQty" type="number" min="1" step="1" required /></label><div class="info-hint">생산지시 생성은 DRAFT 상태만 만듭니다. 원자재 예약은 생성 후 별도 작업으로 진행합니다. 선택한 완제품의 BOM이 등록되어 있어야 합니다.</div></div><footer class="dialog-footer"><button type="button" class="btn btn-outline" @click="showCreate = false">취소</button><button type="submit" class="btn btn-primary"  :disabled="saving || !createForm.finishedItemId">{{ saving ? '생성 중...' : '생산지시 생성' }}</button></footer></form></section></div>
 </template>
