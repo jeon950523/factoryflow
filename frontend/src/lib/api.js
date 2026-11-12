@@ -1,7 +1,7 @@
 /** Production builds use isolated IndexedDB until a real backend is deployed.
  * Set VITE_DEMO_MODE=false at build time to opt into the real Spring API.
  */
-export const isDemoMode = import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'false'
+export const isDemoMode = import.meta.env?.PROD === true && import.meta.env?.VITE_DEMO_MODE !== 'false'
 
 const configured = (import.meta.env?.VITE_API_BASE_URL ?? '').trim()
 const baseUrl = configured.replace(/\/$/, '')
