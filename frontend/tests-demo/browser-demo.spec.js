@@ -50,16 +50,31 @@ test('direct SPA route and inventory summaries survive refreshing the production
   await expect(page.getByText('STEEL-A01')).toBeVisible()
 })
 
-test('operator dashboard prioritizes real state counts and opens filtered production work', async ({ page }) => {
+test('operator dashboard is a compact worklist, not four separate KPI cards', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('지금 처리할 업무')).toBeVisible()
-  await expect(page.getByText('자재 예약 대기', { exact: true })).toBeVisible()
-  await expect(page.getByText('표시 품목 중 가용재고 0')).toBeVisible()
+  await expect(page.getByRole('group', { name: '생산지시 상태별 건수' })).toBeVisible()
+  await expect(page.locator('.operations-summary, .operation-stat')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: '처리할 생산지시' })).toBeVisible()
+
+  const worklist = page.getByRole('table', { name: '처리할 생산지시 목록' })
+  await expect(worklist.locator('tbody tr')).toHaveCount(1)
+  await expect(worklist.getByText('WO-DEMO-READY')).toBeVisible()
+  await expect(worklist.getByText('WO-DEMO-COMPLETE')).toHaveCount(0)
+  await expect(page.getByText('전체 1건 중 1건 표시')).toBeVisible()
   await expect(page.getByText('창고 전체 경보 아님')).toBeVisible()
-  await page.getByRole('link', { name: '자재 예약 대기 1건 보기' }).click()
+
+  await page.getByRole('link', { name: '자재 예약 1건 보기' }).click()
   await expect(page).toHaveURL(/\/orders\?status=DRAFT/)
   await expect(page.getByRole('button', { name: 'WO-DEMO-READY' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'WO-DEMO-COMPLETE' })).toHaveCount(0)
+})
+
+test('dashboard worklist opens the selected order detail for a real action', async ({ page }) => {
+  await page.goto('/')
+  const worklist = page.getByRole('table', { name: '처리할 생산지시 목록' })
+  await worklist.getByRole('link', { name: 'WO-DEMO-READY 상세 및 처리 화면 열기' }).click()
+  await expect(page).toHaveURL(/\/orders\?id=2/)
+  await expect(page.getByRole('button', { name: '자재 예약' })).toBeVisible()
 })
 
 test('inventory LOT action is keyboard accessible and selects the correct item', async ({ page }) => {
