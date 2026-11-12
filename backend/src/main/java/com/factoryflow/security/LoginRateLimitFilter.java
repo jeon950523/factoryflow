@@ -20,8 +20,19 @@ final class LoginRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"POST".equals(request.getMethod())
-                || !"/api/v1/auth/login".equals(request.getServletPath());
+        if (!"POST".equals(request.getMethod())) return true;
+        // MockMvc may leave servletPath empty even though requestURI contains the endpoint.
+        // Prefer the servlet container's normalized servletPath; fall back to the URI
+        // relative to the context path when the servletPath is not available.
+        String path = request.getServletPath();
+        if (path == null || path.isEmpty()) {
+            path = request.getRequestURI();
+            String contextPath = request.getContextPath();
+            if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath + "/")) {
+                path = path.substring(contextPath.length());
+            }
+        }
+        return !"/api/v1/auth/login".equals(path);
     }
 
     @Override

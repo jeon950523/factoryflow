@@ -36,3 +36,10 @@ Vue 로그인 → GET /api/v1/auth/csrf → POST /api/v1/auth/login → **Spring
 로그인 요청을 BCrypt 이전에 계정과 접속원 두 축의 5분 슬라이딩 윈도로 원자적으로 예약해 무차별 대입 시도와 동시 우회를 줄였고, 운영 프록시·분산 환경에는 별도 대책이 필요합니다.
 
 참고: [OWASP 인증 가이드](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html), [OWASP Bot Management 가이드](https://cheatsheetseries.owasp.org/cheatsheets/Bot_Management_and_Anti-Automation_Cheat_Sheet.html).
+
+## 7. 1차 CI에서 재현된 요청 경로 판정 문제
+
+- [1차 Backend CI](https://github.com/jeon950523/factoryflow/actions/runs/43190836250): 64개 중 1개 실패. 로그인 9번째 시도에서 기대한 429가 아닌 401 반환.
+- 분석: MockMvc 테스트 요청에서는 `getServletPath()`가 공백일 수 있어 필터의 `shouldNotFilter()`가 로그인 경로를 놓침.
+- 수정: 실제 Servlet 환경에서는 servletPath를 사용하고, 경로가 비어 있으면 contextPath를 제외한 requestURI로 판단.
+- 검증 게이트: 429·CSRF 순서·세션 미인증 통합 테스트 재실행 성공 전 PR 병합 금지.
