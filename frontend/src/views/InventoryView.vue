@@ -16,7 +16,8 @@ import './inventory-workbench.css'
 const route = useRoute(), router = useRouter()
 const ui = useUiStore(), auth = useAuthStore()
 const listGate = createLatestRequest(), lotGate = createLatestRequest()
-onBeforeUnmount(() => { listGate.cancel(); lotGate.cancel() })
+let mounted = true
+onBeforeUnmount(() => { mounted = false; listGate.cancel(); lotGate.cancel() })
 
 // URL filters use only fields understood by both Spring Boot and the demo engine.
 const types = new Set(['RAW_MATERIAL', 'FINISHED_GOOD'])
@@ -177,7 +178,8 @@ async function submitReceipt() {
 
 onMounted(async () => {
   await load()
-  if (selectedId.value) await loadLots({ scroll: true })
+  // Do not start a new LOT request after a route change unmounted this view.
+  if (mounted && selectedId.value) await loadLots({ scroll: true })
 })
 </script>
 
