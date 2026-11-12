@@ -45,7 +45,7 @@ async function signOut() {
     <aside class="sidebar" aria-label="주 내비게이션">
       <RouterLink to="/" class="brand">
         <span class="brand-symbol"><Factory :size="23" :stroke-width="1.9" /></span>
-        <span class="brand-copy"><strong>FactoryFlow</strong><small>OPERATIONS CONSOLE</small></span>
+        <span class="brand-copy"><strong>FactoryFlow</strong><small>제조 운영 관리</small></span>
       </RouterLink>
       <div class="workspace-mark"><span class="workspace-avatar">F</span><span class="workspace-info"><strong>제조 운영 시스템</strong><small>단일 공장 · 단일 창고</small></span><ChevronRight :size="14" class="muted" /></div>
       <nav class="side-navigation">
@@ -68,10 +68,10 @@ async function signOut() {
           <div><strong>브라우저 체험 모드</strong><span>샘플 데이터는 이 브라우저의 IndexedDB에만 저장됩니다. 실제 서버 인증·MySQL 트랜잭션·다중 사용자 동기화는 수행하지 않습니다.</span><small class="demo-hint">체험 순서: 품목·BOM 확인 → 재고·입고 → 생산지시 WO-DEMO-READY → 자재 예약 → 생산 시작 → 품질검사 → 출고</small></div>
           <button type="button" class="btn btn-outline" @click="resetDemo"><RotateCcw :size="15" /> 샘플 초기화</button>
         </div>
-        <div class="page-heading"><div><div class="eyebrow">FACTORY OPERATIONS</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div><div class="heading-aside"><span class="outline-pill"><span class="pulse-dot"></span>{{ isDemoMode ? '로컬 시뮬레이션 데이터' : '실제 API 데이터' }}</span></div></div>
+        <div class="page-heading"><div><div class="eyebrow">제조 운영 업무</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div><div class="heading-aside"><span class="outline-pill"><span class="pulse-dot"></span>{{ isDemoMode ? '로컬 시뮬레이션 데이터' : '실제 API 데이터' }}</span></div></div>
         <RouterView :key="`${route.fullPath}-${reloadKey}`" />
       </main>
-      <footer class="app-footer">FactoryFlow <span>·</span> Manufacturing operations, made clear. <span class="footer-side">© 2026 · Portfolio environment</span></footer>
+      <footer class="app-footer">FactoryFlow <span>·</span> 품목 · LOT · 생산 · 품질 · 출고 <span class="footer-side">© 2026 · Portfolio environment</span></footer>
     </div>
     <div v-if="ui.notice" :class="['toast', `toast-${ui.notice.tone}`]" role="status"><span>{{ ui.notice.message }}</span><button type="button" aria-label="알림 닫기" @click="ui.dismiss()"><X :size="16" /></button></div>
   </div>

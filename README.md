@@ -247,3 +247,15 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - [상세 구현/검수](docs/task-reports/TASK-008-브라우저데모-검수.md) · [사용 가이드](docs/DEMO_WALKTHROUGH.md) · [설계 결정](docs/adr/ADR-013-프론트데모-실백엔드분리.md).
 
 **운영 주의:** Oracle 배포용 PR #14는 미병합 Draft로 유지하며, 실제 DB·로그인 운영 배포 준비 후 별도 검토한다.
+
+## TASK-009 — 제조 업무형 UI 2차 개선 (기능 브랜치 CI 검증)
+
+- **목적:** 장식형 SaaS 관리자 대시보드에서 실제 제조 업무의 **처리 대기 → 작업지시 상세 → LOT 재고 확인** 순서가 드러나는 업무형 화면으로 재구성.
+- **운영 개요:** `DRAFT`, `RESERVED`, `AWAITING_QC`의 전체 생산지시 건수를 기존 상태 API로 조회하고, 클릭 시 필터링된 작업 목록으로 이동. 생산 중·완료 지시도 표시.
+- **재고:** 처음 조회된 **최대 8개** 품목의 가용재고 0건만 별도로 표시. 재고 부족 임계치나 전체 창고 경보를 구현한 것처럼 표현하지 않음.
+- **생산지시:** 상태 필터의 URL 반영·새로고침 유지, 목록/상세 UI와 레이블 가독성 개선.
+- **LOT:** 조회 버튼을 실제 키보드 접근 가능한 button으로 만들고, 선택한 품목명을 상세 제목에 반영.
+- **기술 경계:** Java/Spring Boot/MySQL, 서버 인증 및 IndexedDB 엔진을 변경하지 않음.
+- **테스트:** [프론트 Node **37/37** · Chrome Fixture **11/11** · IndexedDB Demo Chrome **6/6**](https://github.com/jeon950523/factoryflow/actions/runs/43266729962), [실제 MySQL 업무 브라우저 E2E **2/2**](https://github.com/jeon950523/factoryflow/actions/runs/43266730205).
+- **한계:** CI가 시각적 사용성·접근성·현장 사용자 테스트를 대체하지는 않음. [TASK-009 상세 검수](docs/task-reports/TASK-009-제조업무형UI-검수.md) 및 [검증 근거](docs/verification/TASK-009-CI-검증.md).
+
