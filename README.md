@@ -282,3 +282,14 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **검증:** [Frontend Node 37/37 · 기존 Chrome 12/12 · IndexedDB Chrome 10/10](https://github.com/jeon950523/factoryflow/actions/runs/43306931753), [Spring Boot/MySQL 실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43306931723).
 - **한계:** 실제 현장 사용자 검수 및 Vercel 운영 최신 화면의 시각적 적합성은 추가 확인 필요. QC 합격 수량 기본 입력은 향후 명시적 확인 UX 개선 후보.
 - [TASK-011 시니어 검수 보고서](docs/task-reports/TASK-011-생산지시-품질검사UI-검수.md) · [CI 근거](docs/verification/TASK-011-제조업무UI-CI.md).
+
+## TASK-012 — 재고·LOT·원자재 입고 업무형 UI 전환
+
+- 기존 품목별 재고표/LOT 상세 카드 형태를 **전체 너비 재고 업무 표 → 선택한 품목의 LOT 표 → 원자재 입고 작업** 흐름으로 통일.
+- 실제 `GET /api/v1/inventory?itemType=...` 필터와 `?itemId=...` 개별 품목 URL로 조회. 첫 15개 목록 밖 또는 다른 유형 필터 안에서도 URL의 품목 상세 이름/수치를 별도 조회.
+- LOT 표는 누적 입고·현재고·예약고·가용재고를 표시. 실제 FIFO 배분/이동 이력을 새로 만드는 화면이 아니며 데이터 출처는 기존 API.
+- 원자재 입고 팝업은 기존 API/멱등성 요청 키 유지. 현재 선택 원자재 SKU·품목명을 사전 표시하고, 저장 성공 시 입고 처리된 품목의 LOT 상세로 이동. 실패 시 요청 키를 새로 만들지 않는다.
+- `InventoryView.vue` 및 새 `inventory-workbench.css`, 공통 `ItemSearchSelect.vue`의 선택적 `preselectedItem` 지원, Chrome 테스트 2개 파일만 기능 수정. **Spring Boot/MySQL/IndexedDB 도메인 구현 불변.**
+- **검증:** [Frontend Node 37/37·fixture Chrome 13/13·IndexedDB Chrome 14/14](https://github.com/jeon950523/factoryflow/actions/runs/43313017588), [Spring Boot+MySQL 실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43313017639).
+- **한계:** 가용재고 0은 재고 부족 임계치가 아니다. 화면의 가용 0 수는 현재 페이지 품목 기준이며, 실 Vercel 화면/현장 작업자 시각 QA는 별도.
+- [TASK-012 시니어 검수](docs/task-reports/TASK-012-재고LOT입고UI-검수.md) · [CI 검증 근거](docs/verification/TASK-012-재고LOT입고UI-CI.md).
