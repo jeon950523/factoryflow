@@ -1,0 +1,47 @@
+/* TASK-013: shipments/work-order traceability ERP workspace */
+.erp-shipments { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.erp-shipment-toolbar { background:#fff; border:1px solid #d9e2e6; border-radius:4px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.erp-shipment-helper { display:flex; gap:9px; align-items:center; font-size:12px; line-height:1.55; color:#506a77; }
+.erp-shipment-helper svg { flex-shrink:0; color:#56857e; }
+.erp-shipment-toolbar-actions { display:flex; gap:9px; flex-wrap:wrap; }
+.erp-shipment-sheet { min-width:0; background:#fff; border:1px solid #d9e2e6; border-radius:4px; overflow:hidden; }
+.erp-shipment-heading { display:flex; justify-content:space-between; align-items:center; gap:15px; padding:18px 20px 15px; border-bottom:1px solid #e4eaed; }
+.erp-shipment-heading h2 { font-size:17px; font-weight:750; color:#253d4b; margin:0; }
+.erp-shipment-heading h2 small { margin-left:8px; color:#637986; font-size:13px; font-weight:650; }
+.erp-shipment-heading p { font-size:12px; line-height:1.55; color:#657d89; margin:6px 0 0; }
+.erp-shipment-table th, .erp-shipment-table td { padding:11px 19px; font-size:13px; }
+.erp-shipment-table td:first-child { min-width:174px; }
+.erp-shipment-table .row-action { font-size:13px; font-weight:750; }
+.erp-shipment-table tbody tr.selected td { background:#eaf4f2; }
+.erp-shipment-table .number-cell { font-variant-numeric:tabular-nums; }
+.erp-shipment-open { display:inline-flex; align-items:center; gap:5px; background:#f7fbfa; border:1px solid #cbdedb; border-radius:4px; padding:5px 7px; color:#19685f; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.erp-shipment-open:hover { background:#eaf5f2; }
+.erp-shipment-open:focus-visible, .erp-shipment-table .row-action:focus-visible { outline:2px solid #23877a; outline-offset:3px; }
+.erp-shipments .detail-panel { min-height:0; scroll-margin-top:86px; }
+.erp-shipment-ref { color:#526d78; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
+.erp-shipment-empty { display:flex; gap:12px; align-items:center; padding:28px 20px; color:#657d89; font-size:13px; }
+.erp-shipment-empty svg { flex-shrink:0; color:#75918c; }
+.erp-shipment-meta { display:grid; grid-template-columns:.6fr 1.25fr 1.4fr .75fr 1fr; gap:12px; padding:21px 20px; }
+.erp-shipment-meta > div { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.erp-shipment-meta small { color:#718792; font-size:11px; font-weight:650; }
+.erp-shipment-meta strong { color:#2d4856; font-size:13px; font-weight:750; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.erp-shipment-allocation { padding:0 20px 20px; }
+.erp-shipment-subheading { border-top:1px solid #e4eaed; padding:19px 0 14px; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.erp-shipment-subheading h3 { margin:0; color:#263e4b; font-size:15px; }
+.erp-shipment-subheading p { margin:6px 0 0; color:#6a818d; font-size:11px; line-height:1.6; }
+.erp-shipment-lookup { display:inline-flex; align-items:center; gap:5px; color:#19685f; text-decoration:none; font-size:12px; font-weight:700; white-space:nowrap; }
+.erp-shipment-lookup:hover { text-decoration:underline; }
+.erp-shipment-lookup:focus-visible { outline:2px solid #23877a; outline-offset:3px; }
+.erp-shipment-allocation-table th, .erp-shipment-allocation-table td { padding:12px 15px; font-size:13px; }
+.erp-shipment-allocation-table tfoot th, .erp-shipment-allocation-table tfoot td { background:#f4f7f8; border-top:1px solid #dce5e8; font-weight:750; color:#264653; padding:13px 15px; }
+.erp-shipment-allocation-table .number-cell { font-variant-numeric:tabular-nums; }
+.erp-shipment-note { margin:12px 0 0; font-size:11px; color:#6d808b; line-height:1.75; }
+.erp-shipment-warning { background:#fff7ef; color:#9c5949; border:1px solid #edcfba; padding:12px; font-size:12px; margin-top:12px; }
+.erp-shipments .dialog-header p { margin:6px 0 0; font-size:12px; color:#637c88; }
+@media(max-width:1080px) {
+  .erp-shipment-meta { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .erp-shipment-toolbar { align-items:flex-start; flex-direction:column; }
+}
+@media(max-width:740px) {
+  .erp-shipment-heading, .erp-shipment-subheading { flex-direction:column; align-items:flex-start; }
+}

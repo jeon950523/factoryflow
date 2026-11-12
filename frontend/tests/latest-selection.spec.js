@@ -15,6 +15,9 @@ test.beforeEach(async ({ page }) => {
     if (path === '/api/v1/auth/csrf') return reply(route, { token: 'fixture-csrf', headerName: 'X-CSRF-TOKEN' })
     if (path === '/api/v1/items/lookup') return reply(route, [product, raw])
     if (path === '/api/v1/items') return reply(route, { content: [product, raw], totalPages: 1, totalElements: 2 })
+    if (path === '/api/v1/items/105') return reply(route, product)
+    if (path === '/api/v1/items/106') return reply(route,
+      { id: 106, sku: 'FG-106', name: '브래킷 106', itemType: 'FINISHED_GOOD', active: true })
     return route.fulfill({ status: 404, contentType: 'application/json',
       body: JSON.stringify({ message: 'Unmocked API', errorCode: 'NOT_MOCKED' }) })
   })

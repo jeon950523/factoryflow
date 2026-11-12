@@ -92,3 +92,30 @@ test('VIEWER can inspect inventory LOT values but cannot submit a stock receipt'
   await expect(page.getByRole('button', { name: '원자재 입고', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '선택 원자재 입고' })).toHaveCount(0)
 })
+
+test('VIEWER can inspect item master and shipment allocations without master-data or shipment writes', async ({ page }) => {
+  const finished = { id: 91, sku: 'FG-VIEW-091', name: '조회 전용 완제품',
+    itemType: 'FINISHED_GOOD', active: true, unit: 'EA', createdAt: '2026-11-12T00:00:00Z' }
+  const shipment = { id: 7, requestKey: 'SHIP-VIEW-7', finishedItemId: 91,
+    quantity: 2, createdAt: '2026-11-12T00:00:00Z' }
+  await page.route('**/api/v1/**', route => {
+    const path = new URL(route.request().url()).pathname
+    const data = path === '/api/v1/auth/me' ? { username: 'viewer-example', role: 'VIEWER' }
+      : path === '/api/v1/items' ? { content: [finished], totalElements: 1, totalPages: 1 }
+        : path === '/api/v1/items/91' ? finished
+          : path === '/api/v1/shipments' ? { content: [shipment], totalElements: 1, totalPages: 1 }
+            : path === '/api/v1/shipments/7' ? { ...shipment, allocations: [{ lotId: 10, quantity: 2 }] }
+              : path === '/api/v1/items/lookup' ? [finished] : null
+    if (path === '/api/v1/boms/91') return reply(route, 404, { errorCode: 'BOM_NOT_FOUND', message: 'BOM 없음' })
+    return data === null
+      ? reply(route, 404, { errorCode: 'NOT_FOUND', message: '조회 없음' })
+      : reply(route, 200, { data })
+  })
+  await page.goto('/items?itemId=91')
+  await expect(page.locator('.erp-item-detail')).toContainText('조회 전용 완제품')
+  await expect(page.getByRole('button', { name: '품목 등록' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'BOM 등록' })).toHaveCount(0)
+  await page.goto('/shipments?id=7')
+  await expect(page.getByRole('table', { name: 'LOT별 출고 배분 내역' })).toContainText('LOT #10')
+  await expect(page.getByRole('button', { name: '출고 등록' })).toHaveCount(0)
+})

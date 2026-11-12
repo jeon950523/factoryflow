@@ -23,6 +23,10 @@ test.beforeEach(async ({ page }) => {
       const type = url.searchParams.get('itemType')
       data = { content: type ? items.filter(item => item.itemType === type) : [items[0]],
         totalPages: 1, totalElements: 1 }
+    } else if (/^\/api\/v1\/items\/\d+$/.test(name)) {
+      data = items.find(item => item.id === Number(name.split('/').at(-1)))
+      if (!data) return route.fulfill({ status: 404, contentType: 'application/json',
+        body: JSON.stringify({ message: '품목 없음', errorCode: 'ITEM_NOT_FOUND' }) })
     } else if (name === '/api/v1/work-orders') {
       data = { content: [order], totalPages: 1, totalElements: 1 }
     } else if (name === '/api/v1/work-orders/21') {
