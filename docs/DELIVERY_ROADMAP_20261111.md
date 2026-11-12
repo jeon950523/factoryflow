@@ -32,3 +32,10 @@
 - **검증:** Frontend Node 37/37, Chrome fixture 11/11, Vercel형 Demo Chrome 6/6 및 Spring Boot·MySQL E2E 2/2 성공.
 - **향후 과제:** 업무 사용자 실측 피드백, 표 밀도·대비의 시각 검토, API 집계 호출 최적화 필요 여부 성능 측정. 설비 가동률/작업조/재고 임계치 등 미구현 데이터 사용 금지.
 - [검수 문서](task-reports/TASK-009-제조업무형UI-검수.md)
+
+## TASK-010 — KPI 카드 의존도 제거 및 작업 대기 목록 중심 전환
+
+- 기존 TASK-009의 4열 KPI 카드와 별도 처리 큐 UI를 **진짜 업무 표 중심으로 대체**.
+- 상단은 상태별 건수만 컴팩트하게 안내하고, 작업 대기 행에 지시번호·제품명·계획수량·현재 상태·다음 작업·상세 링크를 표시한다.
+- 업무 목록은 전체를 한번에 조회한 것이 아닌 **DRAFT/RESERVED/AWAITING_QC별 최대 6건을 조회**하므로 상단 전체 건수와 구분해 보여준다.
+- **검증 완료:** Frontend Node 37/37, fixture Chrome 11/11, Demo Chrome 7/7, 실DB Chrome E2E 2/2. 운영 Vercel 시각 QA는 별도.
