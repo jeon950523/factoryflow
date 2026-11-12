@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, ClipboardList, X, ArrowRight, CheckCheck, CircleAlert } from 'lucide-vue-next'
 import './orders-workbench.css'
 import { get, post } from '../lib/api.js'
@@ -226,8 +226,8 @@ onMounted(() => {
                 <td class="number-cell">{{ number(order.plannedQty) }} EA</td>
                 <td><StatusBadge :status="order.status" /></td>
                 <td>{{ nextAction(order.status) }}</td>
-                <td><button type="button" class="erp-table-detail" :aria-label="order.orderNo + ' 상세 보기'"
-                  @click="choose(order.id)">상세 보기 <ArrowRight :size="14" /></button></td>
+                <td><RouterLink class="erp-table-detail" :to="{ path: '/orders', query: { id: order.id } }"
+                  :aria-label="order.orderNo + ' 상세 보기'">상세 보기 <ArrowRight :size="14" /></RouterLink></td>
               </tr>
             </tbody>
           </table>
