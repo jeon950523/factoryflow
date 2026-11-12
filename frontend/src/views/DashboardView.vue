@@ -24,9 +24,9 @@ onBeforeUnmount(() => requestGate.cancel())
 // Per-status pages are explicitly limited to six records; count figures are
 // server-side totalElements, not the length of the displayed sample.
 const workStates = [
-  { key: 'DRAFT', label: '자재 예약', next: '자재 예약' },
-  { key: 'RESERVED', label: '생산 시작', next: '생산 시작' },
-  { key: 'AWAITING_QC', label: '품질검사', next: '품질검사 확정' },
+  { key: 'DRAFT', countKey: 'draft', label: '자재 예약', next: '자재 예약' },
+  { key: 'RESERVED', countKey: 'reserved', label: '생산 시작', next: '생산 시작' },
+  { key: 'AWAITING_QC', countKey: 'qc', label: '품질검사', next: '품질검사 확정' },
 ]
 const statuses = [...workStates.map(state => state.key), 'IN_PROGRESS', 'COMPLETED']
 const actionable = computed(() => workStates.flatMap(state =>
@@ -94,9 +94,9 @@ onMounted(refresh)
         <nav class="dashboard-status-links" aria-label="업무 상태별 생산지시 바로가기">
           <RouterLink v-for="state in workStates" :key="state.key"
             :to="{ path: '/orders', query: { status: state.key } }"
-            :aria-label="`${state.label} ${totals[state.key === 'DRAFT' ? 'draft' : state.key === 'RESERVED' ? 'reserved' : 'qc']}건 보기`">
+            :aria-label="`${state.label} ${totals[state.countKey]}건 보기`">
             {{ state.label }}
-            <strong>{{ number(totals[state.key === 'DRAFT' ? 'draft' : state.key === 'RESERVED' ? 'reserved' : 'qc']) }}</strong>
+            <strong>{{ number(totals[state.countKey]) }}</strong>
           </RouterLink>
         </nav>
         <div class="dashboard-status-secondary">
