@@ -152,13 +152,15 @@ async function submitReceipt() {
     const id = String(created.itemId)
     // Keep the receipt's actual inventory item visible even when it was not
     // on the current list page or the current type filter was FINISHED_GOOD.
-    if (selectedId.value === id && itemType.value === 'RAW_MATERIAL') {
-      page.value = 0
-      await Promise.all([load(), loadLots({ scroll: true })])
+    const unchangedRoute = route.query.itemType === 'RAW_MATERIAL'
+      && route.query.itemId === id && route.query.page === undefined
+    if (!unchangedRoute) {
+      await router.replace({ path: '/inventory',
+        query: inventoryQuery({ type: 'RAW_MATERIAL', pageNo: 0, itemId: id }) })
     } else {
-      await router.replace({ path: '/inventory', query: inventoryQuery({
-        type: 'RAW_MATERIAL', pageNo: 0, itemId: id,
-      }) })
+      // Refresh even if the item is not included in the visible first page.
+      selectedSummary.value = null
+      await Promise.all([load(), loadLots({ scroll: true })])
     }
   } catch (e) {
     // Keep the same idempotency request key on retry after a network failure.
