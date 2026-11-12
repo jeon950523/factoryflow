@@ -6,6 +6,7 @@ import { get } from '../lib/api.js'
 const props = defineProps({
   modelValue: { type: [Number, String], default: '' },
   itemType: { type: String, required: true },
+  preselectedItem: { type: Object, default: null },
   placeholder: { type: String, default: '품목 선택' },
   disabled: { type: Boolean, default: false },
 })
@@ -25,10 +26,11 @@ let requestNumber = 0
 let activeController = null
 
 const selectedLabel = computed(() => {
-  if (selected.value && Number(props.modelValue) === selected.value.id) {
-    return selected.value.sku + ' · ' + selected.value.name
-  }
-  return props.modelValue ? '선택한 품목 #' + props.modelValue : props.placeholder
+  const id = Number(props.modelValue)
+  const item = selected.value?.id === id
+    ? selected.value : props.preselectedItem?.id === id ? props.preselectedItem : null
+  return item ? item.sku + ' · ' + item.name
+    : props.modelValue ? '선택한 품목 #' + props.modelValue : props.placeholder
 })
 
 function stopRequest() {

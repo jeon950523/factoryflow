@@ -42,6 +42,11 @@ const receipt = ref({ itemId: '', lotCode: '', quantity: 1, requestKey: requestK
 
 // This is a visible-page metric, not an inventory shortage alert.
 const zeroAvailableOnPage = computed(() => list.value.content.filter(row => row.available === 0).length)
+const preselectedReceiptItem = computed(() => {
+  const item = selectedSummary.value
+  if (!item || Number(receipt.value.itemId) !== Number(item.itemId)) return null
+  return { id: Number(item.itemId), sku: item.sku, name: item.name }
+})
 const selectedName = computed(() => selectedSummary.value?.name ??
   (selectedId.value ? `품목 #${selectedId.value}` : null))
 
@@ -305,6 +310,7 @@ onMounted(async () => {
             <div class="field-label">
               <span class="field-title">원자재 <em class="required-mark">*</em></span>
               <ItemSearchSelect v-model="receipt.itemId" item-type="RAW_MATERIAL"
+                :preselected-item="preselectedReceiptItem"
                 placeholder="원자재 검색 · 선택" :disabled="saving" />
             </div>
             <label class="field-label">LOT 코드 <span>*</span>
