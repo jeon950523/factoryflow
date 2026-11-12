@@ -43,10 +43,10 @@ test('IndexedDB retains manufacturing actions on reload and user can reset sampl
 test('direct SPA route and inventory summaries survive refreshing the production preview', async ({ page }) => {
   await page.goto('/inventory')
   await expect(page.getByRole('heading', { name: '재고 · 입고' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '산업용 강판' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '산업용 강판', exact: true })).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('button', { name: '산업용 강판' })).toBeVisible()
-  await page.getByRole('button', { name: '산업용 강판' }).click()
+  await expect(page.getByRole('button', { name: '산업용 강판', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '산업용 강판', exact: true }).click()
   await expect(page.getByText('STEEL-A01')).toBeVisible()
 })
 
