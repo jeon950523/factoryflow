@@ -115,37 +115,11 @@
 .lot-open { border: 1px solid #c9dcd9; border-radius: 5px; background: #f8fcfb; color: #176a66; font-size: 12px; font-weight: 700; padding: 6px 9px; cursor: pointer; }
 .lot-open:hover { background: #e8f5f1; border-color: #86b8b1; }
 .lot-open:focus-visible { outline: 2px solid #22796f; outline-offset: 2px; }
-.operations-summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 15px; }
-.operation-stat { background: #fff; border: 1px solid #d8e0e5; border-radius: 7px; padding: 14px 17px; min-width: 0; }
-.operation-stat span { display:block; font-weight: 700; color: #4f6573; font-size: 12px; }
-.operation-stat strong { display:block; font-size: 27px; line-height: 1.2; margin: 7px 0; font-variant-numeric: tabular-nums; color: #233a49; letter-spacing: -.8px; }
-.operation-stat strong small { font-size: 13px; font-weight: 600; margin-left: 5px; color: #647985; }
-.operation-stat p { font-size: 11px; line-height: 1.5; color: #677c88; }
-.operation-stat-primary { border-left: 3px solid #267d71; }
-.operation-stat-stock { border-left: 3px solid #d3a15a; }
-.workbench-grid { display: grid; grid-template-columns: minmax(360px,.86fr) minmax(0,1.5fr); gap: 14px; align-items: start; }
-.work-queue, .recent-orders { min-width: 0; }
-.queue-list { padding: 0 12px 11px; }
-.queue-row { display: flex; align-items: center; gap: 11px; border-bottom: 1px solid #e7ecef; padding: 12px 9px; text-decoration: none; color: #273c4a; }
-.queue-row:last-child { border-bottom: 0; }
-.queue-row:hover, .queue-row:focus-visible { background: #f1f7f6; border-radius: 4px; }
-.queue-indicator { width: 6px; height: 34px; border-radius: 2px; background: #8b9ba7; flex-shrink: 0; }
-.queue-blue .queue-indicator { background: #3e89b9; }
-.queue-amber .queue-indicator { background: #c6964c; }
-.queue-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.queue-copy strong { font-size: 13px; color: #233c4c; }
-.queue-copy small { font-size: 11px; line-height: 1.5; color: #6b7d88; }
-.queue-count { min-width: 44px; text-align: right; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; color: #23424d; }
-.queue-row > svg { flex-shrink: 0; color: #849ba5; }
-.workbench-inventory { margin-top: 15px; }
-.workbench-inventory .data-table td, .recent-orders .data-table td { padding-top: 11px; padding-bottom: 11px; }
 .demo-banner { border-radius: 7px; padding: 10px 14px; margin-bottom: 14px; }
 @media (max-width: 1350px) {
   .page-content { padding: 24px 20px 34px; }
-  .workbench-grid { grid-template-columns: 1fr; }
   .order-workspace { grid-template-columns: minmax(0,1fr) minmax(350px,.9fr); }
 }
 @media (max-width: 1100px) {
-  .operations-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .order-workspace { grid-template-columns: 1fr; }
 }

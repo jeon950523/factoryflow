@@ -259,3 +259,14 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **테스트:** [프론트 Node **37/37** · Chrome Fixture **11/11** · IndexedDB Demo Chrome **6/6**](https://github.com/jeon950523/factoryflow/actions/runs/43266729962), [실제 MySQL 업무 브라우저 E2E **2/2**](https://github.com/jeon950523/factoryflow/actions/runs/43266730205).
 - **한계:** CI가 시각적 사용성·접근성·현장 사용자 테스트를 대체하지는 않음. [TASK-009 상세 검수](docs/task-reports/TASK-009-제조업무형UI-검수.md) 및 [검증 근거](docs/verification/TASK-009-CI-검증.md).
 
+
+## TASK-010 — ERP형 작업 목록 대시보드 전환
+
+- TASK-009에서 남아 있던 **동일 크기 KPI 카드 4개와 별도의 큐 카드**를 제거하고, **한 줄 상태 요약 → 처리할 생산지시 표 → 품목 재고 표** 순서로 재설계.
+- 처리 대기 건수는 생산지시 `DRAFT / RESERVED / AWAITING_QC`의 `totalElements` 합계. 표는 **각 상태별 최근 최대 6건**만 표시하여 전체 대기 건수와 분리 표기.
+- 작업 행의 **상세·처리** 링크는 기존 `/orders?id=...`를 사용하므로 서버/데모의 예약·소모·QC 처리 규칙은 변경하지 않음.
+- `DashboardView.vue` 전용 `dashboard-workbench.css`를 신설하고 삭제된 카드/큐용 CSS를 `base.css`에서 정리.
+- 기존 `createLatestRequest`로 새로고침 중 이전 응답 덮어쓰기 방지 및 품목명 조회 실패 시 ID 대체 처리.
+- **검증:** [Frontend CI: Node 37/37, Chrome Fixture 11/11, Demo Chrome 7/7](https://github.com/jeon950523/factoryflow/actions/runs/43296997198), [Spring Boot + MySQL Chrome E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43296997468).
+- **주의:** Vercel 공개 도메인의 최신 빌드 전파·시각적 가독성·현장 사용자 시험은 별도 확인 필요.
+- [TASK-010 검수 보고서](docs/task-reports/TASK-010-ERP작업목록UI-검수.md).
