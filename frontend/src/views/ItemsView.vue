@@ -20,9 +20,12 @@ const auth = useAuthStore()
 const listGate = createLatestRequest(), detailGate = createLatestRequest()
 onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
 const items = ref({ content: [], totalElements: 0, totalPages: 0 })
-const page = ref(0)
-const keyword = ref('')
-const filter = ref('')
+const initialPage = Number(route.query.page)
+const page = ref(typeof route.query.page === 'string' && /^\d+$/.test(route.query.page)
+  && Number.isSafeInteger(initialPage) ? initialPage : 0)
+const keyword = ref(typeof route.query.keyword === 'string' ? route.query.keyword : '')
+const filter = ref(['RAW_MATERIAL', 'FINISHED_GOOD'].includes(route.query.itemType)
+  ? route.query.itemType : '')
 const busy = ref(false)
 const error = ref('')
 const drawer = ref('')
@@ -103,24 +106,35 @@ async function createBom() {
   } catch (e) { ui.notify(e.message, 'error') }
   finally { saving.value = false }
 }
+function listQuery({ pageNo = page.value, itemId } = {}) {
+  return {
+    ...(filter.value ? { itemType: filter.value } : {}),
+    ...(keyword.value ? { keyword: keyword.value } : {}),
+    ...(pageNo > 0 ? { page: String(pageNo) } : {}),
+    ...(itemId ? { itemId: String(itemId) } : {}),
+  }
+}
 function changePage(next) {
-  page.value = next
-  selected.value = null
-  detailGate.cancel()
-  load()
+  router.replace({ path: '/items', query: listQuery({ pageNo: next }) })
 }
 function search() {
-  page.value = 0
-  selected.value = null
-  detailGate.cancel()
-  load()
+  const query = listQuery({ pageNo: 0 })
+  const current = route.query
+  if (current.itemId === undefined && String(current.itemType ?? '') === String(query.itemType ?? '')
+    && String(current.keyword ?? '') === String(query.keyword ?? '') && current.page === undefined) {
+    selected.value = null
+    detailGate.cancel()
+    load()
+    return
+  }
+  router.replace({ path: '/items', query })
 }
 function openItem(item) {
   if (String(route.query.itemId ?? '') === String(item.id)) {
     pick(item)
     return
   }
-  router.replace({ path: '/items', query: { itemId: String(item.id) } })
+  router.replace({ path: '/items', query: listQuery({ itemId: item.id }) })
 }
 async function restoreItem() {
   const id = route.query.itemId
