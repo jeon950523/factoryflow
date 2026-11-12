@@ -1,6 +1,6 @@
 # TASK-008 — Vercel 브라우저 제조 데모 시니어 검수
 
-상태: 구현, 테스트 CI 진행 전. Oracle 가입 문제가 있어 실제 백엔드 배포는 보류.
+상태: **브라우저 데모 기능 구현 및 CI 검증 완료(2026-11-12)**. Oracle 가입 문제가 있어 실제 백엔드 운영 배포는 보류.
 
 ## 1. 목적
 FactoryFlow의 Java21/Spring Boot + MySQL 로직과 테스트를 유지하면서 Vercel에 공개된 UI를 체험 가능하게 만든다. 브라우저 데이터는 서버 DB가 아니므로 **실DB를 대체했다는 표현을 사용하지 않는다.**
@@ -38,3 +38,12 @@ FactoryFlow의 Java21/Spring Boot + MySQL 로직과 테스트를 유지하면서
 
 ## 6. 직접 설명 요약
 서버 기반 제조 시스템 코드는 유지하고 포트폴리오 웹에서는 IndexedDB와 같은 업무 DTO를 사용하는 브라우저 전용 체험 환경을 구현했습니다. FIFO·재고 부족 롤백 등을 데모 상태에서도 재현했지만 MySQL 동시성·서버 인증의 증거는 별도의 백엔드 CI 테스트로 구분합니다.
+
+## 7. 재현 가능한 테스트 증거
+
+- **구현/검증 코드:** `063760e0f60bc1b640097c4cce4ea452402aca3b` (Node 테스트 호환성 수정 포함), UI 안내 문구 개선 커밋 `8afcd56f6cfb915390e4eae7b980bb6f2bc9aca5`.
+- CI 테스트: `cd frontend && npm test && npm run build`.
+- 실제 Chrome fixture: `npx playwright test --config playwright.config.js`.
+- 실제 Chrome IndexedDB: `npx playwright test --config playwright.demo.config.js` (앞서 `npm run build` 필요).
+- Spring Boot/MySQL 기존 E2E: `npx playwright test --config playwright.live.config.js` (CI의 Spring/MySQL이 필요).
+- **검증 경계:** 브라우저 단일 스냅샷의 원자적 저장과 시뮬레이션 규칙을 테스트한 것이지 서버 DB 롤백·서버 세션 인증의 실제 실행이 아님.

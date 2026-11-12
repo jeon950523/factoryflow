@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **TASK-006 세션 인증·CSRF·ADMIN/VIEWER 인가 CI 성공: 백엔드 JUnit 57/57, Node 23/23, Chrome Fixture 11/11, 실 MySQL 브라우저 2/2. 공개 배포 보안 검증은 별도.**
+> **공개 웹 데모: Vercel + IndexedDB 시뮬레이션 (TASK-008). Java 21/Spring Boot·MySQL 실제 구현은 독립 유지. 백엔드 CI 64/64, 프론트 Node 37/37, Chrome Fixture 11/11, 브라우저 데모 3/3, 실DB E2E 2/2 검증.**
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -234,3 +234,16 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - [Backend CI](https://github.com/jeon950523/factoryflow/actions/runs/43191465084) **JUnit 64/64**, [Chrome+실 MySQL E2E](https://github.com/jeon950523/factoryflow/actions/runs/43191465294) **2/2** 통과.
 - **주의:** 단일 JVM 인메모리·프록시 IP 공유·사용자 계정 잠금 방해(DoS) 가능성 때문에 이 기능만으로 공개 배포 승인 불가. 엣지 제한·HTTPS·쿠키·관리자 계정 복구는 후속 작업.
 - [시니어 검수](docs/task-reports/TASK-007A-로그인제한-검수.md) · [테스트 근거](docs/verification/TASK-007A-CI-검증.md)
+
+## TASK-008 — Vercel 브라우저 체험 데모 (Oracle 가입 실패 대안)
+
+- 접속 주소: **https://factoryflow.kro.kr**. Vercel 프로젝트에 연결된 사용자 지정 도메인.
+- 브라우저는 사용자 로그인 없이 **IndexedDB**에 저장된 샘플 품목/BOM/LOT/생산지시 데이터를 체험한다. 이 데이터는 방문자 개인 브라우저에만 저장되며 서버로 전송되지 않는다.
+- 초기 샘플: 산업용 제어 박스 1종, 원자재 3종, BOM, 원자재 LOT, 완료 생산지시 1건, 초안 생산지시 **WO-DEMO-READY** 1건, 합격품 출고 예시.
+- 추천 시연: **재고 확인 → 생산지시 WO-DEMO-READY 선택 → 자재 예약 → 생산 시작 → 생산 완료 → 품질검사 확정 → 출고 → 재고 이동 이력**.
+- **샘플 초기화** 버튼으로 해당 브라우저의 체험 데이터를 다시 채운다. 브라우저 저장소를 삭제하면 변경한 기록은 사라진다.
+- Vite `PROD` 빌드는 기본 데모; `VITE_DEMO_MODE=false`로 빌드하면 기존 Spring Boot API 사용. 로컬 `npm run dev`는 계속 실제 백엔드.
+- **진짜 백엔드 증거:** Spring Boot/MySQL Testcontainers와 Fullstack CI 테스트. 공개 데모는 MySQL 트랜잭션이나 Spring Security 서버 로그인과 다르다.
+- [상세 구현/검수](docs/task-reports/TASK-008-브라우저데모-검수.md) · [사용 가이드](docs/DEMO_WALKTHROUGH.md) · [설계 결정](docs/adr/ADR-013-프론트데모-실백엔드분리.md).
+
+**운영 주의:** Oracle 배포용 PR #14는 미병합 Draft로 유지하며, 실제 DB·로그인 운영 배포 준비 후 별도 검토한다.
