@@ -1,6 +1,6 @@
 # TASK-007B — 도메인 기반 운영 배포 템플릿 시니어 검수
 
-상태: 코드 구현·정적 검수 완료, GitHub CI 대기. 실제 Oracle/Vercel 배포는 수행하지 않음.
+상태: **배포 템플릿 구현 및 GitHub Actions CI 검증 완료(2026-11-12)**. 실제 Oracle/Vercel 배포는 수행하지 않음.
 
 ## 1. 목적
 factoryflow.kro.kr / api.factoryflow.kro.kr 호스트로 Vercel(Vue)·Oracle(Spring Boot + MySQL)·Caddy(HTTPS)를 이어주는 재현 가능한 템플릿을 만든다.
@@ -30,3 +30,17 @@ CI의 Caddy·Compose·Docker 빌드는 운영 TLS·DNS·VM 실행을 대체하�
 
 ## 6. 설명 요약
 브라우저는 Vercel에만 접속하고 /api를 HTTPS 프록시로 전달합니다. Oracle에서는 Caddy 뒤 Spring Boot를 loopback으로 제한하고 MySQL은 Docker 내부에 둬 공격 표면을 줄였습니다. 실환경 인증/DB 복구 검증은 배포 전 게이트입니다.
+
+## 7. CI 실제 검증 증거
+
+| 검증 | 결과 | 근거 |
+|---|---|---|
+| 배포 설정 구성·Caddy·Dockerfile·non-root 검사 | **성공** | [43202990848](https://github.com/jeon950523/factoryflow/actions/runs/43202990848) |
+| Frontend Node · Vite · Chrome Fixture | **Node 23/23, Chrome 11/11, Vite build 성공** | [43202990778](https://github.com/jeon950523/factoryflow/actions/runs/43202990778) |
+| Backend Java21·Testcontainers MySQL | **JUnit 64/64, 실패 0, 오류 0, 스킵 0** | [43202990845](https://github.com/jeon950523/factoryflow/actions/runs/43202990845) |
+| Fullstack Spring Boot·MySQL·Chrome | **2/2 성공** | [43202990622](https://github.com/jeon950523/factoryflow/actions/runs/43202990622) |
+
+- 검증된 구현 커밋: `fb079a5a78f183362d3178de4e9460c062bee39e`. 이 이후는 문서 갱신.
+- Docker 이미지 **빌드 및 non-root 메타데이터**가 검증됐으며 Oracle VM에서 `prod` 프로필 실제 기동까지 검증한 것은 아님.
+- Vercel Custom Domain, 루트 A 레코드, API A 레코드, Oracle 공인 IP, 실제 HTTPS, Cookie, MySQL 복원은 여전히 **미검증**.
+- 출시 판정: **템플릿 준비 완료 / 공개 배포 승인 보류**.
