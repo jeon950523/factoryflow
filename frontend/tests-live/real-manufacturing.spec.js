@@ -119,8 +119,9 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await expect(table).toContainText('−3')
   const shipped = productMoves.find(m => m.movementType === 'FINISHED_SHIPMENT')
   await table.getByRole('link', { name: '완제품 출고 #' + shipped.referenceId + ' 확인' }).click()
-  await expect(page).toHaveURL(new RegExp('/shipments\\?id=' + shipped.referenceId + '
-
+  await expect(page).toHaveURL('http://127.0.0.1:5173/shipments?id=' + shipped.referenceId)
+  await expect(page.getByRole('table', { name: 'LOT별 출고 배분 내역' })).toContainText('LOT #')
+})
 
 test('real database: shortage from Vue reservation button must preserve DRAFT and unreserved stock', async ({ page }) => {
   await loginAsAdmin(page)
