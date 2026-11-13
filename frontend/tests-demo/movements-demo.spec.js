@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('IndexedDB stock movement trail shows real movement direction and survives reload', async ({ page }) => {
   await page.goto('/movements?itemId=1')
   const table = page.getByRole('table', { name: '선택 품목 재고 이동 이력' })
-  await expect(page.getByRole('heading', { name: /재고 이동 이력/ })).toBeVisible()
+  await expect(page.locator('.erp-movement-sheet').getByRole('heading', { name: /재고 이동 이력/ })).toBeVisible()
   await expect(page.locator('.erp-movement-filter .item-search-toggle')).toContainText('산업용 강판')
   await expect(table).toContainText('+50')
   await expect(table).toContainText('−10')
