@@ -5,7 +5,7 @@ import { get } from '../lib/api.js'
 
 const props = defineProps({
   modelValue: { type: [Number, String], default: '' },
-  itemType: { type: String, required: true },
+  itemType: { type: String, default: '' },
   preselectedItem: { type: Object, default: null },
   placeholder: { type: String, default: '품목 선택' },
   disabled: { type: Boolean, default: false },
@@ -51,7 +51,7 @@ async function searchPage(nextPage = 0) {
   page.value = nextPage // 실패해도 재시도 시 사용자가 요청했던 페이지를 유지한다.
   try {
     const result = await get('/api/v1/items', {
-      itemType: props.itemType,
+      itemType: props.itemType || undefined,
       keyword: appliedKeyword.value || undefined,
       page: nextPage,
       size: 10,
@@ -83,7 +83,7 @@ function applySearch() {
 }
 
 function choose(item) {
-  if (item.itemType !== props.itemType) return
+  if (props.itemType && item.itemType !== props.itemType) return
   selected.value = item
   emit('update:modelValue', item.id)
   emit('selected', item)
