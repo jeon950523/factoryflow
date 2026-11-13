@@ -102,8 +102,26 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   expect(rawMoves.some(m => m.movementType === 'RAW_CONSUMPTION' && m.quantity === 20)).toBe(true)
   expect(productMoves.some(m => m.movementType === 'FINISHED_RECEIPT' && m.quantity === 8)).toBe(true)
   expect(productMoves.some(m => m.movementType === 'FINISHED_SHIPMENT' && m.quantity === 3)).toBe(true)
-})
 
+  // TASK-014: Verify the audit UI against those exact records persisted in MySQL.
+  await page.goto('/movements?itemId=' + raw.id)
+  const table = page.getByRole('table', { name: '선택 품목 재고 이동 이력' })
+  await expect(table).toContainText('+25')
+  await expect(table).toContainText('−20')
+  const consumption = rawMoves.find(m => m.movementType === 'RAW_CONSUMPTION')
+  await expect(table.getByRole('link', { name: '생산지시 #' + consumption.referenceId + ' 확인' }))
+    .toHaveAttribute('href', '/orders?id=' + consumption.referenceId)
+  await page.reload()
+  await expect(table).toContainText('−20')
+
+  await page.goto('/movements?itemId=' + finished.id)
+  await expect(table).toContainText('+8')
+  await expect(table).toContainText('−3')
+  const shipped = productMoves.find(m => m.movementType === 'FINISHED_SHIPMENT')
+  await table.getByRole('link', { name: '완제품 출고 #' + shipped.referenceId + ' 확인' }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/shipments?id=' + shipped.referenceId)
+  await expect(page.getByRole('table', { name: 'LOT별 출고 배분 내역' })).toContainText('LOT #')
+})
 
 test('real database: shortage from Vue reservation button must preserve DRAFT and unreserved stock', async ({ page }) => {
   await loginAsAdmin(page)

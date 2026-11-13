@@ -1,0 +1,40 @@
+/* TASK-014: read-only inventory audit trail, scoped ERP workspace. */
+.erp-movements { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.erp-movement-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:12px 16px; border:1px solid #d9e2e6; border-radius:4px; background:#fff; }
+.erp-movement-filter { display:flex; align-items:center; gap:13px; min-width:0; flex:1; }
+.erp-movement-filter-label { white-space:nowrap; font-size:13px; font-weight:700; color:#435f6a; }
+.erp-movement-filter .item-search-select { width:min(430px,100%); min-width:0; }
+.erp-movement-actions { display:flex; align-items:center; gap:14px; }
+.erp-movement-mode { font-size:12px; color:#607985; white-space:nowrap; }
+.erp-movement-sheet { background:#fff; border:1px solid #d9e2e6; border-radius:4px; overflow:hidden; min-width:0; }
+.erp-movement-head { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:18px 20px 15px; border-bottom:1px solid #e4eaed; }
+.erp-movement-head h2 { margin:0; font-size:17px; font-weight:750; color:#253d4b; }
+.erp-movement-head h2 small { margin-left:8px; color:#566f7b; font-size:13px; font-weight:650; }
+.erp-movement-head p { margin:6px 0 0; font-size:12px; color:#657d89; line-height:1.55; }
+.erp-movement-empty { display:flex; align-items:center; gap:12px; padding:29px 20px; font-size:13px; line-height:1.6; color:#657d89; }
+.erp-movement-empty p { margin:0; }
+.erp-movement-empty svg { flex-shrink:0; color:#668d88; }
+.erp-movement-notice { font-size:12px; color:#985d3f; background:#fff8f0; padding:10px 20px; border-bottom:1px solid #efdcc7; }
+.erp-movement-table th, .erp-movement-table td { padding:11px 14px; font-size:13px; }
+.erp-movement-table th:nth-child(2), .erp-movement-table td:nth-child(2) { min-width:152px; white-space:nowrap; }
+.erp-movement-table th:nth-child(6), .erp-movement-table td:nth-child(6) { min-width:152px; }
+.erp-movement-table .number-cell { font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:750; }
+.erp-movement-table .number-cell.erp-movement-in { color:#1b746a!important; }
+.erp-movement-table .number-cell.erp-movement-out { color:#a36340!important; }
+.erp-movement-id { color:#56717c; font-variant-numeric:tabular-nums; }
+.erp-movement-table td strong { font-size:12px; font-weight:700; color:#334f5c; }
+.erp-movement-link { display:inline-flex; align-items:center; gap:5px; color:#17685e; font-size:12px; font-weight:750; text-decoration:none; white-space:nowrap; }
+.erp-movement-link:hover { text-decoration:underline; }
+.erp-movement-link:focus-visible { outline:2px solid #23877a; outline-offset:3px; }
+.erp-movement-unlinked { color:#788a92; font-size:12px; }
+.erp-movement-foot { padding:13px 20px; color:#667e8a; border-top:1px solid #e4eaed; font-size:11px; line-height:1.65; }
+.erp-movement-sheet .state-box { min-height:165px; }
+@media(max-width:900px) {
+  .erp-movement-toolbar { align-items:stretch; flex-direction:column; }
+  .erp-movement-head { align-items:flex-start; flex-direction:column; }
+  .erp-movement-actions { justify-content:space-between; }
+}
+@media(max-width:650px) {
+  .erp-movement-filter { flex-direction:column; align-items:stretch; gap:6px; }
+  .erp-movement-filter .item-search-select { width:100%; }
+}
