@@ -102,6 +102,58 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   expect(rawMoves.some(m => m.movementType === 'RAW_CONSUMPTION' && m.quantity === 20)).toBe(true)
   expect(productMoves.some(m => m.movementType === 'FINISHED_RECEIPT' && m.quantity === 8)).toBe(true)
   expect(productMoves.some(m => m.movementType === 'FINISHED_SHIPMENT' && m.quantity === 3)).toBe(true)
+
+  // TASK-014: Verify the audit UI against those exact records persisted in MySQL.
+  await page.goto('/movements?itemId=' + raw.id)
+  const table = page.getByRole('table', { name: '선택 품목 재고 이동 이력' })
+  await expect(table).toContainText('+25')
+  await expect(table).toContainText('−20')
+  const consumption = rawMoves.find(m => m.movementType === 'RAW_CONSUMPTION')
+  await expect(table.getByRole('link', { name: '생산지시 #' + consumption.referenceId + ' 확인' }))
+    .toHaveAttribute('href', '/orders?id=' + consumption.referenceId)
+  await page.reload()
+  await expect(table).toContainText('−20')
+
+  await page.goto('/movements?itemId=' + finished.id)
+  await expect(table).toContainText('+8')
+  await expect(table).toContainText('−3')
+  const shipped = productMoves.find(m => m.movementType === 'FINISHED_SHIPMENT')
+  await table.getByRole('link', { name: '완제품 출고 #' + shipped.referenceId + ' 확인' }).click()
+  await expect(page).toHaveURL(new RegExp('/shipments\\?id=' + shipped.referenceId + '
+
+
+test('real database: shortage from Vue reservation button must preserve DRAFT and unreserved stock', async ({ page }) => {
+  await loginAsAdmin(page)
+  const request = page.request
+  const id = Date.now().toString(36).toUpperCase()
+  const raw = await postData(request, '/api/v1/items', {
+    sku: 'RM-SHORT-' + id, name: '부족 재료 ' + id, itemType: 'RAW_MATERIAL',
+  })
+  const finished = await postData(request, '/api/v1/items', {
+    sku: 'FG-SHORT-' + id, name: '부족 완제품 ' + id, itemType: 'FINISHED_GOOD',
+  })
+  await postData(request, '/api/v1/boms', {
+    finishedItemId: finished.id, components: [{ rawItemId: raw.id, qtyPerUnit: 2 }],
+  })
+  await postData(request, '/api/v1/stock-receipts', {
+    requestKey: 'REC-SHORT-' + id, itemId: raw.id, lotCode: 'LOT-SHORT-' + id, quantity: 3,
+  })
+  const order = await postData(request, '/api/v1/work-orders', {
+    clientRequestId: 'WO-SHORT-' + id, finishedItemId: finished.id, plannedQty: 2,
+  })
+
+  await page.goto('/orders?id=' + order.id)
+  await expect(page.locator('.detail-panel')).toContainText(order.orderNo)
+  await page.locator('.detail-panel .action-stack').getByRole('button', { name: '자재 예약' }).click()
+  await expect(page.locator('.toast')).toContainText('원자재가 부족하여 전량 예약할 수 없습니다.')
+  const after = await getData(request, '/api/v1/work-orders/' + order.id)
+  const rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
+  expect(after.status).toBe('DRAFT')
+  expect({ onHand: rawInventory.onHand, reserved: rawInventory.reserved, available: rawInventory.available })
+    .toEqual({ onHand: 3, reserved: 0, available: 3 })
+})
+))
+  await expect(page.getByRole('table', { name: 'LOT별 출고 배분 내역' })).toContainText('LOT #')
 })
 
 
