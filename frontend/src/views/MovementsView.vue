@@ -77,7 +77,17 @@ async function load() {
   try {
     const result = await get('/api/v1/stock-movements',
       { itemId: selectedId.value, page: page.value, size: 20 }, { signal: request.signal })
-    if (request.isCurrent()) data.value = result
+    if (!request.isCurrent()) return
+    // A saved page may become invalid after old movement records are removed
+    // or a stale link is opened. Recover to the last real page, not an empty table.
+    if (page.value >= result.totalPages && page.value > 0) {
+      const lastPage = Math.max(0, result.totalPages - 1)
+      await router.replace({ path: '/movements', query: {
+        itemId: selectedId.value, ...(lastPage ? { page: String(lastPage) } : {}),
+      } })
+      return
+    }
+    data.value = result
   } catch (e) {
     if (request.isCurrent() && !isAbortError(e)) error.value = e.message
   } finally {
