@@ -19,8 +19,8 @@
 .erp-movement-table th:nth-child(2), .erp-movement-table td:nth-child(2) { min-width:152px; white-space:nowrap; }
 .erp-movement-table th:nth-child(6), .erp-movement-table td:nth-child(6) { min-width:152px; }
 .erp-movement-table .number-cell { font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:750; }
-.erp-movement-table .erp-movement-in { color:#1b746a; }
-.erp-movement-table .erp-movement-out { color:#a36340; }
+.erp-movement-table .number-cell.erp-movement-in { color:#1b746a!important; }
+.erp-movement-table .number-cell.erp-movement-out { color:#a36340!important; }
 .erp-movement-id { color:#56717c; font-variant-numeric:tabular-nums; }
 .erp-movement-table td strong { font-size:12px; font-weight:700; color:#334f5c; }
 .erp-movement-link { display:inline-flex; align-items:center; gap:5px; color:#17685e; font-size:12px; font-weight:750; text-decoration:none; white-space:nowrap; }
