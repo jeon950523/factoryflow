@@ -71,3 +71,9 @@ test('invalid item query never sends a stock movement request', async ({ page })
   await expect(page.getByText('조회할 원자재 또는 완제품을 먼저 선택하세요.')).toBeVisible()
   expect(reads).toBe(0)
 })
+
+test('stale out-of-range page URL recovers to the last available movement page', async ({ page }) => {
+  await page.goto('/movements?itemId=205&page=99')
+  await expect(page).toHaveURL('http://127.0.0.1:5173/movements?itemId=205&page=1')
+  await expect(page.getByRole('table', { name: '선택 품목 재고 이동 이력' })).toContainText('#21')
+})
