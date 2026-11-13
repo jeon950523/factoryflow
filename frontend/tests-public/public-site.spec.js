@@ -35,11 +35,13 @@ test('public item/BOM and shipment pages render the TASK-013 table-based layout'
   expect(response?.status()).toBe(200)
   await expect(page.getByRole('table', { name: '품목 기준 정보 목록' })).toBeVisible()
   await expect(page.getByRole('table', { name: '완제품 BOM 구성표' })).toContainText('산업용 강판')
+  await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: 'public-qa/items.png', fullPage: true })
 
   response = await page.goto('/shipments?id=1', { waitUntil: 'domcontentloaded' })
   expect(response?.status()).toBe(200)
   await expect(page.getByRole('table', { name: 'LOT별 출고 배분 내역' })).toContainText('LOT #4')
+  await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: 'public-qa/shipments.png', fullPage: true })
   expect(errors).toEqual([])
 })
