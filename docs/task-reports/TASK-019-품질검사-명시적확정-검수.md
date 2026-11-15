@@ -1,7 +1,7 @@
 # TASK-019 — 품질검사 결과 직접 입력·최종 확인 구현 및 시니어 검수
 
 > 작성일: 2026-11-16
-> 검수 상태: **PR 코드·Chrome/IndexedDB·실DB CI 검증 완료, main 병합 후 CI 별도 확인**
+> 검수 상태: **TASK-019 완료 — PR #26 병합, `main` Frontend·실DB E2E 성공 및 Vercel 배포 완료 확인**
 > 기준: `main 63dbfbb61682cc1bb1cc4ea032c343f7d0d7f051`, 기존 SSOT Draft 및 [TASK-004F](TASK-004F-품질검사-합격품입고-설계-검수.md) 검증 결과
 > 작업 브랜치: `feature/task-019-qc-explicit-confirmation`
 > 작성·검수: AI 지원 구현/시니어 기준 1차 코드 검토. 실제 Chrome/MySQL CI 성공 여부 별도 기재. Windows PC 수동 QA 미실시.
@@ -99,13 +99,13 @@ UI 확인 전에 서버 POST는 하지 않는다. 입력을 snapshot 객체로 �
 - [실DB E2E #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394): Java 21/Spring Boot/MySQL 8.4 + Google Chrome **2/2** 성공. 기존 재고 입고·예약·소모·QC·출고 결과를 유지하면서 최종 확인에 대한 테스트도 통과.
 - 신규 브라우저 검증 범위: 입력 2칸 공란, 명시적 0, 소수·음수·안전 정수 초과 차단, 합계 일치, 확인창 취소 시 상태/입력 유지·서버 미반영, 승인 후 합격품 재고 +8, 전량 불합격(합격0/불합격10) 시 완제품 재고 미증가.
 - **후속 문서 HEAD의 추가 CI 실패:** [Frontend #43729693292](https://github.com/jeon950523/factoryflow/actions/runs/43729693292)에서 IndexedDB 29건 중 1건 실패. 기존 샘플 초기화 시나리오가 비동기 `resetDemoData()` 완료 알림보다 먼저 다른 화면으로 이동한 테스트 레이스로 확인. 28건(신규 QC 테스트 포함)은 통과했고, **샘플 초기화 완료 토스트를 await한 뒤 화면을 이동**하도록 테스트 보완. 엔진·도메인 코드는 수정하지 않았다. 이 실패 후 새 CI 최종 HEAD 검증 전까지 완료로 표시하지 않는다.
-- **병합 후 `main` Frontend/Fullstack CI와 배포 완료 상태는 별도로 확인**한다.
+- **병합 후 `main` Frontend/Fullstack CI와 Vercel 배포 완료도 성공**했다(최종 증거 §13).
 
 **초기 PR CI 검사 (실패 원인 분석 완료, 수정 후 재검증 성공):**
 - 첫 [Frontend CI #43729184665](https://github.com/jeon950523/factoryflow/actions/runs/43729184665): Node/Chrome fixture/빌드는 통과, IndexedDB Chrome 28건 중 2건 실패. Playwright `getByRole('spinbutton',{name:'합격 수량'})`가 '불합격 수량'에도 부분 일치하여 strict mode violation 발생. **테스트 선택자 오류**로 확인하여 `exact:true` 수정. 이 오류는 실제 검사 저장 실패/재고 불일치 증거가 아니다.
 - 첫 [실DB E2E #43729184652](https://github.com/jeon950523/factoryflow/actions/runs/43729184652): 실제 Spring Boot/MySQL Chrome 제조·검사·출고 2/2 성공. 단, 최종 HEAD 기준 다시 검증한다.
 - 초기 2건 실패 발견 후 **명시적 전량 불합격(합격 0/불합격 10)** 또한 유효하며 완제품 재고를 늘리지 않는 회귀 테스트를 추가했다.
-- 최종 기능 HEAD의 Frontend/Fullstack CI는 성공했다. **`main` 병합 후 재검증 전에는 최종 완료로 표시하지 않는다.**
+- 최종 PR 기능 HEAD와 병합 `main`의 Frontend/Fullstack CI가 모두 성공했다. 검사 UI 기능과 실DB 회귀를 검증한 TASK-019는 완료 판정한다.
 
 다음 명령/워크플로를 최종 PR 헤드와 병합된 main에서 검증한다.
 
@@ -171,3 +171,13 @@ UI 확인 전에 서버 POST는 하지 않는다. 입력을 snapshot 객체로 �
 ## 12. 결정/ADR
 
 기존 상태·트랜잭션 및 서버 API 계약이 변하지 않으므로 **신규 ADR 불필요**. 변경은 [TASK-019 작업지시서](../../tasks/TASK-019-품질검사-명시적확정-안전성.md)와 본 검수 보고서로 관리한다.
+
+## 13. 최종 병합·배포·시니어 검수 판정
+
+- **TASK-019 코드 병합:** [PR #26](https://github.com/jeon950523/factoryflow/pull/26), squash merge `480c2a058cfdbb3bf3bef4657bb3e04e97671883`.
+- **최종 PR 기능/문서 HEAD:** `655453af66e2b59911ba85993249f040bd4be8ee`에서 [Frontend CI #43729958669](https://github.com/jeon950523/factoryflow/actions/runs/43729958669)와 [실DB E2E #43729958664](https://github.com/jeon950523/factoryflow/actions/runs/43729958664) 모두 SUCCESS.
+- **병합된 `main`의 프론트엔드:** [#43730192091](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) SUCCESS. Node 37/37, Chrome fixture 21/21, IndexedDB 29/29, Vite 빌드 성공.
+- **병합된 `main`의 Spring Boot/MySQL:** [#43730192083](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) SUCCESS. Java 21·MySQL 8.4 기동 후 Chrome E2E 2/2.
+- **Vercel:** merge commit `480c2a0`에 연결된 배포 상태 SUCCESS. 실제 공개 도메인에서 새 검사 UI를 직접 수정·확정하는 검사는 수행하지 않았으며, 별도 브라우저 저장소 격리 테스트로 확인했다.
+- **최종 판정:** UI 입력 안전성·업무 추적/데이터 정합성 회귀 통과. 실사용 Windows PC 키보드·현장 검사 UX 및 검사 정정/승인 절차는 후속 과제로 남긴다.
+- **문서 최신화:** 본 보고서, TASK 지시서, 기술 개념, TS-008, 로드맵, README, 데모 가이드, PROJECT_HANDOFF. 병합 이후 기록 전용 PR에서 최종 검증값을 동기화한다.
