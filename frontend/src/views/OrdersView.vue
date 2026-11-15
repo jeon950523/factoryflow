@@ -18,7 +18,10 @@ const route = useRoute(), router = useRouter(), ui = useUiStore()
 const auth = useAuthStore()
 const listGate = createLatestRequest(), detailGate = createLatestRequest()
 onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
-const loading = ref(false), error = ref(''), page = ref(0)
+const requestedPage = Number(route.query.page)
+const initialPage = typeof route.query.page === 'string' && /^\\d+$/.test(route.query.page)
+  && Number.isSafeInteger(requestedPage) ? requestedPage : 0
+const loading = ref(false), error = ref(''), page = ref(initialPage)
 const statusValues = new Set(['DRAFT', 'RESERVED', 'IN_PROGRESS', 'AWAITING_QC', 'COMPLETED', 'CANCELED'])
 // Dashboard queue links use ?status=...; do not pretend the API supports an ad-hoc search.
 const initialStatus = typeof route.query.status === 'string' && statusValues.has(route.query.status)
@@ -144,6 +147,7 @@ async function runAction(action) {
 function orderLink(id) {
   return { path: '/orders', query: {
     ...(statusFilter.value ? { status: statusFilter.value } : {}),
+    ...(page.value > 0 ? { page: String(page.value) } : {}),
     id: String(id),
   } }
 }
@@ -155,13 +159,11 @@ function openOrder(id) {
   router.replace(orderLink(id))
 }
 function changePage(next) {
-  page.value = next
-  selected.value = null
-  requestedDetailId.value = null
-  detailGate.cancel()
-  detailLoading.value = false
-  detailError.value = ''
-  load()
+  if (next < 0 || next >= list.value.totalPages) return
+  router.replace({ path: '/orders', query: {
+    ...(statusFilter.value ? { status: statusFilter.value } : {}),
+    ...(next ? { page: String(next) } : {}),
+  } })
 }
 function changeFilter() {
   page.value = 0
