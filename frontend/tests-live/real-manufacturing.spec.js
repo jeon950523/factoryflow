@@ -48,6 +48,20 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await postData(request, '/api/v1/boms',
     { finishedItemId: finished.id, components: [{ rawItemId: raw.id, qtyPerUnit: 2 }] })
 
+  // Capture the exact browser request bodies and HTTP replay responses.
+  const receiptPosts = [], receiptStatuses = [], shipmentPosts = [], shipmentStatuses = []
+  page.on('request', req => {
+    const url = new URL(req.url()).pathname
+    if (req.method() !== 'POST') return
+    if (url === '/api/v1/stock-receipts') receiptPosts.push(JSON.parse(req.postData()))
+    if (url === '/api/v1/shipments') shipmentPosts.push(JSON.parse(req.postData()))
+  })
+  page.on('response', response => {
+    const url = new URL(response.url()).pathname
+    if (url === '/api/v1/stock-receipts') receiptStatuses.push(response.status())
+    if (url === '/api/v1/shipments') shipmentStatuses.push(response.status())
+  })
+
   // The human-facing commands after initial master-data setup must all go through Vue buttons.
   await page.goto('/inventory')
   await page.getByRole('button', { name: '원자재 입고' }).click()
@@ -76,6 +90,9 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await expect(pendingReceipt).toHaveCount(0)
   expect(await page.evaluate(() =>
     sessionStorage.getItem('factoryflow:pending-raw-receipt:v1'))).toBeNull()
+  expect(receiptPosts).toHaveLength(2)
+  expect(receiptPosts[1]).toEqual(receiptPosts[0]) // same key AND exact body, not just same quantity.
+  expect(receiptStatuses).toContain(200) // backend replayed the original commit.
   let rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
   expect(rawInventory.onHand).toBe(25)
   expect(rawInventory.available).toBe(25)
@@ -132,6 +149,9 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await expect(pendingShipment).toHaveCount(0)
   expect(await page.evaluate(() =>
     sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
+  expect(shipmentPosts).toHaveLength(2)
+  expect(shipmentPosts[1]).toEqual(shipmentPosts[0])
+  expect(shipmentStatuses).toContain(200)
   await expect(page.locator('.detail-panel')).toContainText('실DB 브래킷 ' + id)
 
   rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
