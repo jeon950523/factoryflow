@@ -37,7 +37,7 @@
 | 017 | BOM/LOT/생산지시/출고 이력 왕복·URL·정합성 | [#24](https://github.com/jeon950523/factoryflow/pull/24) / `71b6ae20` |
 | 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) / `63dbfbb` · main Frontend/실DB SUCCESS |
 | 019 | QC 결과 직접 입력/범위·합계 검증/불가역 확정 전 재확인 | [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / `480c2a0` · 병합 main Frontend/실DB SUCCESS |
-| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) · 구현/실행 검증 대기 |
+| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) · 기능 CI Node42/Chrome21/30·MySQL3 성공, 최종 HEAD/main 대기 |
 
 ## 4. 최종 확인된 자동 검증
 
@@ -84,4 +84,4 @@ TASK-019 코드 병합 `main 480c2a0`에 대해:
 - 실제 Spring Boot/MySQL 재현: `frontend/tests-live/real-manufacturing.spec.js`에서 `route.fetch()`로 서버에 먼저 POST 커밋한 뒤 `route.abort()`로 브라우저 응답만 유실, 새로고침 후 동일 key로 재시도. 원자재 입고/완제품 출고 원장 각각 1건 검증.
 - 서버 SQL/트랜잭션·스키마/FIFO/권한 미변경. 시뮬레이터(IndexeDB)와 실 MySQL CI는 별개. 다중 탭·스토리지 삭제/종료는 미보증.
 - [작업지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) · [검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [TS-009](TROUBLESHOOTING.md) · [기술 학습 §24](learning/CORE_CONCEPTS.md).
-- 다음 작업자는 [PR #28](https://github.com/jeon950523/factoryflow/pull/28) **최종 헤드 및 그 CI/실DB E2E 성공 여부**부터 확인. 성공 전 최종 완료나 공개 사이트 기능 검증을 주장하지 말 것.
+- 기능 CI `278c60fe` 검증 성공: [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [MySQL #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) 실제 E2E 3/3, HTTP 200 replay·원장 1회·409 잠금 해제. 다음 작업자는 [PR #28](https://github.com/jeon950523/factoryflow/pull/28)의 **최종 문서 HEAD 및 병합 main CI**를 따로 확인해야 한다.
