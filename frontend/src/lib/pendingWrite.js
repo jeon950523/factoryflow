@@ -11,6 +11,16 @@ export function isUncertainWriteError(error) {
   return error?.status === 0 || error?.status >= 500 || error?.code === 'INVALID_RESPONSE'
 }
 
+/** Only an explicit business/validation rejection can unlock a prior unknown write.
+ * 401/403 and IDEMPOTENCY_KEY_CONFLICT do NOT prove the original write was absent.
+ */
+export function isConfirmedWriteRejection(error) {
+  return error?.status === 400 || error?.status === 404
+    || (error?.status === 409 && [
+      'INSUFFICIENT_FINISHED_STOCK', 'INVALID_FINISHED_ITEM', 'INVALID_RAW_MATERIAL',
+    ].includes(error.code))
+}
+
 function validPayload(kind, value) {
   if (!value || Array.isArray(value) || typeof value !== 'object'
       || typeof value.requestKey !== 'string'
