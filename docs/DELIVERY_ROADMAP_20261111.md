@@ -1,6 +1,6 @@
 # FactoryFlow — 진행 로드맵 및 TASK 상태
 
-> 기준일: 2026-11-15 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
+> 기준일: 2026-11-16 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
 > 이 문서는 기존 TASK-011~013 기록을 보존한 뒤 TASK-014 이후 상태를 추가했다. TASK-001~010의 과거 상세 근거는 [README](../README.md), [task-reports](task-reports/) 및 [SSOT](FACTORYFLOW_SSOT_v0.1.md) 참조.
 > 주의: Vercel 공개 브라우저는 IndexedDB 데모이며 Spring Boot + MySQL 운영 서버 배포가 아니다.
 
@@ -58,11 +58,11 @@
 - [PR #24](https://github.com/jeon950523/factoryflow/pull/24), `main` `71b6ae20`. Node 37/37, Chrome fixture 21/21, IndexedDB 27/27, 실DB E2E 2/2; Vercel 배포 상태 성공.
 - [검수 보고서](task-reports/TASK-017-업무동선-데이터정합성-검수.md).
 
-## TASK-018 — 최신 배포 Chrome 검증 및 작업 기록 정합성 · PR 검증 완료
+## TASK-018 — 최신 배포 Chrome 검증 및 작업 기록 정합성 · 완료
 
 - 공개 도메인의 TASK-017 링크 왕복, 상태/ID URL 새로고침, 잘못된 이동 이력 쿼리, 키보드 모달·CSS zoom을 읽기 전용 Chrome으로 검증.
 - 기록 누락을 소급 확인: 최근 TASK별 지시서·누적 기술 개념·트러블슈팅·로드맵/README·핸드오프와 TASK 검수 보고서의 연결을 보강한다.
-- **검증:** 공개 Vercel Chrome **6/6**, Frontend Node **37/37**, Chrome fixture **21/21**, IndexedDB **27/27**, 실제 MySQL E2E **2/2** 성공. [공개 실행](https://github.com/jeon950523/factoryflow/actions/runs/43726967372) · [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43726967329) · [MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43726967349). 최종 PR HEAD·병합 후 main CI는 별도 확인.
+- **검증:** 공개 Vercel Chrome **6/6**, Frontend Node **37/37**, Chrome fixture **21/21**, IndexedDB **27/27**, 실제 MySQL E2E **2/2** 성공. [공개 실행](https://github.com/jeon950523/factoryflow/actions/runs/43726967372) · [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43726967329) · [MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43726967349). 최종 PR 헤드와 병합 `main 63dbfbb`의 [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43727388011) 및 [실DB](https://github.com/jeon950523/factoryflow/actions/runs/43727388049) CI 모두 성공 확인.
 - [작업지시서](../tasks/TASK-018-공개배포-QA-문서정합성.md) · [작업 기록 규정](DEVELOPMENT_REPORTING_STANDARD.md).
 
 ## 현재 결정/보류
@@ -70,3 +70,11 @@
 - 현행 범위: 단일 공장·단일 창고·EA, BOM/LOT/FIFO/생산·검사·출고; Vercel 브라우저 데모와 실제 MySQL 통합 테스트는 분리한다.
 - 보류: BOM 버전·수정, 출고 취소/반품, 다중 창고, 서버의 원장 전체 기간/유형 검색, 실DB 공개 운영 보안·복구, 실제 Windows 현장 확대/사용성 시험.
 - 문서 정본: [SSOT v0.1](FACTORYFLOW_SSOT_v0.1.md) (초기 설계 초안), [핵심 개념](learning/CORE_CONCEPTS.md) (누적), [장애 기록](TROUBLESHOOTING.md), [현 상태·핸드오프](PROJECT_HANDOFF.md).
+
+## TASK-019 — 품질검사 명시적 입력·최종 확인 안전장치 · 검증 중
+
+- 검사 대기 생산지시가 기본 합격 `plannedQty`/불합격 0을 자동 기입하여 사용자 검사 없이 전량 합격 승인 가능했던 UI를 개선한다.
+- 공란과 명시적 0의 차이를 보존하고, 안전 정수·합계 일치·계획 수량 검증, 확인 대화상자에 생산지시번호/합격·불합격 수량 표시, 취소 시 POST 미실행.
+- 실제 `POST /api/v1/work-orders/{id}/inspection` 및 서버의 검사/LOT/재고 트랜잭션은 미수정.
+- **완료 판정:** PR Chrome fixture·IndexedDB·실 MySQL E2E 및 병합 `main` CI 성공. 공개 사이트 새 화면은 Vercel 배포 여부와 별도 확인.
+- [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md) · [시니어 검수 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
