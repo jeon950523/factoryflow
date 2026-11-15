@@ -71,10 +71,10 @@
 - 보류: BOM 버전·수정, 출고 취소/반품, 다중 창고, 서버의 원장 전체 기간/유형 검색, 실DB 공개 운영 보안·복구, 실제 Windows 현장 확대/사용성 시험.
 - 문서 정본: [SSOT v0.1](FACTORYFLOW_SSOT_v0.1.md) (초기 설계 초안), [핵심 개념](learning/CORE_CONCEPTS.md) (누적), [장애 기록](TROUBLESHOOTING.md), [현 상태·핸드오프](PROJECT_HANDOFF.md).
 
-## TASK-019 — 품질검사 명시적 입력·최종 확인 안전장치 · 검증 중
+## TASK-019 — 품질검사 명시적 입력·최종 확인 안전장치 · PR 검증 완료
 
 - 검사 대기 생산지시가 기본 합격 `plannedQty`/불합격 0을 자동 기입하여 사용자 검사 없이 전량 합격 승인 가능했던 UI를 개선한다.
 - 공란과 명시적 0의 차이를 보존하고, 안전 정수·합계 일치·계획 수량 검증, 확인 대화상자에 생산지시번호/합격·불합격 수량 표시, 취소 시 POST 미실행.
 - 실제 `POST /api/v1/work-orders/{id}/inspection` 및 서버의 검사/LOT/재고 트랜잭션은 미수정.
-- **완료 판정:** PR Chrome fixture·IndexedDB·실 MySQL E2E 및 병합 `main` CI 성공. 공개 사이트 새 화면은 Vercel 배포 여부와 별도 확인.
+- **PR 검사 성공:** [Frontend #43729409460](https://github.com/jeon950523/factoryflow/actions/runs/43729409460) Node 37/37·Chrome fixture 21/21·IndexedDB 29/29, [실DB #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394) Chrome 2/2. **최종 완료는 병합 `main` CI 성공 확인 후 판정.** 공개 Vercel과 Windows 실제 환경은 별도.
 - [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md) · [시니어 검수 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
