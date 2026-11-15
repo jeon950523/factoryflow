@@ -91,7 +91,7 @@ try {
 
 ## 5. 경계·위험·보안
 
-- **거래 결과 미확인:** HTTP 연결 끊김/status 0, 5xx, 파싱/계약 위반은 잠금/동일 재전송. retry 중 409 등 확정 오류는 사용자에게 그대로 표시하고 원래 pending은 유지해 임의 폐기하지 않는다.
+- **거래 결과 미확인:** HTTP 연결 끊김/status 0, 5xx, 파싱/계약 위반은 잠금/동일 재전송. 재전송 결과가 **확실한 미처리**(400 검증 실패, 404 대상 없음, 409 재고 부족·품목 유형 충돌)이면 pending 해제 후 새 요청 키로 수정 가능하게 한다. **IDEMPOTENCY_KEY_CONFLICT(409), 401/403, 5xx는 원본 완료 여부가 불분명해 잠금을 유지**한다.
 - **확정 거절:** 출고 재고부족/검증/인가 4xx는 잠금 없이 기존 입력 수정 가능. 이 응답이 서버 커밋 성공과 같은 뜻은 아니다.
 - **LOT·품목 정규화:** 서버 canonical key/LOT 대문자 정규화와 브라우저 UUID 케이스 차이는 *비교*에서만 해결한다. 서로 다른 키 발행·payload 임의 수정은 방지한다.
 - **응답 유효성:** 반환된 ID/요청 키/품목/수량이 예상과 달라지면 성공으로 간주하지 않고 미확인으로 처리해 중복 우려를 낮춘다.
@@ -105,7 +105,7 @@ try {
 **첫 PR 검증 완료, 강화된 최종 테스트 재실행 중:**
 - [Frontend CI #43732039360](https://github.com/jeon950523/factoryflow/actions/runs/43732039360) **SUCCESS**: Node **41/41**, Chrome fixture **21/21**, IndexedDB Chrome **30/30**, 프로덕션 빌드 성공.
 - [Spring Boot/MySQL E2E #43732039371](https://github.com/jeon950523/factoryflow/actions/runs/43732039371) **SUCCESS**: Java 21 + MySQL 8.4 실제 서버/Chrome E2E **2/2**. `route.fetch()`로 먼저 DB 커밋한 후 `route.abort()`로 브라우저 응답 유실, 동일 키 retry 뒤 현재고/원장 일치.
-- **사전 검수 후 추가 강화:** 실DB 테스트가 브라우저 최초 요청과 retry의 `requestKey`뿐 아니라 **JSON body 전체가 같은지**, 서버가 기존 결과인 **HTTP 200 replay**로 응답했는지 명시 단언하도록 변경. 강화 커밋 `3379c21d`의 **최종 PR 헤드 Frontend/MySQL CI는 재검증 진행 중**이며, 그 결과와 병합 main 확인 전에는 완료로 표시하지 않는다.
+- **사전 검수 후 추가 강화:** 실DB 테스트가 브라우저 최초 요청과 retry의 `requestKey`뿐 아니라 **JSON body 전체가 같은지**, 서버가 **HTTP 200 replay**로 응답했는지 명시 단언하도록 강화했다. 이후 **미전송된 네트워크 실패 → 재전송 409 재고부족 → 입력 잠금 해제 및 새 키 발급**도 실제 MySQL Chrome 테스트에 추가했다. 강화된 최종 PR HEAD Frontend/MySQL CI와 병합 main 확인 전에는 완료로 표시하지 않는다.
 
 - Node: `cd frontend && npm ci && npm test` → pendingWrite classification/read/write/clear/오염 저장 데이터 테스트
 - Build: `cd frontend && npm run build`
@@ -162,3 +162,9 @@ try {
 - CI 실패면 반드시 원인/수정/재실행 수치를 기록하고, PR HEAD 성공 후 병합/main CI를 확인한다.
 - 최종 코드/기술 설명은 이 보고서, 누적 [CORE_CONCEPTS](../learning/CORE_CONCEPTS.md), 실제 재현 [TROUBLESHOOTING](../TROUBLESHOOTING.md), [PROJECT_HANDOFF](../PROJECT_HANDOFF.md)로 연결한다.
 - 신규 ADR 불필요: 기존 재고 멱등성 계약을 변경하지 않고 브라우저 복구 단계를 보완한 것이다.
+
+### 2차 시니어 검수 발견: 미확인 → 확정 거절로 바뀌는 상태 전이
+
+최초 네트워크 실패에서는 트랜잭션 커밋 여부를 알 수 없어 잠금이 옳다. 그러나 같은 키/본문을 재전송했더니 서버가 **재고 부족 등 명시적 미처리 409**를 반환한 경우, 서버 멱등성 조회 계약상 원래 성공한 요청이었다면 200 replay가 반환되어야 한다. 그러므로 이 409는 새 요청을 수정해 제출하도록 풀어줘야 UI가 영구 잠김 상태에 빠지지 않는다.
+
+`isConfirmedWriteRejection`은 400/404 및 허용된 업무 충돌 코드만 잠금 해제한다. 인증 만료 401/403, 다른 payload의 같은 키 사용 충돌, 5xx는 원 요청 결과를 보증하지 않으므로 계속 잠가둔다. 확정 거절 해제에서는 새 requestKey를 발급하며, 실제 MySQL Chrome에서 이전 두 시도에 같은 키·세 번째에는 새 키가 사용되는지 HTTP 본문으로 검증한다.
