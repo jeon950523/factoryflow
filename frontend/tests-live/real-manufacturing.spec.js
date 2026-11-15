@@ -253,3 +253,42 @@ test('real database: shortage from Vue reservation button must preserve DRAFT an
   expect({ onHand: rawInventory.onHand, reserved: rawInventory.reserved, available: rawInventory.available })
     .toEqual({ onHand: 3, reserved: 0, available: 3 })
 })
+
+
+test('real database: lost shipment response followed by definite shortage unlocks a new request', async ({ page }) => {
+  await loginAsAdmin(page)
+  const request = page.request
+  const id = Date.now().toString(36).toUpperCase()
+  const finishedSku = 'FG-REJECT-' + id
+  const finished = await postData(request, '/api/v1/items', {
+    sku: finishedSku, name: '출고 부족 검증 ' + id, itemType: 'FINISHED_GOOD',
+  })
+  await page.goto('/shipments')
+  await page.getByRole('button', { name: '출고 등록' }).click()
+  await selectItem(page, finishedSku)
+  const dialog = page.getByRole('dialog', { name: '완제품 출고 등록' })
+  await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('1')
+
+  // Nothing reaches the server the first time, but the browser cannot know that.
+  await page.route('**/api/v1/shipments', route => route.abort('failed'), { times: 1 })
+  await dialog.getByRole('button', { name: '출고 확정' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('출고 결과가 미확인')
+  const formerKey = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('factoryflow:pending-finished-shipment:v1')).requestKey)
+  await dialog.getByRole('button', { name: '동일 요청 재시도' }).click()
+
+  // An explicit 409 with no matching committed key is safe to edit after unlock.
+  await expect(page.locator('.toast')).toContainText('출고 가능한 완제품 재고가 부족합니다.')
+  await expect(dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' })).toBeEnabled()
+  await expect(dialog.getByRole('alert')).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
+  const newKey = await page.evaluate(() => {
+    const app = document.querySelector('.erp-shipments')
+    return app ? true : false
+  })
+  expect(newKey).toBe(true) // the Vue page remains usable, without any phantom shipment.
+  const moves = (await getData(request, '/api/v1/stock-movements?itemId=' + finished.id)).content
+  expect(moves).toHaveLength(0)
+  expect(formerKey).toMatch(/^SHIP-/)
+})
