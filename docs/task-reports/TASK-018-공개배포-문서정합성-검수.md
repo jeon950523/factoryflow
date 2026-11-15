@@ -1,7 +1,7 @@
 # FactoryFlow TASK-018 — 공개 배포·업무 추적 QA 및 문서 감사·검수
 
 > 날짜: 2026-11-15
-> 상태: **검증 대기** — PR 헤드 공개 Chrome/Frontend/MySQL CI 완료 후 검증값 반영
+> 상태: **PR 검증 완료** — 공개 Chrome 6/6, Frontend 및 Spring Boot/MySQL E2E 성공. 병합 후 `main` CI는 별도 재확인
 > 기준 SSOT: [FACTORYFLOW_SSOT_v0.1.md](../FACTORYFLOW_SSOT_v0.1.md) (초기 Draft), 운영 모드 결정: [ADR-013](../adr/ADR-013-프론트데모-실백엔드분리.md)
 > 기준 `main`: `71b6ae204cf2948414da8fe67aa544f5dab9baf9` (TASK-017)
 > 작업 브랜치: `qa/task-018-public-smoke-docs-audit`
@@ -86,7 +86,10 @@ await expect(page).toHaveURL(/\/movements\?itemId=1$/)
 - 공개 사이트: `https://factoryflow.kro.kr`; `frontend/playwright.public.config.js`, `frontend/tests-public/public-site.spec.js`.
 - CI 명령: `cd frontend && npm ci && npm test && npm run build`; `npx playwright test --config playwright.config.js`; `npx playwright test --config playwright.demo.config.js`; `npx playwright test --config playwright.public.config.js`.
 - 실제 서버: GitHub Actions의 Java 21/Spring Boot/MySQL 8.4 + Chrome `playwright.live.config.js`.
-- **테스트 결과:** PR 최종 HEAD 검증 대기. 실제 CI 통과 로그/스크린샷·commit SHA 확인 후 이 항목을 갱신해야 한다.
+- **테스트 결과:** PR #25의 검사 커밋 `8a1e6c2f0322a4181abcf72fa1ea75d7579f6285`에서 **공개 Chrome 6/6 성공** (HTTP 200), **Frontend Node 37/37·Chrome fixture 21/21·IndexedDB Chrome 27/27·Vite build 성공**, **Spring Boot/MySQL 실DB E2E 2/2 성공**.
+- **실제 증거:** [공개 Chrome #43726967372](https://github.com/jeon950523/factoryflow/actions/runs/43726967372), [공개 PNG/HTML artifact #14166568094](https://github.com/jeon950523/factoryflow/actions/runs/43726967372/artifacts/14166568094), [Frontend #43726967329](https://github.com/jeon950523/factoryflow/actions/runs/43726967329), [MySQL E2E #43726967349](https://github.com/jeon950523/factoryflow/actions/runs/43726967349).
+- **스크린샷 육안 검수:** 1440×900 Noto CJK에서 한글 정상 표시, 실제 생산지시 상세/LOT·이력 표 정상 표시, 125% CSS 확대 상태에서 등록 모달의 입력·닫기/취소·등록 버튼이 화면 안에 표시됨. CSS 확대 스크린샷의 `position:fixed` backdrop이 fullPage 이미지의 화면 아래 부분을 덮지 않는 현상은 **현재 뷰포트만 고정 오버레이를 갖는 캡처 표현**으로, 뷰포트에서 모달 외부 클릭을 허용한다는 증거는 아니다.
+- **남은 외부 조건:** 실제 Windows OS 확대·접근성 스크린리더 사용성은 미검증이며, GitHub Actions 증거 artifact 보관 기간 7일.
 - 성능 지표/접속 지연 수치: **미측정**.
 - 공개 Chrome 원본 PNG와 실패 trace는 7일 보관 artifact. 추후 만료 가능하므로 실행 링크와 의미를 보고서에 기록한다.
 
@@ -94,13 +97,13 @@ await expect(page).toHaveURL(/\/movements\?itemId=1$/)
 
 | 관점 | 정적 검수 판단 | 근거/잔여 |
 |---|---|---|
-| 기능 | PR 코드 정적 검토 | UI 링크 실제 클릭·URL/표 비교, 공개 실실행 대기 |
+| 기능 | **공개 Chrome 통과** | TASK-017 DOM 링크 업무 왕복, 상태/ID URL 복원, 잘못된 쿼리 처리 6/6 |
 | 데이터 | 백엔드/엔진 미변경 | 실제 MySQL E2E를 별도 CI에서 유지 |
 | 보안 | 데이터 조회만 사용 | 쓰기 버튼 클릭하지 않음, 테스트 간 독립 BrowserContext |
-| 예외 | 잘못된 쿼리/브라우저 JS 오류 점검 | 공개 도메인 실제 실행 증거 대기 |
+| 예외 | **Chrome 통과** | 잘못된 쿼리→조회 안내 및 JS pageerror 없음; 등록 모달 focus/Escape 복귀 |
 | 효율 | 읽기 E2E 3개 추가, 공통 fixture/추상화 추가 없음 | 외부 테스트가 느릴 수 있으므로 수동/PR 실행 유지 |
 | 유지보수 | 마법 숫자 1·4는 **기존 데모 seed fixture의 고정 ID** | 공개 사이트 시드 변경 시 테스트/시연 자료 동기화 필요 |
-| 검증 | 프론트·실DB·공개 Chrome 분리 | 어느 한쪽의 SUCCESS가 다른 쪽의 성공을 보장하지 않음 |
+| 검증 | **PR 3종 CI 통과** | 공개 Chrome 6/6, Frontend Node/fixture/demo, 실제 MySQL E2E 2/2를 독립 실행 |
 
 ### 장점/단점·대안
 
@@ -132,7 +135,7 @@ await expect(page).toHaveURL(/\/movements\?itemId=1$/)
 
 ## 10. 남은 위험과 다음 TASK
 
-- 공개 Chrome 테스트의 결과가 아직 없다면 TASK-018은 완료가 아니다.
+- PR #25의 공개 Chrome/Frontend/MySQL 3종 CI는 성공했다. 병합 후 **최신 `main` CI를 별도 확인**하고 그 결과를 완료 판단에 포함한다.
 - Vercel 공개 사이트의 개인 브라우저 저장/확대/스크린리더는 Ubuntu Chrome 자동 검사만으로 완전한 사용성 평가가 되지 않는다.
 - 현 시점 신규 설계 ADR 없음(기존 ADR-013 유지). 기능 API·DB·도메인 로직을 임의 수정하지 않는다.
 - 후속: 공개 QA에서 발견한 사용성/예외 문제를 실제 화면 기준 우선순위로 분리해 단일 목적 TASK로 작업한다. `PROJECT_HANDOFF.md`를 다음 작업의 시작점으로 유지한다.
