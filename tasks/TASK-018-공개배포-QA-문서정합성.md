@@ -2,7 +2,7 @@
 
 > 기준: `main` `71b6ae204cf2948414da8fe67aa544f5dab9baf9` (TASK-017)
 > 시작: 2026-11-15
-> 상태: 검증 중. 실제 공개 Chrome 및 PR/main CI가 모두 성공하기 전 완료로 표기하지 않음
+> 상태: PR 헤드 공개 Chrome 6/6, Frontend CI 및 MySQL E2E 검증 완료. 병합 후 main 검증을 별도로 확인한다
 > 작업 방식: 최신 main 검수 → 작업 브랜치 → 코드/문서 리뷰 → 공개 Chrome + 기존 CI 검증 → PR → main 병합 확인
 
 ## 목적과 문제
@@ -26,6 +26,14 @@ TASK-017에서 업무 ID 기반 BOM·LOT·생산지시·출고 추적 링크를 
 3. 작업 지시서·결과 보고서·핵심 누적 개념·문서 인덱스/핸드오프·실제 트러블슈팅·README/로드맵의 서로 다른 상태가 정리된다.
 4. 시니어 검수 항목(구현 이유, 핵심 코드 흐름, 대안/트레이드오프, 보안/예외, 검증 로그, 기능/효율 리팩터링 판정, 후속 작업, 설명 연습)을 `docs/task-reports/TASK-018-공개배포-문서정합성-검수.md`에 기록한다.
 5. 동일 커밋 PR CI가 성공하고 병합 후 `main` CI도 성공한 뒤 작업 완료로 판단한다.
+
+## 검증 증거
+
+- 공개 Vercel Google Chrome HTTP 200 / 6/6 PASS: https://github.com/jeon950523/factoryflow/actions/runs/43726967372
+- 공개 Chrome 원본 PNG 6장 + HTML report: https://github.com/jeon950523/factoryflow/actions/runs/43726967372/artifacts/14166568094
+- Frontend Node 37/37·Chrome fixture 21/21·IndexedDB 27/27 PASS: https://github.com/jeon950523/factoryflow/actions/runs/43726967329
+- 실제 Spring Boot/MySQL E2E 2/2 PASS: https://github.com/jeon950523/factoryflow/actions/runs/43726967349
+- PR/병합 상태는 https://github.com/jeon950523/factoryflow/pull/25 참조. Windows PC 실제 OS 배율 검증은 미수행.
 
 ## 기존 미흡한 기록 소급 정책
 
