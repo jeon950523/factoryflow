@@ -2,7 +2,7 @@
 
 > 작성일: 2026-11-16
 > 기준: `main` `63dbfbb61682cc1bb1cc4ea032c343f7d0d7f051` / TASK-018 완료
-> 작업 상태: 구현·검증 진행
+> 작업 상태: PR 최종 기능 커밋 CI 성공 (병합 후 main CI는 별도 검증)
 > 범위: Vue `OrdersView.vue` 품질검사 UI, Chrome 데모/실DB 회귀 테스트, 기록 문서
 
 ## 문제와 근거
@@ -30,3 +30,11 @@
 - 검사 결과 수정/취소·품질 승인 워크플로·검사자 서명·검사 상세 첨부는 신규 도메인 계약과 감사 이력이 필요해 범위 밖.
 - 모든 생산 단계에 확인 팝업을 추가하면 작업량/실수 위험의 비율이 달라진다. 우선 **되돌릴 수 없는 재고 입고가 발생하는 QC 확정**에 한정한다.
 - 기본 0/0으로 채우는 것도 `0`의 직접 입력 여부를 구분하지 못하므로 빈 값 초기화가 타당하다.
+
+## 실행 근거
+
+- PR 검증 커밋: `729e5223869c013f1dd918dc806afc768f83dcf9`, [PR #26](https://github.com/jeon950523/factoryflow/pull/26)
+- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43729409460): Node 37/37, Chrome fixture 21/21, IndexedDB 29/29 성공
+- [실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/43729409394): 실제 MySQL 2/2 성공
+- 첫 [Frontend CI 실패](https://github.com/jeon950523/factoryflow/actions/runs/43729184665)는 `합격 수량` 로케이터가 `불합격 수량`에도 매칭된 Playwright selector 문제로, `exact:true` 수정 후 최종 CI 성공
+- 공개 Vercel 새 UI 및 Windows PC 수동 사용성은 **검증 결과와 별개**로 추적
