@@ -79,9 +79,9 @@
 - **원인:** UI는 네트워크 오류를 모두 일반 메시지로 표시했고, 멱등성이 **요청 키뿐 아니라 payload 전체가 같아야 한다**는 규칙을 화면 재진입에 적용하지 않았다.
 - **수정:** 응답 미확인(status0/5xx/INVALID_RESPONSE) 시 key+품목/LOT/수량을 immutable snapshot으로 고정, 탭 sessionStorage에 보관하고 확인된 재전송(200/201)에서만 해제. 명백한 4xx는 미확인 잠금을 적용하지 않는다.
 - **사전 코드 검수 추가 발견:** `requestKey()`가 UUID를 소문자로 생성하나 Java `CanonicalReceipt/CanonicalShipment`은 Locale.ROOT 대문자 정규화를 수행한다. 응답 키를 원문과 직접 비교하면 정상 결과를 잘못된 응답으로 분류하는 오류가 생기므로 **비교만 대문자 정규화**하고 요청 원문은 보존한다.
-- **검증:** [PR #28](https://github.com/jeon950523/factoryflow/pull/28) Chrome/MySQL E2E에서 `route.fetch()`로 DB에 실제 반영한 뒤 `route.abort()`로 클라이언트 응답만 유실하는 테스트를 실행한다. CI 성공/실패 링크는 [TASK-020 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md)에 추가한다.
+- **검증:** [PR #28](https://github.com/jeon950523/factoryflow/pull/28) Chrome/MySQL E2E에서 `route.fetch()`로 DB에 실제 반영한 뒤 `route.abort()`로 클라이언트 응답만 유실하는 테스트를 실행한다. [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [실DB #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) E2E3 모두 성공했다. 최종 HEAD·병합 main CI는 별도 확인하며 세부 결과는 [TASK-020 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md)에 보존한다.
 - **한계/재발 방지:** `sessionStorage`는 같은 탭 세션에만 유효. 재고가 불확실한 네트워크 쓰기는 새 키로 자동 재발행하지 않는다. 대규모 운영 환경에서는 서버측 키로 조회/재개하는 API 및 관리 정책 필요.
 
 ### TS-009 후속 코드 검수 — 확정 실패 후 영구 잠금 방지
 
-재전송 이전의 status 0은 미확인으로 잠가야 하지만, 이후 서버가 400/404 또는 출고재고부족 409처럼 **그 키의 미처리**를 명확히 반환한 경우에도 무한 잠금하면 사용자가 데이터를 정정할 수 없는 문제가 된다. 따라서 `isConfirmedWriteRejection()`을 별도로 두고 해당 경우에만 pending·sessionStorage를 해제하고 새 키를 부여한다. 401/403/IDEMPOTENCY_KEY_CONFLICT는 원본이 이미 처리됐을 가능성이 있으므로 해제 대상에서 제외한다. [PR #28](https://github.com/jeon950523/factoryflow/pull/28)의 실 MySQL Chrome에서 코드 변경 후 재현/검증하도록 시나리오를 추가했다.
+재전송 이전의 status 0은 미확인으로 잠가야 하지만, 이후 서버가 400/404 또는 출고재고부족 409처럼 **그 키의 미처리**를 명확히 반환한 경우에도 무한 잠금하면 사용자가 데이터를 정정할 수 없는 문제가 된다. 따라서 `isConfirmedWriteRejection()`을 별도로 두고 해당 경우에만 pending·sessionStorage를 해제하고 새 키를 부여한다. 401/403/IDEMPOTENCY_KEY_CONFLICT는 원본이 이미 처리됐을 가능성이 있으므로 해제 대상에서 제외한다. [PR #28](https://github.com/jeon950523/factoryflow/pull/28)의 [실 MySQL Chrome #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015)에서 미전송→409 확정 거절→새 키 발급을 3번째 E2E로 재현·검증했다.
