@@ -4,7 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Truck, Plus, RefreshCw, X, PackageCheck, ArrowRight } from 'lucide-vue-next'
 import './shipments-workbench.css'
 import { ApiError, get, post } from '../lib/api.js'
-import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError } from '../lib/pendingWrite.js'
+import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
@@ -109,6 +109,14 @@ async function submit() {
       pendingShipment.value = payload
       pendingPersisted.value = savePendingWrite('shipment', payload)
       ui.notify('출고 처리 여부를 확인할 수 없습니다. 동일 요청으로만 재시도하세요.', 'error')
+    } else if (pendingShipment.value && isConfirmedWriteRejection(e)) {
+      // A definitive rejected command did not commit. A corrected attempt is a NEW request.
+      pendingShipment.value = null
+      clearPendingWrite('shipment')
+      shipment.value = {
+        ...shipment.value, requestKey: requestKey('SHIP'),
+      }
+      ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
     } else {
       ui.notify(e.message, 'error')
     }
