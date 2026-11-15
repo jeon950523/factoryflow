@@ -59,3 +59,15 @@
 - **조치:** 문서 머리말을 복원하고 기존 TASK-011~013 본문을 보존한 채 TASK-014~018 기록을 추가했다. README·frontend README·핸드오프에도 현행 구현 상태를 명시했다.
 - **검증:** [PR #25의 문서 변경 diff](https://github.com/jeon950523/factoryflow/pull/25/files), [TASK-018 보고서](task-reports/TASK-018-공개배포-문서정합성-검수.md). 문서 편집 직후 저장소 파일 내용을 다시 읽어 복원된 제목을 확인했다.
 - **재발 방지:** 원격 파일 수정 후 문자열로 덮어쓸 때 파일 첫 줄·필수 제목·문서 링크를 확인한다.
+
+## TS-008 · 품질검사 자동 전량 합격 위험 및 테스트 이름 충돌 (TASK-019)
+
+- **실제 코드에서 확인:** `OrdersView.vue#choose`가 `qcForm={passedQty: detail.plannedQty, failedQty:0}`을 사전 설정하여 `qcValid=true`와 검사 확정 버튼 활성화를 사용자 입력 전에 만들어 냈다. `QualityInspectionService.confirm`은 확정 시 합격품 LOT/재고 이동을 기록하며 검사 정정 API가 없는 상태다.
+- **구조적 원인:** 검사 결과를 임의의 전량 합격으로 추정하는 UI 기본값과 `Number('')===0`에 의존할 수 있는 숫자 입력 계산.
+- **해결:** 두 입력 공란 시작, 명시적 0/안전 정수/합계 검증, 생산지시번호·입력 수량 확인 대화상자 승인 시에만 검사 POST. 원자재·검사·완제품 DB 트랜잭션 계약은 유지.
+- **실제 CI 실패:** [Frontend 첫 PR 검사 #43729184665](https://github.com/jeon950523/factoryflow/actions/runs/43729184665)에서 신규 IndexedDB 테스트 **2건 실패**, 기존 fixture는 정상. Playwright의 `getByRole('spinbutton',{name:'합격 수량'})`가 '불합격 수량'에도 부분 일치하여 strict mode violation이 발생했다. UI 도메인 로직 오류로 보지 않는다.
+- **테스트 수정:** 합격 필드 로케이터를 `getByRole('spinbutton',{name:'합격 수량',exact:true})`로 고정. 전량 불합격(합격0/불합격10) 후 재고 미반영 테스트도 추가.
+- **검증 증거:** [PR #26](https://github.com/jeon950523/factoryflow/pull/26)의 [Frontend #43729409460](https://github.com/jeon950523/factoryflow/actions/runs/43729409460) Chrome fixture 21/21·IndexedDB 29/29와 [실DB #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394) 2/2 성공. 병합 후 main CI는 별도 확인, [TASK-019 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
+- **두 번째 실제 CI 실패:** [최종 문서 커밋 Frontend #43729693292](https://github.com/jeon950523/factoryflow/actions/runs/43729693292)에서 29개 IndexedDB 테스트 중 1개 실패. 기존 '샘플 초기화' 테스트가 `resetDemoData()` 완료를 기다리지 않고 즉시 `page.goto('/orders')`로 이동해 재조회 시점에 이전 완료 상태를 볼 수 있었다. 다른 28건 및 모든 새 QC 시나리오는 성공.
+- **수정:** `App.vue#resetDemo()`의 `await resetDemoData()` 완료 후 발생하는 `ui.notify('이 브라우저의 데모 데이터를 초기화했습니다.')` 토스트를 Playwright에서 기다린 후 화면을 이동한다. 비즈니스 엔진이나 초기화 UI 로직은 수정하지 않는다.
+- **재발 방지:** 유사한 한국어 레이블은 `exact:true` 또는 명시적 `label`과 안정적인 ID를 사용한다. 비동기 화면 초기화/POST 후 테스트는 **완료 신호**를 기다리고 다음 화면을 탐색한다. UI 기본값이 사용자 승인/재고 변동을 암묵적으로 수행하지 않는지 검토한다.
