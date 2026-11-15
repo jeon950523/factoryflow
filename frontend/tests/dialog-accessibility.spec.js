@@ -37,7 +37,7 @@ test('admin account drawer traps keyboard focus and cannot close during save', a
   await expect(username).toBeFocused()
   await username.fill('qaadmin')
   await dialog.locator('input[type="password"]').fill('test-password-123')
-  const submit = dialog.getByRole('button', { name: '계정 발급' })
+  const submit = dialog.locator('button[type="submit"]')
   await submit.click()
   await started
   await expect(submit).toBeDisabled()
