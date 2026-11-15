@@ -145,3 +145,71 @@
 - 검증 계획: 기존 제조 MockMvc 테스트는 보안 필터 없이 비즈니스 회귀 확인, 보안 Testcontainers 전용 클래스는 필터 포함, 실제 Vue/Chrome/MySQL 통합은 로그인 후 사용.
 - 남은 위험: rate limit/계정 잠금/비밀번호 재설정/운영 TLS·프록시 확인, 접근성/세션 고장 회귀, 공인 배포 전 필수 검증.
 - 나중에 설명: 서버 세션과 CSRF로 안전한 상태 변경을 검증하고 ADMIN/VIEWER RBAC를 백엔드 필터에서 강제했습니다.
+
+## 15. 로그인 시도 제한과 배포 안전 경계 — TASK-007A
+
+- **호출 흐름:** 로그인 요청 → `LoginRateLimitFilter`의 제한 확인 → BCrypt 검증 → 성공 시 계정 버킷 정리. 5분 기준 계정별 8회/접속원별 120회, 제한 시 HTTP 429 및 Retry-After. 세부 설정은 [TASK-007A 보고서](../task-reports/TASK-007A-로그인제한-검수.md) 참조.
+- **장점:** 인증 이전에 무차별 시도 부담 완화 / **단점:** 단일 JVM 메모리 상태이므로 여러 인스턴스 분산 제한은 보장하지 않으며 프록시 IP 공유와 사용자 방해 위험이 있다.
+- **운영 주의:** 로그인 제한을 구현했다는 사실이 HTTPS, 보안 쿠키, 복구 절차를 확인한 공개 서버 배포 승인을 의미하지 않는다.
+
+## 16. Vercel IndexedDB와 실제 MySQL 기능의 분리 — TASK-008
+
+- **문제:** 무료 서버 배포 제약 때문에 공개 체험을 먼저 제공해야 하지만 무인증 DB 백엔드를 외부에 노출하면 안 된다.
+- **방법:** `VITE_DEMO_MODE`와 `requestDemo`를 통해 Vercel 브라우저에서 동일 API 형식의 로컬 IndexedDB 시뮬레이터를 호출한다. 쓰기는 트랜잭션 하나에서 snapshot을 읽고 쓰며 `requestKey` 충돌을 모델링하지만 **실제 Spring/MySQL의 락·롤백 증거로 취급하지 않는다.**
+- **장점:** 계정 없이 안전하게 개인 브라우저에서 시연 / **단점:** 실제 서버 간 동기화, 운영 계정 권한, 분산 쓰기와 MySQL 잠금은 증명하지 못함.
+- **근거:** [ADR-013](../adr/ADR-013-프론트데모-실백엔드분리.md), [TASK-008 보고서](../task-reports/TASK-008-브라우저데모-검수.md).
+
+## 17. 업무형 UI 설계 — TASK-009~013
+
+- **업무 판단:** 화면을 KPI 장식보다 처리 대기 생산지시·품목 재고·선택 상세/명령에 집중한다. 실제 백엔드 없는 OEE·설비 지표·경보 전체 건수를 꾸며내지 않는다.
+- **호출 흐름:** Vue Router URL 쿼리 → 해당 View의 `load()`/조회 게이트 → `GET /api/v1/...` → 페이지/상세 렌더링 → ADMIN 전용 쓰기 버튼 → 별도 `POST`.
+- **선택 이유:** 목록 DTO와 상세 DTO를 분리하고 `lookupItemNames`로 현재 화면의 품목 ID만 일괄 조회한다. 페이지/URL 직접 접근 후 필요한 상세만 재조회한다.
+- **대안 및 비용:** 모든 데이터를 처음에 가져오면 탐색은 단순해도 규모에 따라 전송 낭비가 발생한다. 단건 GET을 여러 번 호출하면 N+1 네트워크가 된다. 서버 검색·페이지·ID lookup은 추가 왕복이 있지만 데이터량을 제한한다.
+- **표시 계약:** QC 불량품은 출고 가능한 완제품에 포함하지 않고, LOT 배분 API가 반환하지 않는 LOT 코드를 만들어 표시하지 않는다. 읽기 전용 VIEWER UI에서 버튼을 숨기더라도 실제 쓰기 권한은 Spring Security에서 결정한다.
+- **근거:** [TASK-009](../task-reports/TASK-009-제조업무형UI-검수.md) → [TASK-013](../task-reports/TASK-013-품목BOM-출고UI-검수.md).
+
+## 18. 읽기 전용 재고 이동 원장 — TASK-014
+
+- `MovementsView.vue`: `/movements?itemId=205&page=1` → `GET /api/v1/items/{id}` + `GET /api/v1/stock-movements?itemId=...&page=...&size=20` → 실제 `StockMovementResponse` 표.
+- **표현 vs 데이터:** DB의 `quantity`는 양수이며 화면에서만 `RAW_RECEIPT/FINISHED_RECEIPT` 앞에 `+`, `RAW_CONSUMPTION/FINISHED_SHIPMENT`에 `−`를 붙인다. 예약·해제는 물리 이동 이력이 아니므로 제외한다.
+- **예외:** 직접 URL ID 유효성, 역순 응답 `createLatestRequest`, 저장한 페이지의 범위 변경 시 실제 마지막 페이지로 복원, 선택한 품목 단건 조회 실패에도 ID 기준 원장 조회는 유지.
+- **트레이드오프:** 서버 측 타입/기간 검색 없이 전체 이력 검색 UI를 구현하지 않음. 품목 직접 진입 시 추가 GET 1건은 URL 복원 정확성을 위해 수용.
+- **검증:** [TASK-014 보고서](../task-reports/TASK-014-재고이동-공통UI-검수.md), PR #21.
+
+## 19. 배포 성공과 Chrome 화면 검증은 다른 주장 — TASK-015
+
+- Vercel GitHub 상태가 `success`여도 실제 사용자 도메인의 SPA 라우팅·글꼴·IndexedDB 렌더링까지 보증하지 않는다.
+- `frontend/playwright.public.config.js`는 공개 `https://factoryflow.kro.kr`에 접근하는 Google Chrome 테스트이고, CI의 실제 Spring/MySQL E2E와 분리한다.
+- Ubuntu 러너에 한글 글꼴이 없으면 화면이 네모 글자로 캡처될 수 있으므로 `fonts-noto-cjk` 설치 후 증거를 보관한다.
+- **한계:** GitHub Ubuntu Chrome에서 정상 렌더링 = 모든 Windows PC·확대/보조기기에서 정상 표시라는 결론은 아니다.
+- **근거:** [TASK-015 보고서](../task-reports/TASK-015-공개배포-Chrome-검수.md), PR #22.
+
+## 20. Vue 모달 수명주기·접근성 — TASK-016
+
+- `v-dialog-focus`는 모달 마운트 때 이전 활성 요소를 기억하고 첫 입력에 초점 → 문서 keydown Tab/Shift+Tab 트랩 → Escape 닫기 → 언마운트 시 리스너 해제·트리거 복귀를 처리한다.
+- 열린 `ItemSearchSelect`는 첫 Escape를 사용해 검색 팝업을 닫고, 닫힌 상태는 Escape를 상위 모달에 전달한다.
+- `saving` 중에는 Escape/백드롭/닫기 버튼으로 모달을 숨기지 않는다. **장점:** 폼 처리 상태 오인 감소 / **단점:** 공통 지시어와 페이지별 저장 상태·닫기 함수를 함께 유지해야 한다.
+- 보조 텍스트의 글씨 크기·대비와 `prefers-reduced-motion`을 개선하되 전체 WCAG 인증이나 Windows OS 확대 검증은 주장하지 않는다.
+- **근거:** [TASK-016 보고서](../task-reports/TASK-016-가독성-모달접근성-검수.md), PR #23.
+
+## 21. URL 상태 복원과 제조업무 데이터 출처 — TASK-017
+
+- `OrdersView`와 `ShipmentsView`의 페이지·선택 ID를 URL에 남겨 번호 클릭·링크 클릭·새로고침의 일관성을 유지한다. 목록 페이지 변경은 오래된 선택 ID를 제거한다.
+- **업무 왕복:** BOM 원자재 → 원자재 LOT 현행 재고 → 입고/소모 이동 이력 → `WORK_ORDER` 원본 → 완제품 LOT 현재고 → `SHIPMENT` 출고 LOT 배분 → 해당 완제품 이동 원장.
+- **정합성:** `현재고 = 물리 입고(원자재/검사 합격품) − 물리 소모/출고`; `출고량 = 출고 당시 각 LOT 배분량 합`. 생산 예약은 현재고 차감 사건이 아니다.
+- **설계 대안:** 새 전역 캐시/프런트 추정 재고를 만들지 않고 서버가 반환한 ID로 각 화면을 재조회한다. 별도 요청은 들지만 데이터 출처를 단일화하고 서버의 최신 상태를 사용한다.
+- **검증:** [TASK-017 보고서](../task-reports/TASK-017-업무동선-데이터정합성-검수.md), `main` `71b6ae2`, Node 37/37·Chrome fixture 21/21·IndexedDB 27/27·실 MySQL 브라우저 E2E 2/2.
+
+## 22. 공개 배포 추가 QA·문서 정합성 — TASK-018
+
+- **진행 중:** 실제 운영 도메인 직접 접근, 업무 링크 왕복, `?itemId=oops&page=-1` 예외 쿼리, 키보드 포커스 복귀, 125% CSS zoom 스트레스 검증을 공개 Chrome에서 확인한다.
+- **구분:** CSS zoom 스크린샷은 Windows OS 글꼴/디스플레이 125~150% 확대 검증이 아니다. CI 성공·배포 상태·실사용 환경을 별도 증거로 남긴다.
+- **작업 규정:** [기록 표준](../DEVELOPMENT_REPORTING_STANDARD.md) → [TASK-018 작업지시서](../../tasks/TASK-018-공개배포-QA-문서정합성.md) → 결과 보고서·핸드오프·트러블슈팅 동시 갱신.
+
+### TASK-014~018 이해 점검 질문
+
+1. 재고 예약은 물리 이동 이벤트가 아닌데도 재고 가용량에 영향을 주는 이유는?
+2. URL에 `?itemId=...`를 저장할 때 품목 이름을 전역 캐시에서 복원하는 대신 단건 GET을 이용한 이유는?
+3. Vercel 배포 완료, 공개 Ubuntu Chrome 스모크 통과, 실DB MySQL E2E 성공은 각각 무엇을 입증하며 무엇을 입증하지 못하는가?
+4. `ItemSearchSelect`의 Escape와 부모 모달 Escape를 분리한 이유, 그리고 저장 중 닫힘을 제한하는 이유는?
+5. 입고/소모 합계를 현재고와 대조할 때 과거 원장의 수량 부호를 프런트에서 표시와 구분해야 하는 이유는?
