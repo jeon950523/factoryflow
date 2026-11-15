@@ -69,7 +69,8 @@ export const dialogFocus = {
     }
 
     el[stateKey] = state
-    el.addEventListener('keydown', state.onKeydown)
+    // Document listener also catches Tab if a pending save disables the focused submit button.
+    document.addEventListener('keydown', state.onKeydown)
     document.addEventListener('focusin', state.onFocusin)
     queueMicrotask(() => {
       if (el.isConnected) focusStart(el)
@@ -81,7 +82,7 @@ export const dialogFocus = {
   unmounted(el) {
     const state = el[stateKey]
     if (!state) return
-    el.removeEventListener('keydown', state.onKeydown)
+    document.removeEventListener('keydown', state.onKeydown)
     document.removeEventListener('focusin', state.onFocusin)
     delete el[stateKey]
     queueMicrotask(() => {
