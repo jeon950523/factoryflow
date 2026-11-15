@@ -102,7 +102,10 @@ try {
 
 ## 6. 실행 검증
 
-**최종 PR HEAD CI 결과 반영 전:** 테스트 코드 작성 및 정적 검수와 실제 실행/성공은 분리한다.
+**첫 PR 검증 완료, 강화된 최종 테스트 재실행 중:**
+- [Frontend CI #43732039360](https://github.com/jeon950523/factoryflow/actions/runs/43732039360) **SUCCESS**: Node **41/41**, Chrome fixture **21/21**, IndexedDB Chrome **30/30**, 프로덕션 빌드 성공.
+- [Spring Boot/MySQL E2E #43732039371](https://github.com/jeon950523/factoryflow/actions/runs/43732039371) **SUCCESS**: Java 21 + MySQL 8.4 실제 서버/Chrome E2E **2/2**. `route.fetch()`로 먼저 DB 커밋한 후 `route.abort()`로 브라우저 응답 유실, 동일 키 retry 뒤 현재고/원장 일치.
+- **사전 검수 후 추가 강화:** 실DB 테스트가 브라우저 최초 요청과 retry의 `requestKey`뿐 아니라 **JSON body 전체가 같은지**, 서버가 기존 결과인 **HTTP 200 replay**로 응답했는지 명시 단언하도록 변경. 강화 커밋 `3379c21d`의 **최종 PR 헤드 Frontend/MySQL CI는 재검증 진행 중**이며, 그 결과와 병합 main 확인 전에는 완료로 표시하지 않는다.
 
 - Node: `cd frontend && npm ci && npm test` → pendingWrite classification/read/write/clear/오염 저장 데이터 테스트
 - Build: `cd frontend && npm run build`
