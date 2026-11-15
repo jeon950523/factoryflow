@@ -300,7 +300,7 @@ onMounted(async () => {
     </section>
 
     <div v-if="drawer" class="dialog-backdrop" @click.self="closeReceipt">
-      <section class="dialog" role="dialog" aria-modal="true" aria-label="원자재 입고">
+      <section v-dialog-focus="{ close: closeReceipt, locked: saving }" class="dialog" role="dialog" aria-modal="true" aria-label="원자재 입고">
         <header class="dialog-header">
           <div><h2>원자재 입고</h2><p>원자재 LOT를 신규 또는 추가 입고합니다.</p></div>
           <button type="button" class="icon-btn" aria-label="닫기" :disabled="saving" @click="closeReceipt">
