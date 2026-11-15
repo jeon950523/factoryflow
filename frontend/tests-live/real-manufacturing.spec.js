@@ -268,6 +268,12 @@ test('real database: lost shipment response followed by definite shortage unlock
   await selectItem(page, finishedSku)
   const dialog = page.getByRole('dialog', { name: '완제품 출고 등록' })
   await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('1')
+  const attemptedKeys = []
+  page.on('request', req => {
+    if (req.method() === 'POST' && new URL(req.url()).pathname === '/api/v1/shipments') {
+      attemptedKeys.push(JSON.parse(req.postData()).requestKey)
+    }
+  })
 
   // Nothing reaches the server the first time, but the browser cannot know that.
   await page.route('**/api/v1/shipments', route => route.abort('failed'), { times: 1 })
@@ -283,11 +289,12 @@ test('real database: lost shipment response followed by definite shortage unlock
   await expect(dialog.getByRole('alert')).toHaveCount(0)
   expect(await page.evaluate(() =>
     sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
-  const newKey = await page.evaluate(() => {
-    const app = document.querySelector('.erp-shipments')
-    return app ? true : false
-  })
-  expect(newKey).toBe(true) // the Vue page remains usable, without any phantom shipment.
+  await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('2')
+  await dialog.getByRole('button', { name: '출고 확정' }).click()
+  await expect(page.locator('.toast')).toContainText('출고 가능한 완제품 재고가 부족합니다.')
+  expect(attemptedKeys).toHaveLength(3)
+  expect(attemptedKeys.slice(0, 2)).toEqual([formerKey, formerKey])
+  expect(attemptedKeys[2]).not.toBe(formerKey) // a confirmed rejection permits a new corrected command.
   const moves = (await getData(request, '/api/v1/stock-movements?itemId=' + finished.id)).content
   expect(moves).toHaveLength(0)
   expect(formerKey).toMatch(/^SHIP-/)
