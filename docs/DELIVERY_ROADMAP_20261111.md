@@ -58,11 +58,11 @@
 - [PR #24](https://github.com/jeon950523/factoryflow/pull/24), `main` `71b6ae20`. Node 37/37, Chrome fixture 21/21, IndexedDB 27/27, 실DB E2E 2/2; Vercel 배포 상태 성공.
 - [검수 보고서](task-reports/TASK-017-업무동선-데이터정합성-검수.md).
 
-## TASK-018 — 최신 배포 추가 Chrome 검증 및 작업 기록 정합성 · 진행 중
+## TASK-018 — 최신 배포 Chrome 검증 및 작업 기록 정합성 · PR 검증 완료
 
 - 공개 도메인의 TASK-017 링크 왕복, 상태/ID URL 새로고침, 잘못된 이동 이력 쿼리, 키보드 모달·CSS zoom을 읽기 전용 Chrome으로 검증.
 - 기록 누락을 소급 확인: 최근 TASK별 지시서·누적 기술 개념·트러블슈팅·로드맵/README·핸드오프와 TASK 검수 보고서의 연결을 보강한다.
-- 검증 완료 여부는 TASK-018 **PR 헤드와 병합 후 main** Frontend/Fullstack CI, 공개 Chrome 로그와 증거 PNG로 판정한다.
+- **검증:** 공개 Vercel Chrome **6/6**, Frontend Node **37/37**, Chrome fixture **21/21**, IndexedDB **27/27**, 실제 MySQL E2E **2/2** 성공. [공개 실행](https://github.com/jeon950523/factoryflow/actions/runs/43726967372) · [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43726967329) · [MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43726967349). 최종 PR HEAD·병합 후 main CI는 별도 확인.
 - [작업지시서](../tasks/TASK-018-공개배포-QA-문서정합성.md) · [작업 기록 규정](DEVELOPMENT_REPORTING_STANDARD.md).
 
 ## 현재 결정/보류
