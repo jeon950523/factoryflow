@@ -3,7 +3,8 @@ import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Truck, Plus, RefreshCw, X, PackageCheck, ArrowRight } from 'lucide-vue-next'
 import './shipments-workbench.css'
-import { get, post } from '../lib/api.js'
+import { ApiError, get, post } from '../lib/api.js'
+import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
@@ -22,11 +23,14 @@ const requestedPage = Number(route.query.page)
 const initialPage = typeof route.query.page === 'string' && /^\d+$/.test(route.query.page)
   && Number.isSafeInteger(requestedPage) ? requestedPage : 0
 const page = ref(initialPage), list = ref({ content: [], totalPages: 0, totalElements: 0 })
-const loading = ref(false), error = ref(''), drawer = ref(false), saving = ref(false)
+const pendingShipment = ref(readPendingWrite('shipment'))
+const loading = ref(false), error = ref(''), drawer = ref(Boolean(pendingShipment.value)), saving = ref(false)
+const pendingPersisted = ref(true)
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
 const detailSection = ref(null), requestedId = ref(null)
 const allocatedQty = computed(() => selected.value?.allocations?.reduce((sum, row) => sum + row.quantity, 0) ?? 0)
-const shipment = ref({ requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1 })
+const shipment = ref(pendingShipment.value
+  ? { ...pendingShipment.value } : { requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1 })
 async function load() {
   const request = listGate.begin()
   loading.value = true; error.value = ''
@@ -74,17 +78,53 @@ async function choose(id) {
     if (request.isCurrent()) detailLoading.value = false
   }
 }
-function openCreate() { shipment.value = { requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1 }; drawer.value = true }
+function openCreate() {
+  shipment.value = pendingShipment.value ? { ...pendingShipment.value } : {
+    requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1,
+  }
+  drawer.value = true
+}
 async function submit() {
+  if (saving.value) return
   const quantity = Number(shipment.value.quantity)
-  if (!Number.isSafeInteger(quantity) || quantity < 1 || !shipment.value.finishedItemId) { ui.notify('완제품과 올바른 출고 수량을 입력하세요.', 'error'); return }
+  const finishedItemId = Number(shipment.value.finishedItemId)
+  if (!Number.isSafeInteger(quantity) || quantity < 1
+      || !Number.isSafeInteger(finishedItemId) || finishedItemId < 1) {
+    ui.notify('완제품과 올바른 출고 수량을 입력하세요.', 'error')
+    return
+  }
+  const payload = pendingShipment.value ?? {
+    requestKey: shipment.value.requestKey, finishedItemId, quantity,
+  }
+  let created
   saving.value = true
   try {
-    const created = await post('/api/v1/shipments', { ...shipment.value, finishedItemId: Number(shipment.value.finishedItemId), quantity })
-    drawer.value = false; ui.notify('완제품 출고를 확정했습니다.')
+    created = await post('/api/v1/shipments', payload)
+    if (!Number.isSafeInteger(created?.id) || created?.requestKey !== payload.requestKey
+        || created.finishedItemId !== payload.finishedItemId || created.quantity !== payload.quantity) {
+      throw new ApiError('출고 결과를 확인할 수 없습니다.', { status: 200, code: 'INVALID_RESPONSE' })
+    }
+  } catch (e) {
+    if (isUncertainWriteError(e)) {
+      pendingShipment.value = payload
+      pendingPersisted.value = savePendingWrite('shipment', payload)
+      ui.notify('출고 처리 여부를 확인할 수 없습니다. 동일 요청으로만 재시도하세요.', 'error')
+    } else {
+      ui.notify(e.message, 'error')
+    }
+    return
+  } finally {
+    saving.value = false
+  }
+  pendingShipment.value = null
+  clearPendingWrite('shipment')
+  drawer.value = false
+  ui.notify('완제품 출고를 확정했습니다.')
+  try {
     await router.replace({ path: '/shipments', query: { id: String(created.id) } })
-  } catch (e) { ui.notify(e.message, 'error') }
-  finally { saving.value = false }
+  } catch {
+    ui.notify('출고는 완료됐지만 상세 화면을 열지 못했습니다. 이력 새로고침을 이용하세요.', 'error')
+  }
 }
 function changePage(next) {
   if (next < 0 || next >= list.value.totalPages) return
@@ -120,7 +160,7 @@ onMounted(() => {
       <div class="erp-shipment-toolbar-actions">
         <button type="button" class="btn btn-subtle" @click="load"><RefreshCw :size="16" /> 이력 새로고침</button>
         <button v-if="auth.canWrite" type="button" class="btn btn-primary" @click="openCreate">
-          <Plus :size="17" /> 출고 등록
+          <Plus :size="17" /> {{ pendingShipment ? '미확인 출고 요청 확인' : '출고 등록' }}
         </button>
       </div>
     </div>
@@ -235,17 +275,22 @@ onMounted(() => {
             <div class="field-label">
               <span class="field-title">완제품 <em class="required-mark">*</em></span>
               <ItemSearchSelect v-model="shipment.finishedItemId" item-type="FINISHED_GOOD"
-                placeholder="출고할 완제품 검색 · 선택" :disabled="saving" />
+                placeholder="출고할 완제품 검색 · 선택" :disabled="saving || !!pendingShipment" />
             </div>
             <label class="field-label">출고 수량 (EA) <span>*</span>
-              <input v-model.number="shipment.quantity" type="number" min="1" step="1" required :disabled="saving" />
+              <input v-model.number="shipment.quantity" type="number" min="1" step="1" required :disabled="saving || !!pendingShipment" />
             </label>
-            <p class="info-hint">실제 품질검사 합격품 재고만 출고할 수 있습니다. 요청 수량이 부족하면 일부 출고 없이 전체가 거절됩니다. 오류 재시도 시 동일 요청 키를 유지합니다.</p>
+            <p v-if="pendingShipment" class="info-hint" role="alert">
+              출고 결과가 미확인 상태입니다. 중복 출고를 막기 위해 요청 키 {{ pendingShipment.requestKey }}와 수량을 고정했습니다.
+              이 요청으로만 다시 전송하세요.
+              {{ pendingPersisted ? '같은 탭의 닫기·새로고침 후에도 요청이 복원됩니다.' : '브라우저 저장이 제한되어 새로고침 시 복원되지 않을 수 있습니다.' }}
+            </p>
+            <p v-else class="info-hint">검사 합격 재고만 출고할 수 있으며, 부족하면 전체 거절됩니다. 응답이 유실되면 새 요청을 만들지 말고 동일 요청으로 재시도하세요.</p>
           </div>
           <footer class="dialog-footer">
             <button type="button" class="btn btn-outline" :disabled="saving" @click="closeDrawer">취소</button>
             <button type="submit" class="btn btn-primary" :disabled="saving || !shipment.finishedItemId">
-              {{ saving ? '출고 중...' : '출고 확정' }}
+              {{ saving ? '출고 중...' : pendingShipment ? '동일 요청 재시도' : '출고 확정' }}
             </button>
           </footer>
         </form>
