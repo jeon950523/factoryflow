@@ -1,10 +1,10 @@
 # FactoryFlow
 
-> **공개 웹 데모: Vercel + IndexedDB 시뮬레이션 (TASK-008). Java 21/Spring Boot·MySQL 실제 구현은 독립 유지. 백엔드 CI 64/64, 프론트 Node 37/37, Chrome Fixture 11/11, 브라우저 데모 3/3, 실DB E2E 2/2 검증.**
+> **현재 현황(2026-11-15):** 공개 웹 체험 `https://factoryflow.kro.kr` = **Vercel + 개별 브라우저 IndexedDB 데모**. 실제 Java 21/Spring Boot·MySQL 구현은 별도 CI에서 검증. 최신 완료 TASK-017: [Frontend Node 37/37·Chrome Fixture 21/21·데모 27/27](https://github.com/jeon950523/factoryflow/actions/runs/43725889140), [실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43725889199). TASK-018 공개 배포 Chrome 6/6 및 PR Frontend/MySQL E2E 성공 확인; 병합 후 main 검증 별도. 아래 구형 TASK 절의 실행 횟수는 **당시 이력**이며 최신 검증 결과가 아님.
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
-**현재 개발 순서:** [1~5 로드맵](docs/DELIVERY_ROADMAP_20261111.md) · **배포 후보:** [Oracle Always Free ADR-011](docs/adr/ADR-011-Oracle-Always-Free-배포-전환.md) · **통합 검수:** [TASK-004A 보고서](docs/task-reports/TASK-004A-기준코드통합-CI준비.md)
+**현재 개발 순서:** [최신 TASK 로드맵](docs/DELIVERY_ROADMAP_20261111.md) · **현 상태 및 핸드오프:** [PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md) · **배포 정책:** [브라우저 데모와 실DB 분리 ADR-013](docs/adr/ADR-013-프론트데모-실백엔드분리.md) · **기록 기준:** [DEVELOPMENT_REPORTING_STANDARD.md](docs/DEVELOPMENT_REPORTING_STANDARD.md)
 
 ## 프로젝트 목적
 
@@ -30,8 +30,14 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-004H · 전 업무 API E2E | CI 49/49 성공 | [보고서](docs/task-reports/TASK-004H-전업무-E2E-회귀검증.md) |
 | TASK-005A~005D · Vue 3 관리자 화면/연속 조회 | Chrome 화면 11/11, 실 MySQL 브라우저 E2E 2/2 성공 | [005D 보고서](docs/task-reports/TASK-005D-실브라우저-동시성-검수.md) |
 | TASK-006 · 세션 인증·인가·CSRF | CI 백엔드 57/57, Node 23/23, Chrome 11/11, 실DB E2E 2/2 · 구현 검증 완료 | [TASK-006 검증](docs/verification/TASK-006-CI-검증.md) |
+| TASK-007A~013 · 로그인 제한·데모·ERP 업무화면 | CI 검증 완료 (세부 수치는 해당 TASK의 기록 기준) | [로드맵](docs/DELIVERY_ROADMAP_20261111.md) |
+| TASK-014 · 이동 이력/공통 UI | CI 검증 완료 | [TASK-014 보고서](docs/task-reports/TASK-014-재고이동-공통UI-검수.md) |
+| TASK-015 · 실제 공개 Chrome QA | 공개 사이트 Chrome 검증 및 PNG 증거 확보 | [TASK-015 보고서](docs/task-reports/TASK-015-공개배포-Chrome-검수.md) |
+| TASK-016 · 가독성/모달 접근성 | CI 검증 완료 | [TASK-016 보고서](docs/task-reports/TASK-016-가독성-모달접근성-검수.md) |
+| TASK-017 · 업무 화면 추적/정합성 | CI 검증 완료 · `main` `71b6ae20` | [TASK-017 보고서](docs/task-reports/TASK-017-업무동선-데이터정합성-검수.md) |
+| TASK-018 · 공개 최신 QA/문서 감사 | 공개 Chrome 6/6, PR Frontend/MySQL E2E 성공 · 최종 main 검증 별도 | [작업지시서](tasks/TASK-018-공개배포-QA-문서정합성.md) |
 
-**최신 TASK-006 PR 기준:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 Spring Boot·MySQL 브라우저 E2E **2개** 성공. **Oracle/Vercel 공개 배포, TLS·쿠키·프록시 실환경 보안 및 계정 복구는 미검증**입니다.
+**역사적 TASK-006 PR 검증:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 MySQL 브라우저 E2E **2개**를 당시 검증했습니다. **현재 완료 TASK-017의 최신 검증 수치는 맨 위 상태표를 참고**하세요. Vercel에는 인증 없는 IndexedDB 체험만 공개하며, 실제 MySQL 운영 서버의 TLS·쿠키·프록시/비밀번호 복구/운영 배포 보안 검증은 별개입니다.
 
 ## 기술 방향 (계획)
 

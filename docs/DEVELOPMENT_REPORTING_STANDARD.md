@@ -102,3 +102,14 @@ TASK-002 관련 기존 문서는 다음 두 개이다.
 - [ ] 직접 설명할 요약과 이해 점검 질문을 작성했다.
 - [ ] SSOT / ADR / TROUBLESHOOTING과의 연결을 확인했다.
 - [ ] README의 진행 상태가 실제 검증 결과와 일치한다.
+
+## 9. TASK-018 이후 문서 누적 확인 규칙 (2026-11-15 감사 반영)
+
+TASK-014~017에서 TASK별 검수 보고서는 남겼으나, 작업지시서·핵심 개념 누적·통합 트러블슈팅·README/로드맵·핸드오프를 매번 함께 갱신하지 못했다. **보고서 1개를 작성했다는 이유만으로 이 표준 전체를 충족했다고 주장하지 않는다.**
+
+- **작업 시작**: `main`/CI 검수 → `tasks/TASK-XXX-*.md`에 목적, 기존 코드 문제, 범위/비범위, 완료·회귀 기준 작성.
+- **구현 중**: 중요한 선택/대안/비용을 메모하고, 실제 오류는 증상·재현 절차·원인·수정·증거를 `docs/TROUBLESHOOTING.md`에 추가. 단순 계획은 오류로 기록하지 않는다.
+- **PR 제출 전**: `docs/task-reports/TASK-XXX-*.md` 보고서를 표준 1~12개 항목에 맞추어 작성하고 코드 부분과 CI 링크를 실제 브랜치에 연결한다. 영향을 받은 개념은 `docs/learning/CORE_CONCEPTS.md`에 누적한다.
+- **병합 후**: 최종 `main` SHA, Frontend CI, MySQL E2E, 필요한 공개 Chrome 검증 결과를 확인하고 README/로드맵/`docs/PROJECT_HANDOFF.md`에서 최신 완료 상태와 후속 작업을 갱신한다. GitHub Actions 배포 status 성공과 실제 브라우저 테스트 성공을 별개로 쓴다.
+- **예외**: 새 ADR이 필요 없는 단순 UI 개선에는 `새 ADR: 불필요(아키텍처 변경 없음)`이라고 적는다. 테스트 미실행은 `미검증`으로 남기고 근거 없이 통과로 쓰지 않는다.
+- **과거 보완**: 이전 TASK 원본 보고서를 지우거나 확인되지 않은 내용을 소급 성공으로 기록하지 않는다. 이번 감사의 빠진 항목은 [TASK-018 보고서](task-reports/TASK-018-공개배포-문서정합성-검수.md), [CORE_CONCEPTS](learning/CORE_CONCEPTS.md), [PROJECT_HANDOFF](PROJECT_HANDOFF.md), [TROUBLESHOOTING](TROUBLESHOOTING.md)에 근거와 함께 별도로 보완한다.
