@@ -166,6 +166,7 @@ function changeFilter() {
   }
   load()
 }
+function closeCreate() { if (!saving.value) showCreate.value = false }
 onMounted(() => {
   load()
   if (route.query.id) choose(route.query.id)
@@ -329,11 +330,11 @@ onMounted(() => {
       </AsyncState>
     </section>
 
-    <div v-if="showCreate" class="dialog-backdrop" @click.self="showCreate = false">
-      <section class="dialog" role="dialog" aria-modal="true" aria-label="생산지시 생성">
+    <div v-if="showCreate" class="dialog-backdrop" @click.self="closeCreate">
+      <section v-dialog-focus="{ close: closeCreate, locked: saving }" class="dialog" role="dialog" aria-modal="true" aria-label="생산지시 생성">
         <header class="dialog-header">
           <div><h2>생산지시 생성</h2></div>
-          <button type="button" class="icon-btn" aria-label="닫기" @click="showCreate = false"><X :size="20" /></button>
+          <button type="button" class="icon-btn" aria-label="닫기" :disabled="saving" @click="closeCreate"><X :size="20" /></button>
         </header>
         <form @submit.prevent="createOrder">
           <div class="dialog-body">
@@ -346,7 +347,7 @@ onMounted(() => {
             <div class="info-hint">생산지시 생성은 DRAFT 상태만 만듭니다. 원자재 예약은 생성 후 별도 작업으로 진행합니다. 선택한 완제품의 BOM이 등록되어 있어야 합니다.</div>
           </div>
           <footer class="dialog-footer">
-            <button type="button" class="btn btn-outline" :disabled="saving" @click="showCreate = false">취소</button>
+            <button type="button" class="btn btn-outline" :disabled="saving" @click="closeCreate">취소</button>
             <button type="submit" class="btn btn-primary" :disabled="saving || !createForm.finishedItemId">{{ saving ? '생성 중...' : '생산지시 생성' }}</button>
           </footer>
         </form>

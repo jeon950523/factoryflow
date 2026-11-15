@@ -1,0 +1,87 @@
+/* TASK-016: readability improvements for informational text, not a redesign.
+ * Keep the operational table layout and existing status-color semantics.
+ * Use stronger selectors than route-local workbench styles loaded by Vite.
+ */
+.app-shell .page-heading p,
+.app-shell .app-footer {
+  color: #586d79;
+  font-size: 12px;
+}
+
+.app-shell .sidebar-bottom p {
+  color: #abc0c9;
+  font-size: 12px;
+}
+
+.page-content .data-table .cell-sub,
+.page-content .erp-material-table td small {
+  color: #526a76;
+  font-size: 12px;
+}
+
+.page-content .erp-item-meta small,
+.page-content .erp-shipment-meta small,
+.page-content .erp-order-meta small {
+  color: #536a77;
+  font-size: 12px;
+}
+
+.page-content .erp-items-subheading p,
+.page-content .erp-shipment-subheading p,
+.page-content .erp-subheading p,
+.page-content .erp-items-note,
+.page-content .erp-shipment-note,
+.page-content .erp-movement-foot,
+.page-content .erp-note {
+  color: #526a76;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.page-content .erp-movement-unlinked,
+.page-content .erp-movement-mode {
+  color: #526a76;
+  font-size: 12px;
+}
+
+.app-shell .state-box {
+  color: #526b79;
+  font-size: 13px;
+}
+
+.app-shell .item-search-message,
+.app-shell .item-search-pager {
+  color: #526b79;
+  font-size: 12px;
+}
+
+.app-shell .item-search-option small {
+  color: #536a77;
+  font-size: 11px;
+}
+
+.app-shell .pager button,
+.app-shell .page-controls {
+  color: #526b78;
+  font-size: 12px;
+}
+
+.app-shell .dialog .field-label,
+.app-shell .dialog .info-hint {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.app-shell .dialog .info-hint {
+  color: #456960;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
