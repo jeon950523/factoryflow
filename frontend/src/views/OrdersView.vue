@@ -31,7 +31,7 @@ const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), det
 const requestedDetailId = ref(null), detailSection = ref(null)
 const showCreate = ref(false), saving = ref(false), acting = ref(false)
 const createForm = ref({ finishedItemId: '', plannedQty: 1, clientRequestId: requestKey('WO') })
-const qcForm = ref({ passedQty: 0, failedQty: 0 })
+const qcForm = ref({ passedQty: '', failedQty: '' })
 const transitions = {
   DRAFT: [{ op: 'reserve', label: '자재 예약', hint: 'FIFO LOT에서 필요량 확보', primary: true }, { op: 'cancel', label: '지시 취소', danger: true }],
   RESERVED: [{ op: 'start', label: '생산 시작', hint: '예약 원자재를 실제 소모', primary: true }, { op: 'cancel', label: '예약 취소', danger: true }],
@@ -47,13 +47,22 @@ const stages = [
   { label: '완료', key: 'COMPLETED' },
 ]
 const currentStage = computed(() => stages.findIndex(stage => stage.key === selected.value?.status))
-const qcValid = computed(() => {
-  if (!selected.value || selected.value.status !== 'AWAITING_QC') return false
-  const passed = Number(qcForm.value.passedQty)
-  const failed = Number(qcForm.value.failedQty)
-  return [passed, failed].every(v => Number.isSafeInteger(v) && v >= 0)
-    && passed + failed === Number(selected.value.plannedQty)
-})
+// Empty number inputs are intentionally distinct from an operator-entered zero.
+function qcQuantity(value) {
+  if (value === '' || value === null || value === undefined) return null
+  if (typeof value === 'string' && !/^\d+$/.test(value)) return null
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+}
+const qcNumbers = computed(() => ({
+  passed: qcQuantity(qcForm.value.passedQty),
+  failed: qcQuantity(qcForm.value.failedQty),
+}))
+const qcTotal = computed(() => qcNumbers.value.passed === null || qcNumbers.value.failed === null
+  ? null : qcNumbers.value.passed + qcNumbers.value.failed)
+const qcValid = computed(() => selected.value?.status === 'AWAITING_QC'
+  && Number.isSafeInteger(qcTotal.value)
+  && qcTotal.value === selected.value.plannedQty)
 function nextAction(status) {
   return transitions[status]?.find(action => action.primary)?.label ?? '—'
 }
@@ -88,7 +97,7 @@ async function choose(id) {
     const detail = await get(`/api/v1/work-orders/${id}`, undefined, { signal: request.signal })
     if (!request.isCurrent()) return
     selected.value = detail
-    qcForm.value = { passedQty: detail.plannedQty, failedQty: 0 }
+    qcForm.value = { passedQty: '', failedQty: '' }
     await nextTick()
     if (request.isCurrent()) detailSection.value?.scrollIntoView({ behavior: 'auto', block: 'start' })
     try {
@@ -125,16 +134,26 @@ async function createOrder() {
 }
 async function runAction(action) {
   if (!selected.value || acting.value) return
+  // Final inspection creates immutable QC and finished-good stock records.
+  // Require explicit values AND confirmation before setting the busy flag or posting.
+  const inspection = action === 'inspection'
+    ? { passedQty: qcNumbers.value.passed, failedQty: qcNumbers.value.failed } : null
+  if (inspection) {
+    if (!qcValid.value) {
+      ui.notify('합격·불합격 수량을 각각 입력하고 합계가 계획 수량과 일치하는지 확인하세요.', 'error')
+      return
+    }
+    const message = `생산지시 ${selected.value.orderNo}의 품질검사를 확정할까요?\n`
+      + `합격 ${number(inspection.passedQty)} EA / 불합격 ${number(inspection.failedQty)} EA\n`
+      + '확정하면 합격품이 실제 완제품 LOT 재고에 반영되며 이 화면에서 수정할 수 없습니다.'
+    if (!window.confirm(message)) return
+  }
   if (action === 'cancel' && !window.confirm('생산지시를 취소하고 예약된 재고를 해제하시겠습니까?')) return
   acting.value = true
   const actionOrderId = selected.value.id
   try {
-    if (action === 'inspection') {
-      const passedQty = Number(qcForm.value.passedQty), failedQty = Number(qcForm.value.failedQty)
-      if (![passedQty, failedQty].every(v => Number.isSafeInteger(v) && v >= 0) || passedQty + failedQty !== Number(selected.value.plannedQty)) {
-        ui.notify('합격과 불합격 수량 합계가 생산 계획 수량과 같아야 합니다.', 'error'); return
-      }
-      await post(`/api/v1/work-orders/${actionOrderId}/inspection`, { passedQty, failedQty })
+    if (inspection) {
+      await post(`/api/v1/work-orders/${actionOrderId}/inspection`, inspection)
     } else {
       await post(`/api/v1/work-orders/${actionOrderId}/${action}`)
     }
@@ -327,14 +346,14 @@ onMounted(() => {
                 <p>생산지시 상태에 따라 실행 가능한 작업만 표시됩니다.</p>
               </div>
               <div v-if="selected.status === 'AWAITING_QC'" class="qc-inline erp-qc-form">
-                <p class="erp-qc-intro"><CircleAlert :size="17" />합격 수량만 완제품 LOT 재고로 반영됩니다.</p>
+                <p class="erp-qc-intro"><CircleAlert :size="17" />검사 결과를 직접 입력하세요. 합격 수량만 완제품 LOT 재고로 반영됩니다.</p>
                 <div class="form-row">
-                  <label class="field-label">합격 수량<input v-model.number="qcForm.passedQty" type="number" min="0" step="1" :disabled="acting" /></label>
-                  <label class="field-label">불합격 수량<input v-model.number="qcForm.failedQty" type="number" min="0" step="1" :disabled="acting" /></label>
+                  <label class="field-label">합격 수량<input v-model.number="qcForm.passedQty" type="number" min="0" step="1" placeholder="직접 입력" :disabled="acting" /></label>
+                  <label class="field-label">불합격 수량<input v-model.number="qcForm.failedQty" type="number" min="0" step="1" placeholder="직접 입력" :disabled="acting" /></label>
                 </div>
                 <p :class="['erp-qc-total', { invalid: !qcValid }]" role="status">
-                  입력 합계 {{ number(Number(qcForm.passedQty) + Number(qcForm.failedQty)) }} / 계획 {{ number(selected.plannedQty) }} EA
-                  <span>{{ qcValid ? '합계 일치' : '수량 합계 또는 입력값 확인 필요' }}</span>
+                  입력 합계 {{ qcTotal === null ? '미입력' : number(qcTotal) }} / 계획 {{ number(selected.plannedQty) }} EA
+                  <span>{{ qcValid ? '합계 일치 · 확정 시 재고 반영' : '합격·불합격 수량을 각각 입력하고 합계를 확인하세요' }}</span>
                 </p>
               </div>
 
