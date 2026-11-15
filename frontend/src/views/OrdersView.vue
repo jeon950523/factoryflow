@@ -140,6 +140,20 @@ async function runAction(action) {
   } catch (e) { ui.notify(e.message, 'error') }
   finally { acting.value = false }
 }
+// Row selection and the explicit detail link must resolve to the same reloadable URL.
+function orderLink(id) {
+  return { path: '/orders', query: {
+    ...(statusFilter.value ? { status: statusFilter.value } : {}),
+    id: String(id),
+  } }
+}
+function openOrder(id) {
+  if (String(route.query.id ?? '') === String(id)) {
+    choose(id)
+    return
+  }
+  router.replace(orderLink(id))
+}
 function changePage(next) {
   page.value = next
   selected.value = null
@@ -220,14 +234,14 @@ onMounted(() => {
               <tr v-for="order in list.content" :key="order.id" :class="{ selected: selected?.id === order.id }">
                 <td>
                   <button type="button" class="row-action" :aria-pressed="selected?.id === order.id"
-                    @click="choose(order.id)">{{ order.orderNo }}</button>
+                    @click="openOrder(order.id)">{{ order.orderNo }}</button>
                   <small class="cell-sub">{{ dateTime(order.createdAt) }}</small>
                 </td>
                 <td>{{ itemNameOrId(itemNames, order.finishedItemId, '완제품') }}</td>
                 <td class="number-cell">{{ number(order.plannedQty) }} EA</td>
                 <td><StatusBadge :status="order.status" /></td>
                 <td>{{ nextAction(order.status) }}</td>
-                <td><RouterLink class="erp-table-detail" :to="{ path: '/orders', query: { id: order.id } }"
+                <td><RouterLink class="erp-table-detail" :to="orderLink(order.id)"
                   :aria-label="order.orderNo + ' 상세 보기'">상세 보기 <ArrowRight :size="14" /></RouterLink></td>
               </tr>
             </tbody>
@@ -255,7 +269,12 @@ onMounted(() => {
         <div v-else class="erp-detail-content">
           <div class="erp-order-meta">
             <div><small>생산지시번호</small><strong>{{ selected.orderNo }}</strong></div>
-            <div><small>완제품</small><strong>{{ selectedItemName }}</strong></div>
+            <div><small>완제품</small><strong>{{ selectedItemName }}</strong>
+              <div class="erp-trace-links">
+                <RouterLink :to="{ path: '/items', query: { itemId: String(selected.finishedItemId) } }">품목·BOM</RouterLink>
+                <RouterLink :to="{ path: '/inventory', query: { itemType: 'FINISHED_GOOD', itemId: String(selected.finishedItemId) } }">완제품 LOT</RouterLink>
+                <RouterLink :to="{ path: '/movements', query: { itemId: String(selected.finishedItemId) } }">완제품 이력</RouterLink>
+              </div></div>
             <div><small>계획 수량</small><strong class="erp-tabular">{{ number(selected.plannedQty) }} EA</strong></div>
             <div><small>진행 상태</small><StatusBadge :status="selected.status" /></div>
           </div>
@@ -279,14 +298,21 @@ onMounted(() => {
                   <thead><tr>
                     <th scope="col">원자재 / SKU</th>
                     <th scope="col" class="erp-qty-col">필요 수량</th>
+                    <th scope="col">재고 추적</th>
                   </tr></thead>
                   <tbody>
                     <tr v-for="material in selected.materials" :key="material.materialItemId">
                       <td><strong>{{ itemNameOrId(itemNames, material.materialItemId, '원자재') }}</strong>
                         <small>{{ itemSkuOrId(itemNames, material.materialItemId) }}</small></td>
                       <td class="erp-qty-col erp-tabular">{{ number(material.requiredQty) }} EA</td>
+                      <td><div class="erp-trace-links">
+                        <RouterLink :to="{ path: '/inventory', query: { itemType: 'RAW_MATERIAL', itemId: String(material.materialItemId) } }"
+                          :aria-label="itemNameOrId(itemNames, material.materialItemId, '원자재') + ' LOT 재고'">LOT 재고</RouterLink>
+                        <RouterLink :to="{ path: '/movements', query: { itemId: String(material.materialItemId) } }"
+                          :aria-label="itemNameOrId(itemNames, material.materialItemId, '원자재') + ' 이동 이력'">이동 이력</RouterLink>
+                      </div></td>
                     </tr>
-                    <tr v-if="!selected.materials.length"><td colspan="2" class="erp-material-empty">등록된 소요 원자재가 없습니다.</td></tr>
+                    <tr v-if="!selected.materials.length"><td colspan="3" class="erp-material-empty">등록된 소요 원자재가 없습니다.</td></tr>
                   </tbody>
                 </table>
               </div>
