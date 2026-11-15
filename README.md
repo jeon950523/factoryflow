@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **현재 현황(2026-11-16):** 공개 웹 체험 `https://factoryflow.kro.kr` = **Vercel + 개별 브라우저 IndexedDB 데모**. 실제 Java 21/Spring Boot·MySQL 구현은 별도 CI에서 검증. 최신 완료 TASK-019: [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합 `480c2a0`, [main Frontend Node 37/37·Chrome fixture 21/21·IndexedDB 29/29](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) 및 [main 실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) 성공. Vercel 배포 성공(공개 도메인 QC 조작 수동 검증과 별개). **TASK-020 진행:** 입출고 응답 유실의 멱등 재시도 UI/실DB QA [PR #28](https://github.com/jeon950523/factoryflow/pull/28) — 최종 CI 검증 전. 아래 구형 TASK 절의 실행 횟수는 **당시 이력**이며 최신 검증 결과가 아님.
+> **현재 현황(2026-11-16):** 공개 웹 체험 `https://factoryflow.kro.kr` = **Vercel + 개별 브라우저 IndexedDB 데모**. 실제 Java 21/Spring Boot·MySQL 구현은 별도 CI에서 검증. 최신 완료 TASK-019: [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합 `480c2a0`, [main Frontend Node 37/37·Chrome fixture 21/21·IndexedDB 29/29](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) 및 [main 실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) 성공. Vercel 배포 성공(공개 도메인 QC 조작 수동 검증과 별개). **TASK-020 PR 기능 검증 성공:** [PR #28](https://github.com/jeon950523/factoryflow/pull/28) [Frontend Node 42/42·Chrome fixture 21/21·IndexedDB 30/30](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) 및 [실 MySQL E2E 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43732644015). 문서 변경 후 최종 HEAD·병합 main CI 별도 확인. 아래 구형 TASK 절의 실행 횟수는 **당시 이력**이며 최신 검증 결과가 아님.
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -37,7 +37,7 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-017 · 업무 화면 추적/정합성 | CI 검증 완료 · `main` `71b6ae20` | [TASK-017 보고서](docs/task-reports/TASK-017-업무동선-데이터정합성-검수.md) |
 | TASK-018 · 공개 최신 QA/문서 감사 | 공개 Chrome 6/6, 병합 `main` Frontend/MySQL E2E 성공 · 완료 | [검수 보고서](docs/task-reports/TASK-018-공개배포-문서정합성-검수.md) |
 | TASK-019 · 품질검사 명시적 입력 및 최종 확인 | `main 480c2a0` Chrome/실DB E2E 검증 완료 | [시니어 검수 보고서](docs/task-reports/TASK-019-품질검사-명시적확정-검수.md) |
-| TASK-020 · 입고/출고 미확인 재시도 멱등 안전성 | 구현·실DB 응답 유실 E2E 검증 중 | [지시서](tasks/TASK-020-입출고-재시도-멱등성.md) · [검수](docs/task-reports/TASK-020-쓰기재시도-멱등성-검수.md) |
+| TASK-020 · 입고/출고 미확인 재시도 멱등 안전성 | PR 기능 CI Node42·Chrome21/30·MySQL3 성공, main 검증 별도 | [지시서](tasks/TASK-020-입출고-재시도-멱등성.md) · [검수](docs/task-reports/TASK-020-쓰기재시도-멱등성-검수.md) |
 
 **역사적 TASK-006 PR 검증:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 MySQL 브라우저 E2E **2개**를 당시 검증했습니다. **현재 완료 TASK-019의 최신 검증 수치는 맨 위 상태표를 참고**하세요. Vercel에는 인증 없는 IndexedDB 체험만 공개하며, 실제 MySQL 운영 서버의 TLS·쿠키·프록시/비밀번호 복구/운영 배포 보안 검증은 별개입니다.
 
