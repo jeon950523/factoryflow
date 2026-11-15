@@ -11,7 +11,7 @@
 1. 비즈니스 불변조건·상태 기획: [FACTORYFLOW_SSOT_v0.1.md](FACTORYFLOW_SSOT_v0.1.md) **초기 Draft**, 변경은 보고서/ADR/검증과 비교해 판단
 2. 현재 구현·배포 경계: [README](../README.md) + 현재 GitHub `main` 코드, [ADR-013](adr/ADR-013-프론트데모-실백엔드분리.md)
 3. 최신 작업과 검증: [TASK-019 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md) / [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / [최종 증거 정리 PR #27](https://github.com/jeon950523/factoryflow/pull/27)
-4. 다음 작업: 미착수. 최신 완료 TASK-019의 잔여 위험은 공개 도메인 실제 QC 사용성·운영 검사자 검증과 이후 재고 처리 실패 UX이며, 새 TASK 착수 전에 범위를 결정한다.
+4. 진행 중: [TASK-020 지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) 및 [PR #28](https://github.com/jeon950523/factoryflow/pull/28). 입고·출고 응답 유실 후 동일 키/본문 재전송을 브라우저·실DB에서 검증한다.
 5. 개념·선택 이유: [CORE_CONCEPTS.md](learning/CORE_CONCEPTS.md), [ADR](adr/), [TROUBLESHOOTING](TROUBLESHOOTING.md)
 6. 최신 일정/보류: [로드맵](DELIVERY_ROADMAP_20261111.md)
 
@@ -37,6 +37,7 @@
 | 017 | BOM/LOT/생산지시/출고 이력 왕복·URL·정합성 | [#24](https://github.com/jeon950523/factoryflow/pull/24) / `71b6ae20` |
 | 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) / `63dbfbb` · main Frontend/실DB SUCCESS |
 | 019 | QC 결과 직접 입력/범위·합계 검증/불가역 확정 전 재확인 | [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / `480c2a0` · 병합 main Frontend/실DB SUCCESS |
+| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) · 기능 CI Node42/Chrome21/30·MySQL3 성공, 최종 HEAD/main 대기 |
 
 ## 4. 최종 확인된 자동 검증
 
@@ -74,3 +75,13 @@ TASK-019 코드 병합 `main 480c2a0`에 대해:
 - 테스트: 실제 IndexedDB에서 취소 시 비반영·입력 유지·재로드 공란·승인 후 재고 변화; 실 MySQL E2E에서 명시 입력·승인 후 기존 제조 정합성 테스트.
 - 서버 API/FIFO·DB·인증 미변경. 사전 검토 기준 코드는 `feature/task-019-qc-explicit-confirmation`; [PR 기능 HEAD `729e5223`](https://github.com/jeon950523/factoryflow/pull/26)에서 Frontend Node 37/37·Chrome fixture 21/21·IndexedDB 29/29·실DB 2/2 성공. [최종 PR 기능+문서 HEAD `655453af`](https://github.com/jeon950523/factoryflow/pull/26) Frontend/실DB SUCCESS 이후 [병합 main Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091)·[실DB](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) SUCCESS 확인.
 - [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md), [시니어 검수](task-reports/TASK-019-품질검사-명시적확정-검수.md), [학습 누적](learning/CORE_CONCEPTS.md).
+
+## 9. TASK-020 작업 핸드오프 (진행 중)
+
+- 기준 main: `2b6cde9b2cb724bec512bd5ea4851a260060b4c4` (TASK-019 최종 문서 병합).
+- 코드 검수로 확인한 위험: `InventoryView.vue`와 `ShipmentsView.vue`는 네트워크 쓰기 실패 후 폼을 수정·닫았다 다시 열거나 새로고침하면 새 key를 생성할 수 있어, **서버 커밋 후 응답 유실** 상황의 원래 요청을 복구하기 어렵다.
+- 신규 `frontend/src/lib/pendingWrite.js`: 0/5xx/INVALID_RESPONSE 상태에서만 미확인 요청을 탭 sessionStorage로 보관. `read/save/clear` 함수는 순수한 계약 필드만 복원. 실패 후 입력 잠금·같은 payload 재시도·정상 응답 이후 삭제.
+- 실제 Spring Boot/MySQL 재현: `frontend/tests-live/real-manufacturing.spec.js`에서 `route.fetch()`로 서버에 먼저 POST 커밋한 뒤 `route.abort()`로 브라우저 응답만 유실, 새로고침 후 동일 key로 재시도. 원자재 입고/완제품 출고 원장 각각 1건 검증.
+- 서버 SQL/트랜잭션·스키마/FIFO/권한 미변경. 시뮬레이터(IndexeDB)와 실 MySQL CI는 별개. 다중 탭·스토리지 삭제/종료는 미보증.
+- [작업지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) · [검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [TS-009](TROUBLESHOOTING.md) · [기술 학습 §24](learning/CORE_CONCEPTS.md).
+- 기능 CI `278c60fe` 검증 성공: [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [MySQL #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) 실제 E2E 3/3, HTTP 200 replay·원장 1회·409 잠금 해제. 다음 작업자는 [PR #28](https://github.com/jeon950523/factoryflow/pull/28)의 **최종 문서 HEAD 및 병합 main CI**를 따로 확인해야 한다.

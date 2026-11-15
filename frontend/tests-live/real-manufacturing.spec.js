@@ -48,14 +48,51 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await postData(request, '/api/v1/boms',
     { finishedItemId: finished.id, components: [{ rawItemId: raw.id, qtyPerUnit: 2 }] })
 
+  // Capture the exact browser request bodies and HTTP replay responses.
+  const receiptPosts = [], receiptStatuses = [], shipmentPosts = [], shipmentStatuses = []
+  page.on('request', req => {
+    const url = new URL(req.url()).pathname
+    if (req.method() !== 'POST') return
+    if (url === '/api/v1/stock-receipts') receiptPosts.push(JSON.parse(req.postData()))
+    if (url === '/api/v1/shipments') shipmentPosts.push(JSON.parse(req.postData()))
+  })
+  page.on('response', response => {
+    const url = new URL(response.url()).pathname
+    if (url === '/api/v1/stock-receipts') receiptStatuses.push(response.status())
+    if (url === '/api/v1/shipments') shipmentStatuses.push(response.status())
+  })
+
   // The human-facing commands after initial master-data setup must all go through Vue buttons.
   await page.goto('/inventory')
   await page.getByRole('button', { name: '원자재 입고' }).click()
   await selectItem(page, rawSku)
   await page.locator('.dialog input[placeholder^="LOT-"]').fill('LOT-LIVE-' + id)
   await page.locator('.dialog input[type="number"]').fill('25')
+  // Server commits the receipt, but the browser never receives that HTTP response.
+  await page.route('**/api/v1/stock-receipts', async route => {
+    const reply = await route.fetch()
+    expect(reply.status(), await reply.text()).toBe(201)
+    await route.abort('failed')
+  }, { times: 1 })
   await page.locator('.dialog button[type="submit"]').click()
-  await expect(page.locator('.dialog')).toHaveCount(0)
+  const pendingReceipt = page.getByRole('dialog', { name: '원자재 입고' })
+  await expect(pendingReceipt.getByRole('alert')).toContainText('중복 처리를 막기 위해')
+  await expect(pendingReceipt.getByRole('spinbutton', { name: '입고 수량 (EA)' })).toBeDisabled()
+  const receiptKey = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('factoryflow:pending-raw-receipt:v1')).requestKey)
+  await pendingReceipt.getByRole('button', { name: '취소' }).click()
+  await page.getByRole('button', { name: '미확인 입고 요청 확인' }).click()
+  await expect(pendingReceipt.getByRole('alert')).toContainText(receiptKey)
+  await page.reload()
+  await expect(pendingReceipt).toBeVisible()
+  await expect(pendingReceipt.getByRole('button', { name: '동일 요청 재시도' })).toBeEnabled()
+  await pendingReceipt.getByRole('button', { name: '동일 요청 재시도' }).click()
+  await expect(pendingReceipt).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-raw-receipt:v1'))).toBeNull()
+  expect(receiptPosts).toHaveLength(2)
+  expect(receiptPosts[1]).toEqual(receiptPosts[0]) // same key AND exact body, not just same quantity.
+  expect(receiptStatuses).toContain(200) // backend replayed the original commit.
   let rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
   expect(rawInventory.onHand).toBe(25)
   expect(rawInventory.available).toBe(25)
@@ -93,8 +130,28 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await page.getByRole('button', { name: '출고 등록' }).click()
   await selectItem(page, finishedSku)
   await page.locator('.dialog input[type="number"]').fill('3')
+  // The shipment is already persisted in MySQL, but the first response is lost.
+  await page.route('**/api/v1/shipments', async route => {
+    const reply = await route.fetch()
+    expect(reply.status(), await reply.text()).toBe(201)
+    await route.abort('failed')
+  }, { times: 1 })
   await page.locator('.dialog button[type="submit"]').click()
-  await expect(page.locator('.dialog')).toHaveCount(0)
+  const pendingShipment = page.getByRole('dialog', { name: '완제품 출고 등록' })
+  await expect(pendingShipment.getByRole('alert')).toContainText('출고 결과가 미확인')
+  await expect(pendingShipment.getByRole('spinbutton', { name: '출고 수량 (EA)' })).toBeDisabled()
+  const shipmentKey = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('factoryflow:pending-finished-shipment:v1')).requestKey)
+  await page.reload()
+  await expect(pendingShipment).toBeVisible()
+  await expect(pendingShipment.getByRole('alert')).toContainText(shipmentKey)
+  await pendingShipment.getByRole('button', { name: '동일 요청 재시도' }).click()
+  await expect(pendingShipment).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
+  expect(shipmentPosts).toHaveLength(2)
+  expect(shipmentPosts[1]).toEqual(shipmentPosts[0])
+  expect(shipmentStatuses).toContain(200)
   await expect(page.locator('.detail-panel')).toContainText('실DB 브래킷 ' + id)
 
   rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
@@ -106,10 +163,11 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
 
   const rawMoves = (await getData(request, '/api/v1/stock-movements?itemId=' + raw.id)).content
   const productMoves = (await getData(request, '/api/v1/stock-movements?itemId=' + finished.id)).content
-  expect(rawMoves.some(m => m.movementType === 'RAW_RECEIPT' && m.quantity === 25)).toBe(true)
+  // Same-key 200 replays must never append another stock movement.
+  expect(rawMoves.filter(m => m.movementType === 'RAW_RECEIPT' && m.quantity === 25)).toHaveLength(1)
   expect(rawMoves.some(m => m.movementType === 'RAW_CONSUMPTION' && m.quantity === 20)).toBe(true)
   expect(productMoves.some(m => m.movementType === 'FINISHED_RECEIPT' && m.quantity === 8)).toBe(true)
-  expect(productMoves.some(m => m.movementType === 'FINISHED_SHIPMENT' && m.quantity === 3)).toBe(true)
+  expect(productMoves.filter(m => m.movementType === 'FINISHED_SHIPMENT' && m.quantity === 3)).toHaveLength(1)
 
   // TASK-014: Verify the audit UI against those exact records persisted in MySQL.
   await page.goto('/movements?itemId=' + raw.id)
@@ -194,4 +252,53 @@ test('real database: shortage from Vue reservation button must preserve DRAFT an
   expect(after.status).toBe('DRAFT')
   expect({ onHand: rawInventory.onHand, reserved: rawInventory.reserved, available: rawInventory.available })
     .toEqual({ onHand: 3, reserved: 0, available: 3 })
+})
+
+
+test('real database: lost shipment response followed by definite shortage unlocks a new request', async ({ page }) => {
+  await loginAsAdmin(page)
+  const request = page.request
+  const id = Date.now().toString(36).toUpperCase()
+  const finishedSku = 'FG-REJECT-' + id
+  const finished = await postData(request, '/api/v1/items', {
+    sku: finishedSku, name: '출고 부족 검증 ' + id, itemType: 'FINISHED_GOOD',
+  })
+  await page.goto('/shipments')
+  await page.getByRole('button', { name: '출고 등록' }).click()
+  await selectItem(page, finishedSku)
+  const dialog = page.getByRole('dialog', { name: '완제품 출고 등록' })
+  await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('1')
+  const attemptedKeys = []
+  page.on('request', req => {
+    if (req.method() === 'POST' && new URL(req.url()).pathname === '/api/v1/shipments') {
+      attemptedKeys.push(JSON.parse(req.postData()).requestKey)
+    }
+  })
+
+  // Nothing reaches the server the first time, but the browser cannot know that.
+  await page.route('**/api/v1/shipments', route => route.abort('failed'), { times: 1 })
+  await dialog.getByRole('button', { name: '출고 확정' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('출고 결과가 미확인')
+  const formerKey = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('factoryflow:pending-finished-shipment:v1')).requestKey)
+  await dialog.getByRole('button', { name: '동일 요청 재시도' }).click()
+
+  // An explicit 409 with no matching committed key is safe to edit after unlock.
+  await expect(page.locator('.toast')).toContainText('출고 가능한 완제품 재고가 부족합니다.')
+  await expect(dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' })).toBeEnabled()
+  await expect(dialog.getByRole('alert')).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
+  await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('2')
+  const rejectedAgain = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/v1/shipments'
+      && response.request().method() === 'POST' && response.status() === 409)
+  await dialog.getByRole('button', { name: '출고 확정' }).click()
+  await rejectedAgain
+  expect(attemptedKeys).toHaveLength(3)
+  expect(attemptedKeys.slice(0, 2)).toEqual([formerKey, formerKey])
+  expect(attemptedKeys[2]).not.toBe(formerKey) // a confirmed rejection permits a new corrected command.
+  const moves = (await getData(request, '/api/v1/stock-movements?itemId=' + finished.id)).content
+  expect(moves).toHaveLength(0)
+  expect(formerKey).toMatch(/^SHIP-/)
 })

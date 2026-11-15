@@ -2,7 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, X, ArrowRight, Layers } from 'lucide-vue-next'
-import { get, post, isDemoMode } from '../lib/api.js'
+import { ApiError, get, post, isDemoMode } from '../lib/api.js'
+import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
@@ -38,8 +39,11 @@ const selectedSummary = ref(null), lotPage = ref(0)
 const lots = ref({ content: [], totalPages: 0, totalElements: 0 })
 const lotsLoading = ref(false), lotsError = ref('')
 const lotSection = ref(null)
-const drawer = ref(false), saving = ref(false)
-const receipt = ref({ itemId: '', lotCode: '', quantity: 1, requestKey: requestKey('REC') })
+const pendingReceipt = ref(readPendingWrite('receipt'))
+const drawer = ref(Boolean(pendingReceipt.value)), saving = ref(false)
+const receipt = ref(pendingReceipt.value
+  ? { ...pendingReceipt.value } : { itemId: '', lotCode: '', quantity: 1, requestKey: requestKey('REC') })
+const pendingPersisted = ref(true)
 
 // This is a visible-page metric, not an inventory shortage alert.
 const zeroAvailableOnPage = computed(() => list.value.content.filter(row => row.available === 0).length)
@@ -133,8 +137,10 @@ function changePage(next) {
 function changeLotPage(next) { lotPage.value = next; loadLots() }
 
 function openReceipt(itemId = '') {
-  receipt.value = { itemId: itemId ? String(itemId) : '', lotCode: '', quantity: 1,
-    requestKey: requestKey('REC') }
+  // Never mint another key for an unresolved stock write in this tab.
+  receipt.value = pendingReceipt.value ? { ...pendingReceipt.value } : {
+    itemId: itemId ? String(itemId) : '', lotCode: '', quantity: 1, requestKey: requestKey('REC'),
+  }
   drawer.value = true
 }
 function closeReceipt() { if (!saving.value) drawer.value = false }
@@ -149,30 +155,55 @@ async function submitReceipt() {
     ui.notify('원자재, LOT 코드와 1 이상의 정수 입고 수량을 확인하세요.', 'error')
     return
   }
+  const payload = pendingReceipt.value ?? {
+    requestKey: receipt.value.requestKey, itemId, lotCode, quantity,
+  }
+  let created
   saving.value = true
   try {
-    const created = await post('/api/v1/stock-receipts',
-      { ...receipt.value, itemId, quantity, lotCode })
-    drawer.value = false
-    ui.notify(`LOT ${created.lotCode} 입고를 처리했습니다.`)
-    const id = String(created.itemId)
-    // Keep the receipt's actual inventory item visible even when it was not
-    // on the current list page or the current type filter was FINISHED_GOOD.
+    created = await post('/api/v1/stock-receipts', payload)
+    if (!Number.isSafeInteger(created?.id) || created?.requestKey?.toUpperCase() !== payload.requestKey.toUpperCase()
+        || created.itemId !== payload.itemId || created.quantity !== payload.quantity) {
+      throw new ApiError('입고 결과를 확인할 수 없습니다.', { status: 200, code: 'INVALID_RESPONSE' })
+    }
+  } catch (e) {
+    if (isUncertainWriteError(e)) {
+      pendingReceipt.value = payload
+      pendingPersisted.value = savePendingWrite('receipt', payload)
+      ui.notify('입고 처리 여부를 확인할 수 없습니다. 입력을 변경하지 말고 동일 요청을 재시도하세요.', 'error')
+    } else if (pendingReceipt.value && isConfirmedWriteRejection(e)) {
+      // A definitive rejected command did not commit. A corrected attempt is a NEW request.
+      pendingReceipt.value = null
+      clearPendingWrite('receipt')
+      receipt.value = {
+        ...receipt.value, requestKey: requestKey('REC'),
+      }
+      ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
+    } else {
+      ui.notify(e.message, 'error')
+    }
+    return
+  } finally {
+    saving.value = false
+  }
+  pendingReceipt.value = null
+  clearPendingWrite('receipt')
+  drawer.value = false
+  ui.notify(`LOT ${created.lotCode} 입고를 처리했습니다.`)
+  const id = String(created.itemId)
+  // Navigation errors after a confirmed write must not be mistaken for POST failures.
+  try {
     const unchangedRoute = route.query.itemType === 'RAW_MATERIAL'
       && route.query.itemId === id && route.query.page === undefined
     if (!unchangedRoute) {
       await router.replace({ path: '/inventory',
         query: inventoryQuery({ type: 'RAW_MATERIAL', pageNo: 0, itemId: id }) })
     } else {
-      // Refresh even if the item is not included in the visible first page.
       selectedSummary.value = null
       await Promise.all([load(), loadLots({ scroll: true })])
     }
-  } catch (e) {
-    // Keep the same idempotency request key on retry after a network failure.
-    ui.notify(e.message, 'error')
-  } finally {
-    saving.value = false
+  } catch {
+    ui.notify('입고는 완료됐지만 목록을 새로고침하지 못했습니다. 재고 새로고침을 이용하세요.', 'error')
   }
 }
 
@@ -198,7 +229,7 @@ onMounted(async () => {
         </button>
       </div>
       <button v-if="auth.canWrite" type="button" class="btn btn-primary" @click="openReceipt()">
-        <Plus :size="17" /> 원자재 입고
+        <Plus :size="17" /> {{ pendingReceipt ? '미확인 입고 요청 확인' : '원자재 입고' }}
       </button>
     </div>
 
@@ -257,7 +288,7 @@ onMounted(async () => {
           </RouterLink>
           <button v-if="auth.canWrite && selectedSummary?.itemType === 'RAW_MATERIAL'"
             type="button" class="btn btn-outline" @click="openReceipt(selectedSummary.itemId)">
-            <Plus :size="15" /> 선택 원자재 입고
+            <Plus :size="15" /> {{ pendingReceipt ? '미확인 입고 요청 확인' : '선택 원자재 입고' }}
           </button>
         </div>
       </header>
@@ -319,24 +350,29 @@ onMounted(async () => {
               <span class="field-title">원자재 <em class="required-mark">*</em></span>
               <ItemSearchSelect v-model="receipt.itemId" item-type="RAW_MATERIAL"
                 :preselected-item="preselectedReceiptItem"
-                placeholder="원자재 검색 · 선택" :disabled="saving" />
+                placeholder="원자재 검색 · 선택" :disabled="saving || !!pendingReceipt" />
             </div>
             <label class="field-label">LOT 코드 <span>*</span>
               <input v-model.trim="receipt.lotCode" maxlength="80" required
-                placeholder="LOT-20261111-001" :disabled="saving" />
+                placeholder="LOT-20261111-001" :disabled="saving || !!pendingReceipt" />
             </label>
             <label class="field-label">입고 수량 (EA) <span>*</span>
-              <input v-model.number="receipt.quantity" type="number" min="1" step="1" required :disabled="saving" />
+              <input v-model.number="receipt.quantity" type="number" min="1" step="1" required :disabled="saving || !!pendingReceipt" />
             </label>
-            <div class="info-hint">
+            <p v-if="pendingReceipt" class="info-hint" role="alert">
+              입고 결과를 확인하지 못했습니다. 중복 처리를 막기 위해 요청 키 {{ pendingReceipt.requestKey }}와 입력 내용을 고정했습니다.
+              같은 요청을 재시도하면 이미 처리된 입고는 다시 반영되지 않습니다.
+              {{ pendingPersisted ? '이 탭에서 창을 닫거나 새로고침해도 복원됩니다.' : '브라우저 저장이 제한되어 새로고침 시 복원되지 않을 수 있습니다.' }}
+            </p>
+            <div v-else class="info-hint">
               같은 원자재의 동일 LOT 코드에 추가 입고할 수 있습니다.
-              요청이 실패해 재시도할 때는 중복 입고 방지를 위해 같은 요청 키를 유지합니다.
+              통신 실패 시 같은 요청 키로만 재시도하며, 처리 결과를 확인하기 전 새 입고를 만들지 마세요.
             </div>
           </div>
           <footer class="dialog-footer">
             <button type="button" class="btn btn-outline" :disabled="saving" @click="closeReceipt">취소</button>
             <button type="submit" class="btn btn-primary" :disabled="saving || !receipt.itemId">
-              {{ saving ? '처리 중...' : '입고 확정' }}
+              {{ saving ? '처리 중...' : pendingReceipt ? '동일 요청 재시도' : '입고 확정' }}
             </button>
           </footer>
         </form>
