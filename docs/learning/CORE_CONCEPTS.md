@@ -213,3 +213,13 @@
 3. Vercel 배포 완료, 공개 Ubuntu Chrome 스모크 통과, 실DB MySQL E2E 성공은 각각 무엇을 입증하며 무엇을 입증하지 못하는가?
 4. `ItemSearchSelect`의 Escape와 부모 모달 Escape를 분리한 이유, 그리고 저장 중 닫힘을 제한하는 이유는?
 5. 입고/소모 합계를 현재고와 대조할 때 과거 원장의 수량 부호를 프런트에서 표시와 구분해야 하는 이유는?
+
+## 23. 품질검사 UX 입력 검증과 서버 트랜잭션의 역할 분리 — TASK-019
+
+- **검수에서 발견:** `OrdersView.vue#choose(id)`가 검사 수량을 `passedQty=plannedQty`, `failedQty=0`으로 미리 채워 **입력하지 않았는데 전량 합격을 확정할 수 있는 UI**였다. `AWAITING_QC → COMPLETED` 이후 검사는 API에서 재수정할 수 없고 합격품이 물리 재고로 들어간다.
+- **변경 흐름:** 상세 GET → QC 입력 2칸 공란 → `qcQuantity()`로 각각 명시적 비음수 안전 정수 확인 → `qcTotal/qcValid`에서 합계/계획수량 일치 → 품질검사 확정 버튼 → 작업번호/합격/불합격 수량 표준 확인창 → 승인 후 POST.
+- **JavaScript 주의:** `Number('') === 0`이므로 `v-model.number`만 믿으면 입력하지 않은 불합격 수량이 0으로 계산될 수 있다. `''`은 입력 누락을 의미하는 `null`로 처리하며, 사용자가 직접 입력한 `0`은 유효 값으로 인정한다. 합계도 `Number.isSafeInteger` 검증으로 표현 범위 초과를 막는다.
+- **실제 서버는 마지막 방어선:** `QualityInspectionService.confirm`은 완제품 Item→WorkOrder 잠금, 검사 상태/수량 재검증, 검사 이력·합격품 LOT·FINISHED_RECEIPT·생산지시 완료를 한 트랜잭션으로 확정한다. UI 확인/계산은 이 서버 계약을 대체할 수 없다.
+- **대안/트레이드오프:** 기본 0/0은 ‘직접 입력 0’과 미입력을 구분하기 어려움. 모든 단계에 추가 확인을 강제하면 클릭 피로가 커지므로 재고 반영이 확정되는 QC에만 확인창을 추가한다. 브라우저 `window.confirm`은 간결하지만 시각 디자인 제어는 제한된다.
+- **회귀/한계:** [TASK-019 보고서](../task-reports/TASK-019-품질검사-명시적확정-검수.md)의 Chrome/IndexedDB/MySQL 실행 결과를 확인. 검사 결과 변경·취소/재작업 API는 현 MVP 범위 밖.
+- **생각해 볼 질문:** 전량 불합격은 왜 유효하고 자동 전량 합격은 왜 위험한가? QC 화면 검증 성공 이후에도 왜 MySQL 트랜잭션/DB 제약이 필요한가?
