@@ -1,9 +1,9 @@
 # FactoryFlow — 프로젝트 상태 및 작업 핸드오프
 
-> 마지막 문서 정리: 2026-11-15
+> 마지막 문서 정리: 2026-11-16
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
-> **현재 완료된 기준**: TASK-017 / main `71b6ae204cf2948414da8fe67aa544f5dab9baf9`
-> **TASK-018 PR 검증 상태**: [PR #25](https://github.com/jeon950523/factoryflow/pull/25)의 공개 Chrome 6/6·Frontend/실DB E2E 성공. 최신 main 병합·CI 여부는 GitHub에서 확인
+> **현재 완료된 기준**: TASK-018 / main `63dbfbb61682cc1bb1cc4ea032c343f7d0d7f051`
+> **TASK-018 최종 검증**: [PR #25](https://github.com/jeon950523/factoryflow/pull/25) 병합 완료, 공개 Chrome 6/6, 병합 [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43727388011)·[실DB](https://github.com/jeon950523/factoryflow/actions/runs/43727388049) 성공. **TASK-019 진행 중**.
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
 ## 1. 문서 우선순위와 최근 작업
@@ -35,13 +35,14 @@
 | 015 | 실제 공개 Chrome·1440px 스크린샷·한글 폰트 | [#22](https://github.com/jeon950523/factoryflow/pull/22) / `2899b020` |
 | 016 | 공통 모달 포커스·닫힘·가독성 | [#23](https://github.com/jeon950523/factoryflow/pull/23) / `4d790666` |
 | 017 | BOM/LOT/생산지시/출고 이력 왕복·URL·정합성 | [#24](https://github.com/jeon950523/factoryflow/pull/24) / `71b6ae20` |
-| 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) · PR Chrome/Frontend/실DB 3종 SUCCESS, main 병합 여부 별도 확인 |
+| 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) / `63dbfbb` · main Frontend/실DB SUCCESS |
+| 019 | QC 결과 직접 입력/범위·합계 검증/불가역 확정 전 재확인 | [작업지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md) · 구현/CI 검증 중 |
 
 ## 4. 최종 확인된 자동 검증
 
-TASK-017 병합 `main 71b6ae20`에 대해:
-- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43725889140): Node 37/37, Chrome fixture 21/21, IndexedDB Chrome 27/27, 빌드 성공
-- [Fullstack UI E2E](https://github.com/jeon950523/factoryflow/actions/runs/43725889199): 실제 Spring Boot/MySQL+Chrome E2E 2/2
+TASK-018 병합 `main 63dbfbb`에 대해:
+- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43727388011): Node 37/37, Chrome fixture 21/21, IndexedDB Chrome 27/27, 빌드 성공
+- [Fullstack UI E2E](https://github.com/jeon950523/factoryflow/actions/runs/43727388049): 실제 Spring Boot/MySQL+Chrome E2E 2/2
 - GitHub Vercel status: 성공. **TASK-017의 공개 도메인 새 동선을 직접 검증했다는 주장은 TASK-018 Chrome 증거 이후만 가능.**
 
 ## 5. TASK-018 범위 및 다음 시작점
@@ -64,4 +65,12 @@ TASK-017 병합 `main 71b6ae20`에 대해:
 
 ## 7. 새 채팅에서 재개할 때
 
-“FactoryFlow 저장소 `jeon950523/factoryflow`의 `main` 최신 커밋과 CI를 먼저 검수해. `docs/PROJECT_HANDOFF.md`, `docs/DEVELOPMENT_REPORTING_STANDARD.md`, 최신 `tasks/` 지시서와 `docs/task-reports/` 보고서를 참고하고, 구현→시니어 검수→브라우저·MySQL E2E→PR·문서 누적 순서로 작업해. 현재 작업은 TASK-018 공개 도메인 스모크/기록 감사였으니 PR/CI를 먼저 확인해.”
+“FactoryFlow 저장소 `jeon950523/factoryflow`의 `main` 최신 커밋과 CI를 먼저 검수해. `docs/PROJECT_HANDOFF.md`, `docs/DEVELOPMENT_REPORTING_STANDARD.md`, 최신 `tasks/` 지시서와 `docs/task-reports/` 보고서를 참고하고, 구현→시니어 검수→브라우저·MySQL E2E→PR·문서 누적 순서로 작업해. 현재 작업은 TASK-019 품질검사 명시 입력/확정 안전성 검증이니 PR/CI를 먼저 확인해.”
+
+## 8. TASK-019 인계
+
+- 문제: `OrdersView.vue#choose`가 QC 입력을 전량 합격으로 자동 채워 검수자 입력 없이 재고를 늘릴 수 있는 상태였다.
+- 개선: `qcQuantity()`에서 빈 필드와 직접 입력 0을 분리, 수량/합계 안전 정수 확인, 생산지시번호·합격·불합격 수량으로 `window.confirm` 후 검사 POST.
+- 테스트: 실제 IndexedDB에서 취소 시 비반영·입력 유지·재로드 공란·승인 후 재고 변화; 실 MySQL E2E에서 명시 입력·승인 후 기존 제조 정합성 테스트.
+- 서버 API/FIFO·DB·인증 미변경. 사전 검토 기준 코드는 `feature/task-019-qc-explicit-confirmation`; 완료 판정은 실제 PR/main GitHub CI 로그를 확인한다.
+- [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md), [시니어 검수](task-reports/TASK-019-품질검사-명시적확정-검수.md), [학습 누적](learning/CORE_CONCEPTS.md).
