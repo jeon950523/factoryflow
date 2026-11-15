@@ -121,6 +121,32 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await table.getByRole('link', { name: '완제품 출고 #' + shipped.referenceId + ' 확인' }).click()
   await expect(page).toHaveURL('http://127.0.0.1:5173/shipments?id=' + shipped.referenceId)
   await expect(page.getByRole('table', { name: 'LOT별 출고 배분 내역' })).toContainText('LOT #')
+
+  // TASK-017: Follow actual Vue hyperlinks while reconciling the same MySQL records.
+  await page.getByRole('link', { name: '완제품 이동 이력' }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/movements?itemId=' + finished.id)
+  await expect(table).toContainText('+8')
+  await expect(table).toContainText('−3')
+  await page.getByRole('link', { name: '현재 LOT 재고 보기' }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/inventory?itemId=' + finished.id)
+  await expect(page.locator('.erp-lot-summary')).toContainText('현재고 5 EA')
+
+  await page.goto('/orders?status=COMPLETED')
+  const finishedOrder = await getData(request, '/api/v1/work-orders/' + consumption.referenceId)
+  await page.getByRole('table', { name: '생산지시 목록' })
+    .getByRole('button', { name: finishedOrder.orderNo, exact: true }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/orders?status=COMPLETED&id=' + finishedOrder.id)
+  await page.reload()
+  const materials = page.getByRole('table', { name: '선택 생산지시 소요 원자재' })
+  await expect(materials).toContainText('실DB 철판 ' + id)
+  await materials.getByRole('link', { name: '실DB 철판 ' + id + ' LOT 재고' }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/inventory?itemType=RAW_MATERIAL&itemId=' + raw.id)
+  await expect(page.getByRole('table', { name: '선택 품목 LOT별 재고' })).toContainText('LOT-LIVE-' + id)
+  await expect(page.locator('.erp-lot-summary')).toContainText('현재고 5 EA')
+  await page.getByRole('link', { name: '선택 품목 이동 이력' }).click()
+  await expect(page).toHaveURL('http://127.0.0.1:5173/movements?itemId=' + raw.id)
+  await expect(table).toContainText('+25')
+  await expect(table).toContainText('−20')
 })
 
 test('real database: shortage from Vue reservation button must preserve DRAFT and unreserved stock', async ({ page }) => {
