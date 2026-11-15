@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  isUncertainWriteError, savePendingWrite, readPendingWrite, clearPendingWrite,
+  isUncertainWriteError, isConfirmedWriteRejection, savePendingWrite, readPendingWrite, clearPendingWrite,
 } from './pendingWrite.js'
 
 function withStorage(run) {
@@ -53,3 +53,14 @@ test('malformed stored writes are ignored, and disabled storage does not throw',
   assert.equal(readPendingWrite('shipment'), null)
   assert.equal(savePendingWrite('shipment', { requestKey: 'bad key', finishedItemId: 5, quantity: 1 }), false)
 }))
+
+
+test('only explicit business/validation rejections may unlock an unresolved write', () => {
+  assert.equal(isConfirmedWriteRejection({ status: 400, code: 'INVALID_RECEIPT' }), true)
+  assert.equal(isConfirmedWriteRejection({ status: 404, code: 'ITEM_NOT_FOUND' }), true)
+  assert.equal(isConfirmedWriteRejection({ status: 409, code: 'INSUFFICIENT_FINISHED_STOCK' }), true)
+  assert.equal(isConfirmedWriteRejection({ status: 409, code: 'IDEMPOTENCY_KEY_CONFLICT' }), false)
+  assert.equal(isConfirmedWriteRejection({ status: 401 }), false)
+  assert.equal(isConfirmedWriteRejection({ status: 403 }), false)
+  assert.equal(isConfirmedWriteRejection({ status: 503 }), false)
+})
