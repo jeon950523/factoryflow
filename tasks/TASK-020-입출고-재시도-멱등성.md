@@ -28,3 +28,10 @@
 - 이후 같은 요청의 재전송이 400/404 또는 지정된 409 재고 부족 등 **확실한 업무 거절**로 귀결되면, 영구적인 폼 잠금을 풀고 수정한 작업은 **새 요청 키**로 보낸다.
 - 401/403/IDEMPOTENCY_KEY_CONFLICT/5xx에는 확정 미처리 판단을 하지 않는다. pending 유지.
 - 실DB Chrome에 '서버까지 전송되지 않은 네트워크 오류 → 같은 요청 재시도 409 → 수정한 새 요청의 키 확인' 시나리오를 추가한다.
+
+## PR 기능 코드 검증 근거
+
+- [PR #28](https://github.com/jeon950523/factoryflow/pull/28) 코드 검증 커밋 `278c60fec74525ca029e09635f2ab052f2d67cc8`.
+- [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025): Node 42/42, Chrome UI fixture 21/21, IndexedDB 30/30, 빌드 SUCCESS.
+- [실제 Spring Boot/MySQL #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015): E2E 3/3 SUCCESS. 커밋 후 응답 유실 → HTTP 200 replay, 원장 1회, 확정 409 잠금 해제.
+- 후속 문서 커밋/병합 `main` 상태는 반드시 별도 CI로 판단하며, Vercel 실제 화면 조작·다중 탭/브라우저 세션 전반의 재시도 보장은 별도.
