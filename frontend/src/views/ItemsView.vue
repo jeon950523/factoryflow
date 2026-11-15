@@ -270,7 +270,7 @@ onMounted(() => { load(); restoreItem() })
     </section>
 
     <div v-if="drawer" class="dialog-backdrop" @click.self="closeDrawer">
-      <section class="dialog" role="dialog" aria-modal="true" :aria-label="drawer === 'item' ? '품목 등록' : 'BOM 등록'">
+      <section v-dialog-focus="{ close: closeDrawer, locked: saving }" class="dialog" role="dialog" aria-modal="true" :aria-label="drawer === 'item' ? '품목 등록' : 'BOM 등록'">
         <header class="dialog-header">
           <div><h2>{{ drawer === 'item' ? '품목 등록' : 'BOM 등록' }}</h2></div>
           <button type="button" class="icon-btn" aria-label="닫기" :disabled="saving" @click="closeDrawer"><X :size="20" /></button>
