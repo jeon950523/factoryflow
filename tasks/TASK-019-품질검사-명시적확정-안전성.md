@@ -2,7 +2,7 @@
 
 > 작성일: 2026-11-16
 > 기준: `main` `63dbfbb61682cc1bb1cc4ea032c343f7d0d7f051` / TASK-018 완료
-> 작업 상태: PR 최종 기능 커밋 CI 성공 (병합 후 main CI는 별도 검증)
+> 작업 상태: **완료** — PR #26 병합·`main` Frontend/실DB CI 성공, Vercel 배포 완료
 > 범위: Vue `OrdersView.vue` 품질검사 UI, Chrome 데모/실DB 회귀 테스트, 기록 문서
 
 ## 문제와 근거
@@ -37,4 +37,11 @@
 - [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43729409460): Node 37/37, Chrome fixture 21/21, IndexedDB 29/29 성공
 - [실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/43729409394): 실제 MySQL 2/2 성공
 - 첫 [Frontend CI 실패](https://github.com/jeon950523/factoryflow/actions/runs/43729184665)는 `합격 수량` 로케이터가 `불합격 수량`에도 매칭된 Playwright selector 문제로, `exact:true` 수정 후 최종 CI 성공
-- 공개 Vercel 새 UI 및 Windows PC 수동 사용성은 **검증 결과와 별개**로 추적
+- 공개 Vercel에서의 실제 검사 입력/확정과 Windows PC 수동 사용성은 **별개·미검증**으로 추적. 배포 성공만 확인.
+
+## 완료 확인 (2026-11-16)
+
+- 코드 병합 [PR #26](https://github.com/jeon950523/factoryflow/pull/26) → `main 480c2a058cfdbb3bf3bef4657bb3e04e97671883`.
+- [병합 main Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43730192091): Node 37/37, Chrome fixture 21/21, IndexedDB 29/29 성공.
+- [병합 main MySQL E2E](https://github.com/jeon950523/factoryflow/actions/runs/43730192083): 2/2 성공. 배포 상태 Vercel success.
+- 세부 실패 분석·코드 설계/트레이드오프·잔여 항목은 [시니어 검수](../docs/task-reports/TASK-019-품질검사-명시적확정-검수.md), [TS-008](../docs/TROUBLESHOOTING.md) 참조.
