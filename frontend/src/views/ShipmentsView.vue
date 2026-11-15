@@ -181,10 +181,16 @@ onMounted(() => {
             <div class="erp-shipment-subheading">
               <div><h3>LOT별 출고 배분 기록</h3>
                 <p>검사 합격품을 FIFO 기준으로 배분해 차감한 원장 기록입니다. 코드 대신 LOT ID를 제공합니다.</p></div>
-              <RouterLink class="erp-shipment-lookup" :to="{ path: '/inventory',
-                query: { itemType: 'FINISHED_GOOD', itemId: String(selected.finishedItemId) } }">
-                해당 완제품 LOT 현황 <ArrowRight :size="14" />
-              </RouterLink>
+              <div class="erp-shipment-trace-links">
+                <RouterLink class="erp-shipment-lookup" :to="{ path: '/inventory',
+                  query: { itemType: 'FINISHED_GOOD', itemId: String(selected.finishedItemId) } }">
+                  해당 완제품 LOT 현황 <ArrowRight :size="14" />
+                </RouterLink>
+                <RouterLink class="erp-shipment-lookup" :to="{ path: '/movements',
+                  query: { itemId: String(selected.finishedItemId) } }">
+                  완제품 이동 이력 <ArrowRight :size="14" />
+                </RouterLink>
+              </div>
             </div>
             <div class="table-scroll">
               <table class="data-table erp-shipment-allocation-table" aria-label="LOT별 출고 배분 내역">
