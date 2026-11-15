@@ -45,3 +45,7 @@
 @media(max-width:740px) {
   .erp-shipment-heading, .erp-shipment-subheading { flex-direction:column; align-items:flex-start; }
 }
+
+/* TASK-017: show live LOT stock and historical movements as separate destinations. */
+.erp-shipment-trace-links { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:9px 18px; }
+@media(max-width:1080px) { .erp-shipment-trace-links { justify-content:flex-start; } }
