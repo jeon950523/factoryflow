@@ -94,7 +94,13 @@ UI 확인 전에 서버 POST는 하지 않는다. 입력을 snapshot 객체로 �
 
 ## 6. 테스트·실행 증거
 
-**현 상태: PR/CI 미확인 (검증 대기)**. 다음을 최종 PR 헤드와 병합된 main에서 검증한다.
+**초기 PR CI 검사 (실패 원인 분석 완료, 재검증 대기):**
+- 첫 [Frontend CI #43729184665](https://github.com/jeon950523/factoryflow/actions/runs/43729184665): Node/Chrome fixture/빌드는 통과, IndexedDB Chrome 28건 중 2건 실패. Playwright `getByRole('spinbutton',{name:'합격 수량'})`가 '불합격 수량'에도 부분 일치하여 strict mode violation 발생. **테스트 선택자 오류**로 확인하여 `exact:true` 수정. 이 오류는 실제 검사 저장 실패/재고 불일치 증거가 아니다.
+- 첫 [실DB E2E #43729184652](https://github.com/jeon950523/factoryflow/actions/runs/43729184652): 실제 Spring Boot/MySQL Chrome 제조·검사·출고 2/2 성공. 단, 최종 HEAD 기준 다시 검증한다.
+- 초기 2건 실패 발견 후 **명시적 전량 불합격(합격 0/불합격 10)** 또한 유효하며 완제품 재고를 늘리지 않는 회귀 테스트를 추가했다.
+- 최종 PR HEAD Frontend/Fullstack CI 재검증 전에는 이 TASK를 완료 처리하지 않는다.
+
+다음 명령/워크플로를 최종 PR 헤드와 병합된 main에서 검증한다.
 
 - `npm ci`, `npm test`, `npm run build`
 - `npx playwright test --config playwright.config.js` — fixture 기존 회귀
@@ -107,7 +113,7 @@ UI 확인 전에 서버 POST는 하지 않는다. 입력을 snapshot 객체로 �
 
 | 관점 | 판정 | 근거 |
 |---|---|---|
-| 기능 | 정적 검토 | 의도치 않은 전량 자동 합격 방지, 직접 0 허용, 예외/최종 확인 |
+| 기능 | 코드 검수 + CI 재검증 대기 | 자동 전량 합격 방지, 직접 0/전량 불합격, 예외/최종 확인 |
 | 데이터 정합성 | 서버 기존 보증 유지 | 검사/완제품 LOT/이동 이력/상태 변경은 하나의 트랜잭션 |
 | 보안 | 기존 정책 유지 | UI 버튼 검사는 단독 보안 경계가 아니며 서버 권한/검증 그대로 |
 | 경쟁/중복 | 기존 처리 유지 | `acting`/선택 ID 스냅샷/최근 조회 우선 게이트 유지 |
