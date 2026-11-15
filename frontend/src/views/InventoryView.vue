@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, X, ArrowRight, Layers } from 'lucide-vue-next'
 import { get, post, isDemoMode } from '../lib/api.js'
 import { useAuthStore } from '../stores/auth.js'
@@ -250,10 +250,16 @@ onMounted(async () => {
           <h2 id="lot-sheet-heading">{{ selectedName ? `${selectedName} · LOT 상세` : 'LOT 상세' }}</h2>
           <p>등록·입고 순서에 따라 LOT별 재고를 확인합니다. 이 표는 FIFO 출고의 실제 배분 결과를 표시하지 않습니다.</p>
         </div>
-        <button v-if="auth.canWrite && selectedSummary?.itemType === 'RAW_MATERIAL'"
-          type="button" class="btn btn-outline" @click="openReceipt(selectedSummary.itemId)">
-          <Plus :size="15" /> 선택 원자재 입고
-        </button>
+        <div class="erp-lot-heading-actions">
+          <RouterLink v-if="selectedId" class="erp-lot-trace-link"
+            :to="{ path: '/movements', query: { itemId: selectedId } }">
+            선택 품목 이동 이력 <ArrowRight :size="14" aria-hidden="true" />
+          </RouterLink>
+          <button v-if="auth.canWrite && selectedSummary?.itemType === 'RAW_MATERIAL'"
+            type="button" class="btn btn-outline" @click="openReceipt(selectedSummary.itemId)">
+            <Plus :size="15" /> 선택 원자재 입고
+          </button>
+        </div>
       </header>
 
       <div v-if="!selectedId" class="erp-lot-empty">
