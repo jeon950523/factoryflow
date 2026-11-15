@@ -162,7 +162,7 @@ async function submitReceipt() {
   saving.value = true
   try {
     created = await post('/api/v1/stock-receipts', payload)
-    if (!Number.isSafeInteger(created?.id) || created?.requestKey !== payload.requestKey
+    if (!Number.isSafeInteger(created?.id) || created?.requestKey?.toUpperCase() !== payload.requestKey.toUpperCase()
         || created.itemId !== payload.itemId || created.quantity !== payload.quantity) {
       throw new ApiError('입고 결과를 확인할 수 없습니다.', { status: 200, code: 'INVALID_RESPONSE' })
     }
