@@ -213,7 +213,7 @@ onMounted(() => {
     </section>
 
     <div v-if="drawer" class="dialog-backdrop" @click.self="closeDrawer">
-      <section class="dialog" role="dialog" aria-modal="true" aria-label="완제품 출고 등록">
+      <section v-dialog-focus="{ close: closeDrawer, locked: saving }" class="dialog" role="dialog" aria-modal="true" aria-label="완제품 출고 등록">
         <header class="dialog-header">
           <div><h2>완제품 출고 등록</h2><p>검사 합격 재고가 충분할 때만 확정됩니다.</p></div>
           <button type="button" class="icon-btn" :disabled="saving" aria-label="닫기" @click="closeDrawer"><X :size="20" /></button>
