@@ -100,7 +100,7 @@ async function submit() {
   saving.value = true
   try {
     created = await post('/api/v1/shipments', payload)
-    if (!Number.isSafeInteger(created?.id) || created?.requestKey !== payload.requestKey
+    if (!Number.isSafeInteger(created?.id) || created?.requestKey?.toUpperCase() !== payload.requestKey.toUpperCase()
         || created.finishedItemId !== payload.finishedItemId || created.quantity !== payload.quantity) {
       throw new ApiError('출고 결과를 확인할 수 없습니다.', { status: 200, code: 'INVALID_RESPONSE' })
     }
