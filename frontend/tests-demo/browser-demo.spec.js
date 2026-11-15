@@ -385,3 +385,19 @@ test('QC permits explicitly recorded all-failed result without manufacturing fin
   await page.goto('/inventory?itemId=4')
   await expect(page.locator('.erp-lot-summary')).toContainText('현재고 3 EA')
 })
+
+
+test('confirmed insufficient stock remains editable and never becomes an unresolved network retry', async ({ page }) => {
+  await page.goto('/shipments')
+  await page.getByRole('button', { name: '출고 등록' }).click()
+  const dialog = page.getByRole('dialog', { name: '완제품 출고 등록' })
+  await dialog.locator('.item-search-toggle').click()
+  await dialog.locator('.item-search-option').filter({ hasText: 'FG-CONTROL-100' }).click()
+  await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('1000')
+  await dialog.getByRole('button', { name: '출고 확정' }).click()
+  await expect(page.locator('.toast')).toContainText('출고 가능한 합격품 재고가 부족합니다.')
+  await expect(dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' })).toBeEnabled()
+  await expect(dialog.getByRole('button', { name: '동일 요청 재시도' })).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
+})
