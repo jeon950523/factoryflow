@@ -76,9 +76,17 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await expect(page.locator('.detail-panel .action-stack')).toContainText('생산 완료')
   await page.locator('.detail-panel .action-stack').getByRole('button', { name: '생산 완료' }).click()
   await expect(page.locator('.detail-panel .action-stack')).toContainText('품질검사 확정')
+  const inspect = page.locator('.detail-panel .action-stack')
+    .getByRole('button', { name: '품질검사 확정' })
+  await expect(inspect).toBeDisabled()
   await page.locator('.detail-panel .qc-inline input[type="number"]').nth(0).fill('8')
   await page.locator('.detail-panel .qc-inline input[type="number"]').nth(1).fill('2')
-  await page.locator('.detail-panel .action-stack').getByRole('button', { name: '품질검사 확정' }).click()
+  await expect(inspect).toBeEnabled()
+  page.once('dialog', async dialog => {
+    expect(dialog.message()).toContain('합격 8 EA / 불합격 2 EA')
+    await dialog.accept()
+  })
+  await inspect.click()
   await expect(page.locator('.detail-panel')).toContainText('완료')
 
   await page.goto('/shipments')
