@@ -98,6 +98,7 @@ UI 확인 전에 서버 POST는 하지 않는다. 입력을 snapshot 객체로 �
 - [Frontend CI #43729409460](https://github.com/jeon950523/factoryflow/actions/runs/43729409460): Node 단위 **37/37**, Chrome fixture **21/21**, 실제 IndexedDB 데모 Chrome **29/29**, Vite 프로덕션 빌드 성공.
 - [실DB E2E #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394): Java 21/Spring Boot/MySQL 8.4 + Google Chrome **2/2** 성공. 기존 재고 입고·예약·소모·QC·출고 결과를 유지하면서 최종 확인에 대한 테스트도 통과.
 - 신규 브라우저 검증 범위: 입력 2칸 공란, 명시적 0, 소수·음수·안전 정수 초과 차단, 합계 일치, 확인창 취소 시 상태/입력 유지·서버 미반영, 승인 후 합격품 재고 +8, 전량 불합격(합격0/불합격10) 시 완제품 재고 미증가.
+- **후속 문서 HEAD의 추가 CI 실패:** [Frontend #43729693292](https://github.com/jeon950523/factoryflow/actions/runs/43729693292)에서 IndexedDB 29건 중 1건 실패. 기존 샘플 초기화 시나리오가 비동기 `resetDemoData()` 완료 알림보다 먼저 다른 화면으로 이동한 테스트 레이스로 확인. 28건(신규 QC 테스트 포함)은 통과했고, **샘플 초기화 완료 토스트를 await한 뒤 화면을 이동**하도록 테스트 보완. 엔진·도메인 코드는 수정하지 않았다. 이 실패 후 새 CI 최종 HEAD 검증 전까지 완료로 표시하지 않는다.
 - **병합 후 `main` Frontend/Fullstack CI와 배포 완료 상태는 별도로 확인**한다.
 
 **초기 PR CI 검사 (실패 원인 분석 완료, 수정 후 재검증 성공):**
