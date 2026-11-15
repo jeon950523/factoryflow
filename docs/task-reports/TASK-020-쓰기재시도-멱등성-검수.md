@@ -1,7 +1,7 @@
 # TASK-020 — 입고·출고 응답 유실 재시도 및 멱등성 검수
 
 > 작성: 2026-11-16 · 기준 main `2b6cde9b2cb724bec512bd5ea4851a260060b4c4`
-> 상태: **시니어 검토 및 실제 기능 검증 성공** — PR 기능 HEAD `278c60fe` Frontend/실 MySQL E2E 통과, 문서 반영 후 최종 HEAD 및 병합 main CI는 별도 확인.
+> 상태: **TASK-020 기능 코드·실DB CI 완료 / 공개 Vercel 배포 제한으로 사이트 반영 미확인** — [PR #28](https://github.com/jeon950523/factoryflow/pull/28) 병합 `8cb8617`, main Frontend/Fullstack 성공.
 > PR: [#28](https://github.com/jeon950523/factoryflow/pull/28) · 브랜치 `feature/task-020-write-retry-safety`
 > 기본 계약: [초기 SSOT](../FACTORYFLOW_SSOT_v0.1.md) Draft, [ADR-013](../adr/ADR-013-프론트데모-실백엔드분리.md), 서버 코드·기존 MySQL 통합 테스트 기준
 
@@ -112,7 +112,7 @@ try {
 - Chrome fixture: `npx playwright test --config playwright.config.js`
 - IndexedDB demo: `npx playwright test --config playwright.demo.config.js` → 명백한 재고부족 409 UX
 - Spring Boot/MySQL 8.4 Chrome: `npx playwright test --config playwright.live.config.js` → `route.fetch()`가 서버 커밋 완료 응답을 수신한 뒤 `route.abort()`로 브라우저만 실패; 재전송 후 현재고/LOT 이동/출고 배분 검증
-- [PR #28](https://github.com/jeon950523/factoryflow/pull/28), `main` 병합 SHA, Frontend/MySQL CI 실행 링크는 실제 관측 후 기재.
+- [PR #28](https://github.com/jeon950523/factoryflow/pull/28) 병합 `8cb86179294ca702b5d0ad3154b3efca46c3052b`, [main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956), [main 실DB #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860)에서 실제 성공 확인. Vercel 배포는 rate limit 실패로 별도.
 - Windows 네이티브 DPI 확대·실제 외부 공개 MySQL 운영 브라우저 검증은 수행하지 않음.
 
 ## 7. 시니어 검수: 기능/안전/효율
@@ -177,5 +177,15 @@ try {
 - 출고 첫 POST도 실제 DB 201 커밋 후 응답 유실 → 동일 key+payload 전송, **HTTP 200 replay**, FINISHED_SHIPMENT 원장 **1개**, FIFO 출고 3, 완제품 현재고 5.
 - 네트워크 첫 요청이 서버에 미전송된 별도 시나리오: status0로 pending → 재전송 시 명백한 `INSUFFICIENT_FINISHED_STOCK` 409 → 잠금 해제 후 수정한 요청은 새 키로 전달, 유령 원장/출고 없음.
 - [IndexedDB 데모 409 테스트](../../frontend/tests-demo/browser-demo.spec.js)는 명백한 재고 부족일 때 편집이 가능한 것을 확인하되 실제 MySQL 트랜잭션이라고 주장하지 않는다.
-- **최종 병합 판정:** 본 보고서/README·로드맵·핸드오프 문서 추가 반영으로 HEAD가 바뀌므로 최종 HEAD에서 CI 재검증 후 병합 main Frontend/MySQL 및 Vercel 배포 상태를 별도로 확인한다.
+- **최종 병합 판정:** 기능 코드 병합 main `8cb8617`의 Frontend/MySQL CI는 성공했다. PR 마지막 HEAD는 기능 코드 이후 문서 변경만 있어 새 CI가 실행되지 않았으며, 정확한 병합 main SHA의 실행 성공으로 기능을 완료 판정한다. Vercel 배포는 별도 실패 상태이며 공개 화면 최신화는 미완료.
 - 재현한 CI 실패: 이번 TASK에서는 확인한 기능 실패 없음. 초기 연속 커밋 때문에 이전 헤드 작업이 `cancelled` 된 것은 기능 실패가 아니라 GitHub Actions 동시 실행 취소 정책이다. 실제 오류가 생기면 [TS-009](../TROUBLESHOOTING.md)에 추가한다.
+
+## 14. 최종 main 검증 및 배포 차단 (2026-11-16)
+
+- [PR #28](https://github.com/jeon950523/factoryflow/pull/28) squash merge SHA: `8cb86179294ca702b5d0ad3154b3efca46c3052b`.
+- [병합 main Frontend CI #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) **SUCCESS**: Node 42/42, Chrome fixture 21/21, IndexedDB Chrome 30/30, Vite build.
+- [병합 main Fullstack UI E2E #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) **SUCCESS**: 실제 Spring Boot/MySQL/Chrome 3/3. 첫 실행은 컨테이너 준비 중 `cancelled` 상태였으나 **동일 실행의 job 재실행**에 성공하여 최종 conclusion success를 확인했다. 취소를 테스트 실패로 간주하지 않는다.
+- [커밋 상태](https://github.com/jeon950523/factoryflow/commit/8cb86179294ca702b5d0ad3154b3efca46c3052b): Vercel `failure`, 메시지 `Deployment rate limited — retry in 24 hours.`. **배포가 완료되지 않았으므로 공개 `factoryflow.kro.kr`에서 TASK-020 UI가 보인다고 주장하지 않는다.** 차단 해제 후 재배포 및 실제 공개 Chrome 확인 필요.
+- 상세 원인/대응: [TS-010](../TROUBLESHOOTING.md). 특정 요금제·쿼터 소비량·자동 재시도 여부는 커밋 상태만으로 판정 불가.
+- 리팩터링 후속: 운영 서비스에서 requestKey 기반 서버 상태 조회 API를 도입한다면 만료/복구/다중 탭 정책을 함께 설계. 현재 세션 저장은 같은 탭의 안전 재시도만 보조한다.
+- 문서만 후속 갱신한 PR은 GitHub Actions의 `frontend/**`/`backend/**` 경로 조건상 새 CI가 실행되지 않을 수 있다. 신규 기능 테스트 결과와 문서 변경 확인을 혼용하지 않는다.

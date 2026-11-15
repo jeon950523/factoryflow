@@ -1,4 +1,5 @@
 # FactoryFlow 브라우저 체험 가이드
+> **배포 상태 주의 (2026-11-16):** TASK-020 코드와 테스트는 GitHub main에서 통과했지만 Vercel이 새 배포를 요청 제한으로 거절했습니다. 공개 사이트는 이전 배포일 수 있으므로 아래 시연을 최신 TASK-020 UI의 공개 반영 증거로 해석하지 마세요.
 
 ## 어디서 실행하나?
 - Vercel: **https://factoryflow.kro.kr**

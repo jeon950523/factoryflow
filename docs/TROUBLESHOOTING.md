@@ -79,9 +79,17 @@
 - **원인:** UI는 네트워크 오류를 모두 일반 메시지로 표시했고, 멱등성이 **요청 키뿐 아니라 payload 전체가 같아야 한다**는 규칙을 화면 재진입에 적용하지 않았다.
 - **수정:** 응답 미확인(status0/5xx/INVALID_RESPONSE) 시 key+품목/LOT/수량을 immutable snapshot으로 고정, 탭 sessionStorage에 보관하고 확인된 재전송(200/201)에서만 해제. 명백한 4xx는 미확인 잠금을 적용하지 않는다.
 - **사전 코드 검수 추가 발견:** `requestKey()`가 UUID를 소문자로 생성하나 Java `CanonicalReceipt/CanonicalShipment`은 Locale.ROOT 대문자 정규화를 수행한다. 응답 키를 원문과 직접 비교하면 정상 결과를 잘못된 응답으로 분류하는 오류가 생기므로 **비교만 대문자 정규화**하고 요청 원문은 보존한다.
-- **검증:** [PR #28](https://github.com/jeon950523/factoryflow/pull/28) Chrome/MySQL E2E에서 `route.fetch()`로 DB에 실제 반영한 뒤 `route.abort()`로 클라이언트 응답만 유실하는 테스트를 실행한다. [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [실DB #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) E2E3 모두 성공했다. 최종 HEAD·병합 main CI는 별도 확인하며 세부 결과는 [TASK-020 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md)에 보존한다.
+- **검증:** [PR #28](https://github.com/jeon950523/factoryflow/pull/28) Chrome/MySQL E2E에서 `route.fetch()`로 DB에 실제 반영한 뒤 `route.abort()`로 클라이언트 응답만 유실하는 테스트를 실행한다. [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [실DB #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) E2E3 모두 성공했다. [병합 main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) 및 [실DB #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860)에서도 성공했다. [TASK-020 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md)에 상세 근거를 보존한다.
 - **한계/재발 방지:** `sessionStorage`는 같은 탭 세션에만 유효. 재고가 불확실한 네트워크 쓰기는 새 키로 자동 재발행하지 않는다. 대규모 운영 환경에서는 서버측 키로 조회/재개하는 API 및 관리 정책 필요.
 
 ### TS-009 후속 코드 검수 — 확정 실패 후 영구 잠금 방지
 
 재전송 이전의 status 0은 미확인으로 잠가야 하지만, 이후 서버가 400/404 또는 출고재고부족 409처럼 **그 키의 미처리**를 명확히 반환한 경우에도 무한 잠금하면 사용자가 데이터를 정정할 수 없는 문제가 된다. 따라서 `isConfirmedWriteRejection()`을 별도로 두고 해당 경우에만 pending·sessionStorage를 해제하고 새 키를 부여한다. 401/403/IDEMPOTENCY_KEY_CONFLICT는 원본이 이미 처리됐을 가능성이 있으므로 해제 대상에서 제외한다. [PR #28](https://github.com/jeon950523/factoryflow/pull/28)의 [실 MySQL Chrome #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015)에서 미전송→409 확정 거절→새 키 발급을 3번째 E2E로 재현·검증했다.
+
+## TS-010 · Vercel 신규 배포 거절: 요청 제한 (TASK-020)
+
+- **재현/증거:** TASK-020 코드 [PR #28](https://github.com/jeon950523/factoryflow/pull/28)을 `main 8cb86179294ca702b5d0ad3154b3efca46c3052b`에 병합한 뒤 [해당 커밋 상태](https://github.com/jeon950523/factoryflow/commit/8cb86179294ca702b5d0ad3154b3efca46c3052b)는 Vercel **failure**, 설명은 **`Deployment rate limited — retry in 24 hours.`**이다.
+- **원인 판정:** Vercel 배포 요청 제한으로 새로운 정적 웹 배포가 거부됐다. **정확한 요금제·쿼터 잔여량·원인 제공 파일/요청 수는 확인되지 않았다.** GitHub CI 성공이나 코드 결함으로 취급하지 않는다.
+- **기능 검증은 별개:** [병합 main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) Node42/Chrome21/IndexedDB30 성공, [MySQL #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) 3/3 성공(취소 job 재실행 이후). Vercel 배포 실패 상태에서 **공개 UI 최신 버전의 동작은 보증하지 않는다.**
+- **미해결/복구:** 제한 해제 후 Vercel에서 실패한 최신 commit 배포를 다시 시도해 배포 SHA 및 공개 사이트 HTTP/Chrome 동선을 확인해야 한다. 자동 복구/재시도 여부는 미확인. 현재 배포 성공으로 표시하지 않는다.
+- **재발 완화:** PR·브랜치 커밋을 불필요하게 자주 만들지 않고 작업과 문서 갱신을 배치한다. 배포 빈도/트리거·할당량을 실제 Vercel 설정에서 검토하고, 인프라 재설계는 별도 결정한다.

@@ -1,6 +1,6 @@
 # TASK-020 — 입고·출고 응답 유실 재시도 및 멱등성 안전성
 
-> 착수: 2026-11-16 · 기준 main `2b6cde9b2cb724bec512bd5ea4851a260060b4c4` · 상태: 구현/실행 검증 대기
+> 착수: 2026-11-16 · 기준 main `2b6cde9b2cb724bec512bd5ea4851a260060b4c4` · 상태: **기능 코드 완료·실DB CI 통과, 공개 Vercel 배포는 요청 제한으로 미완료**
 
 ## 문제
 `InventoryView.vue#submitReceipt`와 `ShipmentsView.vue#submit`은 POST 네트워크 오류가 나면 동일 요청 키를 남기는 장점이 있다. 그러나 입력 필드를 편집할 수 있고 닫기→새 모달 열기, 브라우저 새로고침→재진입 시 새 키가 발급된다. 서버가 실제 DB 트랜잭션을 커밋한 뒤 응답만 유실되면 **새 키로 같은 재고 변화를 다시 실행**할 위험이 있다. 같은 키로 다른 payload를 전송하면 서버는 `IDEMPOTENCY_KEY_CONFLICT`를 반환한다.
@@ -35,3 +35,11 @@
 - [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025): Node 42/42, Chrome UI fixture 21/21, IndexedDB 30/30, 빌드 SUCCESS.
 - [실제 Spring Boot/MySQL #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015): E2E 3/3 SUCCESS. 커밋 후 응답 유실 → HTTP 200 replay, 원장 1회, 확정 409 잠금 해제.
 - 후속 문서 커밋/병합 `main` 상태는 반드시 별도 CI로 판단하며, Vercel 실제 화면 조작·다중 탭/브라우저 세션 전반의 재시도 보장은 별도.
+
+## 최종 main 완료/배포 구분
+
+- 코드 [PR #28](https://github.com/jeon950523/factoryflow/pull/28) 병합: `8cb86179294ca702b5d0ad3154b3efca46c3052b`.
+- [main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956): Node 42/42, Chrome fixture 21/21, IndexedDB 30/30 성공.
+- [main 실DB #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860): 재실행 이후 최종 3/3 성공.
+- Vercel 커밋 배포 상태 `failure` — `Deployment rate limited — retry in 24 hours.`. **공개 사이트 반영·시각 QA 미완료**. 제한 해제 이후 배포 재실행·확인 필요.
+- 기록: [시니어 검수](../docs/task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [TS-010](../docs/TROUBLESHOOTING.md) · [핸드오프](../docs/PROJECT_HANDOFF.md).
