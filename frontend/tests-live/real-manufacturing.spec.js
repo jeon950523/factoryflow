@@ -54,8 +54,28 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await selectItem(page, rawSku)
   await page.locator('.dialog input[placeholder^="LOT-"]').fill('LOT-LIVE-' + id)
   await page.locator('.dialog input[type="number"]').fill('25')
+  // Server commits the receipt, but the browser never receives that HTTP response.
+  await page.route('**/api/v1/stock-receipts', async route => {
+    const reply = await route.fetch()
+    expect(reply.status(), await reply.text()).toBe(201)
+    await route.abort('failed')
+  }, { times: 1 })
   await page.locator('.dialog button[type="submit"]').click()
-  await expect(page.locator('.dialog')).toHaveCount(0)
+  const pendingReceipt = page.getByRole('dialog', { name: '원자재 입고' })
+  await expect(pendingReceipt.getByRole('alert')).toContainText('중복 처리를 막기 위해')
+  await expect(pendingReceipt.getByRole('spinbutton', { name: '입고 수량 (EA)' })).toBeDisabled()
+  const receiptKey = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('factoryflow:pending-raw-receipt:v1')).requestKey)
+  await pendingReceipt.getByRole('button', { name: '취소' }).click()
+  await page.getByRole('button', { name: '미확인 입고 요청 확인' }).click()
+  await expect(pendingReceipt.getByRole('alert')).toContainText(receiptKey)
+  await page.reload()
+  await expect(pendingReceipt).toBeVisible()
+  await expect(pendingReceipt.getByRole('button', { name: '동일 요청 재시도' })).toBeEnabled()
+  await pendingReceipt.getByRole('button', { name: '동일 요청 재시도' }).click()
+  await expect(pendingReceipt).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-raw-receipt:v1'))).toBeNull()
   let rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
   expect(rawInventory.onHand).toBe(25)
   expect(rawInventory.available).toBe(25)
@@ -93,8 +113,25 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await page.getByRole('button', { name: '출고 등록' }).click()
   await selectItem(page, finishedSku)
   await page.locator('.dialog input[type="number"]').fill('3')
+  // The shipment is already persisted in MySQL, but the first response is lost.
+  await page.route('**/api/v1/shipments', async route => {
+    const reply = await route.fetch()
+    expect(reply.status(), await reply.text()).toBe(201)
+    await route.abort('failed')
+  }, { times: 1 })
   await page.locator('.dialog button[type="submit"]').click()
-  await expect(page.locator('.dialog')).toHaveCount(0)
+  const pendingShipment = page.getByRole('dialog', { name: '완제품 출고 등록' })
+  await expect(pendingShipment.getByRole('alert')).toContainText('출고 결과가 미확인')
+  await expect(pendingShipment.getByRole('spinbutton', { name: '출고 수량 (EA)' })).toBeDisabled()
+  const shipmentKey = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('factoryflow:pending-finished-shipment:v1')).requestKey)
+  await page.reload()
+  await expect(pendingShipment).toBeVisible()
+  await expect(pendingShipment.getByRole('alert')).toContainText(shipmentKey)
+  await pendingShipment.getByRole('button', { name: '동일 요청 재시도' }).click()
+  await expect(pendingShipment).toHaveCount(0)
+  expect(await page.evaluate(() =>
+    sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
   await expect(page.locator('.detail-panel')).toContainText('실DB 브래킷 ' + id)
 
   rawInventory = (await getData(request, '/api/v1/inventory?itemId=' + raw.id)).content[0]
@@ -106,10 +143,11 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
 
   const rawMoves = (await getData(request, '/api/v1/stock-movements?itemId=' + raw.id)).content
   const productMoves = (await getData(request, '/api/v1/stock-movements?itemId=' + finished.id)).content
-  expect(rawMoves.some(m => m.movementType === 'RAW_RECEIPT' && m.quantity === 25)).toBe(true)
+  // Same-key 200 replays must never append another stock movement.
+  expect(rawMoves.filter(m => m.movementType === 'RAW_RECEIPT' && m.quantity === 25)).toHaveLength(1)
   expect(rawMoves.some(m => m.movementType === 'RAW_CONSUMPTION' && m.quantity === 20)).toBe(true)
   expect(productMoves.some(m => m.movementType === 'FINISHED_RECEIPT' && m.quantity === 8)).toBe(true)
-  expect(productMoves.some(m => m.movementType === 'FINISHED_SHIPMENT' && m.quantity === 3)).toBe(true)
+  expect(productMoves.filter(m => m.movementType === 'FINISHED_SHIPMENT' && m.quantity === 3)).toHaveLength(1)
 
   // TASK-014: Verify the audit UI against those exact records persisted in MySQL.
   await page.goto('/movements?itemId=' + raw.id)
