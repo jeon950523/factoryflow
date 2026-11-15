@@ -1,7 +1,7 @@
 # TASK-020 — 입고·출고 응답 유실 재시도 및 멱등성 검수
 
 > 작성: 2026-11-16 · 기준 main `2b6cde9b2cb724bec512bd5ea4851a260060b4c4`
-> 상태: **1차 시니어 코드 검토 완료, PR/실행 CI 결과 검증 대기**. 테스트 작성 ≠ 실제 통과.
+> 상태: **시니어 검토 및 실제 기능 검증 성공** — PR 기능 HEAD `278c60fe` Frontend/실 MySQL E2E 통과, 문서 반영 후 최종 HEAD 및 병합 main CI는 별도 확인.
 > PR: [#28](https://github.com/jeon950523/factoryflow/pull/28) · 브랜치 `feature/task-020-write-retry-safety`
 > 기본 계약: [초기 SSOT](../FACTORYFLOW_SSOT_v0.1.md) Draft, [ADR-013](../adr/ADR-013-프론트데모-실백엔드분리.md), 서버 코드·기존 MySQL 통합 테스트 기준
 
@@ -105,7 +105,7 @@ try {
 **첫 PR 검증 완료, 강화된 최종 테스트 재실행 중:**
 - [Frontend CI #43732039360](https://github.com/jeon950523/factoryflow/actions/runs/43732039360) **SUCCESS**: Node **41/41**, Chrome fixture **21/21**, IndexedDB Chrome **30/30**, 프로덕션 빌드 성공.
 - [Spring Boot/MySQL E2E #43732039371](https://github.com/jeon950523/factoryflow/actions/runs/43732039371) **SUCCESS**: Java 21 + MySQL 8.4 실제 서버/Chrome E2E **2/2**. `route.fetch()`로 먼저 DB 커밋한 후 `route.abort()`로 브라우저 응답 유실, 동일 키 retry 뒤 현재고/원장 일치.
-- **사전 검수 후 추가 강화:** 실DB 테스트가 브라우저 최초 요청과 retry의 `requestKey`뿐 아니라 **JSON body 전체가 같은지**, 서버가 **HTTP 200 replay**로 응답했는지 명시 단언하도록 강화했다. 이후 **미전송된 네트워크 실패 → 재전송 409 재고부족 → 입력 잠금 해제 및 새 키 발급**도 실제 MySQL Chrome 테스트에 추가했다. 강화된 최종 PR HEAD Frontend/MySQL CI와 병합 main 확인 전에는 완료로 표시하지 않는다.
+- **사전 검수 후 추가 강화:** 실DB 테스트가 브라우저 최초 요청과 retry의 `requestKey`뿐 아니라 **JSON body 전체가 같은지**, 서버가 **HTTP 200 replay**로 응답했는지 명시 단언하도록 강화했다. 이후 **미전송된 네트워크 실패 → 재전송 409 재고부족 → 입력 잠금 해제 및 새 키 발급**도 실제 MySQL Chrome 테스트에 추가했다. 강화된 기능 테스트는 PR 코드 `278c60fe`에서 성공했다. 문서 반영 후 최종 PR HEAD 및 병합 main CI는 별도 확인한다.
 
 - Node: `cd frontend && npm ci && npm test` → pendingWrite classification/read/write/clear/오염 저장 데이터 테스트
 - Build: `cd frontend && npm run build`
@@ -168,3 +168,14 @@ try {
 최초 네트워크 실패에서는 트랜잭션 커밋 여부를 알 수 없어 잠금이 옳다. 그러나 같은 키/본문을 재전송했더니 서버가 **재고 부족 등 명시적 미처리 409**를 반환한 경우, 서버 멱등성 조회 계약상 원래 성공한 요청이었다면 200 replay가 반환되어야 한다. 그러므로 이 409는 새 요청을 수정해 제출하도록 풀어줘야 UI가 영구 잠김 상태에 빠지지 않는다.
 
 `isConfirmedWriteRejection`은 400/404 및 허용된 업무 충돌 코드만 잠금 해제한다. 인증 만료 401/403, 다른 payload의 같은 키 사용 충돌, 5xx는 원 요청 결과를 보증하지 않으므로 계속 잠가둔다. 확정 거절 해제에서는 새 requestKey를 발급하며, 실제 MySQL Chrome에서 이전 두 시도에 같은 키·세 번째에는 새 키가 사용되는지 HTTP 본문으로 검증한다.
+
+## 13. PR 기능 검증 — 강화된 실제 MySQL 회귀 성공
+
+- 검증 커밋 `278c60fec74525ca029e09635f2ab052f2d67cc8`에서 [Frontend CI #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) **SUCCESS**: Node **42/42**, Chrome fixture **21/21**, IndexedDB Chrome **30/30**, Vite 프로덕션 빌드.
+- 동일 코드 커밋에서 [Spring Boot/MySQL E2E #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) **SUCCESS**: 실제 Java 21·Spring Boot·MySQL 8.4 + Chrome **3/3**.
+- 입고 첫 POST는 실제 서버에서 201 커밋 후 브라우저 응답만 유실 → 같은 탭 재진입/새로고침 후 최초 key+JSON payload와 똑같이 재전송 → 서버 **HTTP 200 replay**, 실제 원장 RAW_RECEIPT **1개**, 재고 25(후속 생산 소모 뒤 5).
+- 출고 첫 POST도 실제 DB 201 커밋 후 응답 유실 → 동일 key+payload 전송, **HTTP 200 replay**, FINISHED_SHIPMENT 원장 **1개**, FIFO 출고 3, 완제품 현재고 5.
+- 네트워크 첫 요청이 서버에 미전송된 별도 시나리오: status0로 pending → 재전송 시 명백한 `INSUFFICIENT_FINISHED_STOCK` 409 → 잠금 해제 후 수정한 요청은 새 키로 전달, 유령 원장/출고 없음.
+- [IndexedDB 데모 409 테스트](../../frontend/tests-demo/browser-demo.spec.js)는 명백한 재고 부족일 때 편집이 가능한 것을 확인하되 실제 MySQL 트랜잭션이라고 주장하지 않는다.
+- **최종 병합 판정:** 본 보고서/README·로드맵·핸드오프 문서 추가 반영으로 HEAD가 바뀌므로 최종 HEAD에서 CI 재검증 후 병합 main Frontend/MySQL 및 Vercel 배포 상태를 별도로 확인한다.
+- 재현한 CI 실패: 이번 TASK에서는 확인한 기능 실패 없음. 초기 연속 커밋 때문에 이전 헤드 작업이 `cancelled` 된 것은 기능 실패가 아니라 GitHub Actions 동시 실행 취소 정책이다. 실제 오류가 생기면 [TS-009](../TROUBLESHOOTING.md)에 추가한다.
