@@ -103,3 +103,46 @@ test('switching BOM item ignores prior slow BOM lookup', async ({ page }) => {
   release()
   await expect(page.locator('.detail-panel')).not.toContainText('브래킷 105')
 })
+
+test('production list page and selected detail survive reload, while changing page clears old ID', async ({ page }) => {
+  await page.route('**/api/v1/work-orders?*', route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page') || 0)
+    return reply(route, { content: number ? [second] : [first], totalPages: 2, totalElements: 16 })
+  })
+  await page.route('**/api/v1/work-orders/22', route => reply(route, {
+    ...second, materials: [{ materialItemId: 205, requiredQty: 40 }],
+  }))
+  await page.goto('/orders?page=1')
+  await expect(page.getByRole('button', { name: 'WO-00022' })).toBeVisible()
+  await page.getByRole('button', { name: 'WO-00022' }).click()
+  await expect(page).toHaveURL(/\/orders\?page=1&id=22$/)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'WO-00022' })).toBeVisible()
+  await expect(page.locator('.detail-panel')).toContainText('WO-00022')
+  await page.getByRole('navigation', { name: '페이지 이동' }).getByRole('button', { name: '이전' }).click()
+  await expect(page).toHaveURL(/\/orders$/)
+  await expect(page.getByRole('button', { name: 'WO-00021' })).toBeVisible()
+  await expect(page.locator('.detail-panel')).not.toContainText('WO-00022')
+})
+
+test('shipment list keeps page and detail ID together across reload', async ({ page }) => {
+  const a = { id: 55, requestKey: 'SHIP-55', finishedItemId: 105, quantity: 2 }
+  const b = { id: 56, requestKey: 'SHIP-56', finishedItemId: 105, quantity: 5 }
+  await page.route('**/api/v1/shipments?*', route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page') || 0)
+    return reply(route, { content: number ? [b] : [a], totalPages: 2, totalElements: 16 })
+  })
+  await page.route('**/api/v1/shipments/56', route => reply(route, {
+    ...b, allocations: [{ lotId: 11, quantity: 5 }],
+  }))
+  await page.goto('/shipments?page=1')
+  await page.getByRole('button', { name: 'SHIP-56' }).click()
+  await expect(page).toHaveURL(/\/shipments\?page=1&id=56$/)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'SHIP-56' })).toBeVisible()
+  await expect(page.locator('.detail-panel')).toContainText('SHIP-56')
+  await page.getByRole('navigation', { name: '페이지 이동' }).getByRole('button', { name: '이전' }).click()
+  await expect(page).toHaveURL(/\/shipments$/)
+  await expect(page.getByRole('button', { name: 'SHIP-55' })).toBeVisible()
+  await expect(page.locator('.detail-panel')).not.toContainText('SHIP-56')
+})

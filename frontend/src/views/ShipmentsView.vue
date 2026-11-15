@@ -18,7 +18,10 @@ const route = useRoute(), router = useRouter()
 const auth = useAuthStore()
 const listGate = createLatestRequest(), detailGate = createLatestRequest()
 onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
-const page = ref(0), list = ref({ content: [], totalPages: 0, totalElements: 0 })
+const requestedPage = Number(route.query.page)
+const initialPage = typeof route.query.page === 'string' && /^\d+$/.test(route.query.page)
+  && Number.isSafeInteger(requestedPage) ? requestedPage : 0
+const page = ref(initialPage), list = ref({ content: [], totalPages: 0, totalElements: 0 })
 const loading = ref(false), error = ref(''), drawer = ref(false), saving = ref(false)
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
 const detailSection = ref(null), requestedId = ref(null)
@@ -83,19 +86,22 @@ async function submit() {
   } catch (e) { ui.notify(e.message, 'error') }
   finally { saving.value = false }
 }
-function changePage(p) {
-  page.value = p
-  selected.value = null
-  requestedId.value = null
-  detailGate.cancel()
-  load()
+function changePage(next) {
+  if (next < 0 || next >= list.value.totalPages) return
+  router.replace({ path: '/shipments', query: next ? { page: String(next) } : {} })
+}
+function shipmentLink(id) {
+  return { path: '/shipments', query: {
+    ...(page.value > 0 ? { page: String(page.value) } : {}),
+    id: String(id),
+  } }
 }
 function openShipment(row) {
   if (String(route.query.id ?? '') === String(row.id)) {
     choose(row.id)
     return
   }
-  router.replace({ path: '/shipments', query: { id: String(row.id) } })
+  router.replace(shipmentLink(row.id))
 }
 function closeDrawer() { if (!saving.value) drawer.value = false }
 onMounted(() => {
@@ -145,7 +151,7 @@ onMounted(() => {
                 <td>{{ dateTime(row.createdAt) }}</td>
                 <td><RouterLink class="erp-shipment-open"
                   :aria-label="`${row.requestKey} 상세 보기`"
-                  :to="{ path: '/shipments', query: { id: String(row.id) } }">
+                  :to="shipmentLink(row.id)">
                   상세 보기 <ArrowRight :size="14" /></RouterLink></td>
               </tr>
             </tbody>
@@ -181,10 +187,16 @@ onMounted(() => {
             <div class="erp-shipment-subheading">
               <div><h3>LOT별 출고 배분 기록</h3>
                 <p>검사 합격품을 FIFO 기준으로 배분해 차감한 원장 기록입니다. 코드 대신 LOT ID를 제공합니다.</p></div>
-              <RouterLink class="erp-shipment-lookup" :to="{ path: '/inventory',
-                query: { itemType: 'FINISHED_GOOD', itemId: String(selected.finishedItemId) } }">
-                해당 완제품 LOT 현황 <ArrowRight :size="14" />
-              </RouterLink>
+              <div class="erp-shipment-trace-links">
+                <RouterLink class="erp-shipment-lookup" :to="{ path: '/inventory',
+                  query: { itemType: 'FINISHED_GOOD', itemId: String(selected.finishedItemId) } }">
+                  해당 완제품 LOT 현황 <ArrowRight :size="14" />
+                </RouterLink>
+                <RouterLink class="erp-shipment-lookup" :to="{ path: '/movements',
+                  query: { itemId: String(selected.finishedItemId) } }">
+                  완제품 이동 이력 <ArrowRight :size="14" />
+                </RouterLink>
+              </div>
             </div>
             <div class="table-scroll">
               <table class="data-table erp-shipment-allocation-table" aria-label="LOT별 출고 배분 내역">

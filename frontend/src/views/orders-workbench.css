@@ -133,3 +133,11 @@
   .erp-order-meta { grid-template-columns: 1fr 1fr; }
   .erp-stage { font-size: 11px; padding: 9px 3px; }
 }
+
+/* TASK-017: contextual trace links use real item IDs, never inferred LOT allocations. */
+.erp-trace-links { display:flex; flex-wrap:wrap; align-items:center; gap:7px 13px; margin-top:3px; }
+.erp-trace-links a { color:#176b62; font-size:12px; font-weight:700; text-decoration:underline; text-decoration-color:#9abeb8; text-underline-offset:3px; white-space:nowrap; }
+.erp-trace-links a:hover { color:#0f504a; text-decoration-color:currentColor; }
+.erp-trace-links a:focus-visible { outline:2px solid #23877a; outline-offset:3px; }
+.erp-material-table th:last-child { min-width:154px; }
+.erp-material-table .erp-trace-links { justify-content:flex-start; }

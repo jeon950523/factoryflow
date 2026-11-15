@@ -48,3 +48,8 @@
   .erp-items-subheading { flex-direction:column; align-items:flex-start; }
   .erp-items-heading { flex-direction:column; align-items:flex-start; }
 }
+
+/* TASK-017: one-click trace from a BOM material to its actual LOTs. */
+.erp-items-inventory-link { display:inline-flex; gap:5px; align-items:center; white-space:nowrap; color:#176b62; font-size:12px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+.erp-items-inventory-link:hover { color:#0f504a; }
+.erp-items-inventory-link:focus-visible { outline:2px solid #23877a; outline-offset:3px; }

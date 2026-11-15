@@ -248,6 +248,7 @@ onMounted(() => { load(); restoreItem() })
                 <th scope="col">원자재명 / SKU</th>
                 <th scope="col">원자재 ID</th>
                 <th scope="col" class="right">완제품 1개당 소요량</th>
+                <th scope="col">재고 확인</th>
               </tr></thead>
               <tbody>
                 <tr v-for="component in selectedBom.components" :key="component.rawItemId">
@@ -255,6 +256,11 @@ onMounted(() => { load(); restoreItem() })
                     <small class="cell-sub">{{ itemSkuOrId(itemNames, component.rawItemId) }}</small></td>
                   <td>#{{ component.rawItemId }}</td>
                   <td class="number-cell">{{ number(component.qtyPerUnit) }} EA</td>
+                  <td><RouterLink class="erp-items-inventory-link"
+                    :to="{ path: '/inventory', query: { itemType: 'RAW_MATERIAL', itemId: String(component.rawItemId) } }"
+                    :aria-label="itemNameOrId(itemNames, component.rawItemId, '원자재') + ' LOT 재고 확인'">
+                    LOT 재고 확인 <ArrowRight :size="14" aria-hidden="true" />
+                  </RouterLink></td>
                 </tr>
               </tbody>
             </table>
