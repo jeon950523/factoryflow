@@ -38,7 +38,7 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-018 · 공개 최신 QA/문서 감사 | 공개 Chrome 6/6, 병합 `main` Frontend/MySQL E2E 성공 · 완료 | [검수 보고서](docs/task-reports/TASK-018-공개배포-문서정합성-검수.md) |
 | TASK-019 · 품질검사 명시적 입력 및 최종 확인 | `main 480c2a0` Chrome/실DB E2E 검증 완료 | [시니어 검수 보고서](docs/task-reports/TASK-019-품질검사-명시적확정-검수.md) |
 
-**역사적 TASK-006 PR 검증:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 MySQL 브라우저 E2E **2개**를 당시 검증했습니다. **현재 완료 TASK-017의 최신 검증 수치는 맨 위 상태표를 참고**하세요. Vercel에는 인증 없는 IndexedDB 체험만 공개하며, 실제 MySQL 운영 서버의 TLS·쿠키·프록시/비밀번호 복구/운영 배포 보안 검증은 별개입니다.
+**역사적 TASK-006 PR 검증:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 MySQL 브라우저 E2E **2개**를 당시 검증했습니다. **현재 완료 TASK-019의 최신 검증 수치는 맨 위 상태표를 참고**하세요. Vercel에는 인증 없는 IndexedDB 체험만 공개하며, 실제 MySQL 운영 서버의 TLS·쿠키·프록시/비밀번호 복구/운영 배포 보안 검증은 별개입니다.
 
 ## 기술 방향 (계획)
 
