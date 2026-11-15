@@ -78,3 +78,12 @@
 - 실제 `POST /api/v1/work-orders/{id}/inspection` 및 서버의 검사/LOT/재고 트랜잭션은 미수정.
 - **PR 검사 성공:** [Frontend #43729409460](https://github.com/jeon950523/factoryflow/actions/runs/43729409460) Node 37/37·Chrome fixture 21/21·IndexedDB 29/29, [실DB #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394) Chrome 2/2. [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합 `480c2a0`, [main Frontend #43730192091](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) 및 [main 실DB #43730192083](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) SUCCESS로 완료. Vercel 배포 상태 성공, 공개 QC 직접 조작/Windows 실제 환경은 별도.
 - [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md) · [시니어 검수 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
+
+## TASK-020 — 입고·출고 응답 유실 시 동일 키/본문 재전송 · 검증 진행
+
+- 서버의 receipt/shipment 요청 키와 payloadHash 멱등성·MySQL 락/트랜잭션/원장을 **유지**한다.
+- 네트워크(status 0), 5xx, 응답 형식 오류에서 처리 결과를 단정하지 않고 최초 key+품목+LOT+수량을 고정, 동일 요청으로만 재시도. 같은 탭에서 모달 닫기·새로고침 시 sessionStorage 복원.
+- 반환 키는 서버의 대문자 정규화 규칙에 따라 비교. 성공한 POST 이후 목록 이동 오류는 별도 안내. 명백한 재고 부족 409는 일반 업무 오류로 표시한다.
+- **검증 계획:** 실제 Spring Boot/MySQL에 성공 커밋된 뒤 Chrome의 응답을 강제로 유실시키고 동일 키 200 replay·실 DB 현재고/원장 1회 변경을 확인. Node/Chrome fixture/IndexedDB/실 MySQL CI 성공 전 완료 표기 금지.
+- **범위 밖:** 새 서버 키 조회 API, 여러 탭/세션 자동 복구, 실제 공개 Java/MySQL 배포.
+- [지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) · [시니어 검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [PR #28](https://github.com/jeon950523/factoryflow/pull/28).
