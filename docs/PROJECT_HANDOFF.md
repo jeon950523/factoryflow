@@ -2,16 +2,16 @@
 
 > 마지막 문서 정리: 2026-11-16
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
-> **현재 완료된 기준**: TASK-019 / code merge `480c2a058cfdbb3bf3bef4657bb3e04e97671883`
-> **TASK-019 완료 검증**: [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합, [main Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) Node 37/37·Chrome 21/21·IndexedDB 29/29 통과, [main MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) E2E 2/2 통과. Vercel 배포 완료; 공개 QC 직접 조작·Windows 수동 QA 별도.
+> **현재 기능 코드/실DB 검증 완료 기준**: TASK-020 / main `8cb86179294ca702b5d0ad3154b3efca46c3052b` / Vercel 배포 실패
+> **TASK-020 CI:** [main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) Node42·Chrome21·IndexedDB30 성공, [main MySQL #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) Chrome E2E3 성공(최초 취소 작업 재실행 후 성공). **Vercel rate limit으로 공개 사이트 배포 미완료.**
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
 ## 1. 문서 우선순위와 최근 작업
 
 1. 비즈니스 불변조건·상태 기획: [FACTORYFLOW_SSOT_v0.1.md](FACTORYFLOW_SSOT_v0.1.md) **초기 Draft**, 변경은 보고서/ADR/검증과 비교해 판단
 2. 현재 구현·배포 경계: [README](../README.md) + 현재 GitHub `main` 코드, [ADR-013](adr/ADR-013-프론트데모-실백엔드분리.md)
-3. 최신 작업과 검증: [TASK-019 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md) / [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / [최종 증거 정리 PR #27](https://github.com/jeon950523/factoryflow/pull/27)
-4. 진행 중: [TASK-020 지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) 및 [PR #28](https://github.com/jeon950523/factoryflow/pull/28). 입고·출고 응답 유실 후 동일 키/본문 재전송을 브라우저·실DB에서 검증한다.
+3. 최신 작업과 검증: [TASK-020 검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) / [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / [TS-010](TROUBLESHOOTING.md).
+4. 다음 우선 과제: Vercel 배포 요청 제한 해제 후 `8cb8617` 이상 최신 정본 재배포·공개 Chrome 확인. 미해결 상태로 두고 '공개 반영 완료'라고 표시하지 않는다.
 5. 개념·선택 이유: [CORE_CONCEPTS.md](learning/CORE_CONCEPTS.md), [ADR](adr/), [TROUBLESHOOTING](TROUBLESHOOTING.md)
 6. 최신 일정/보류: [로드맵](DELIVERY_ROADMAP_20261111.md)
 
@@ -37,16 +37,17 @@
 | 017 | BOM/LOT/생산지시/출고 이력 왕복·URL·정합성 | [#24](https://github.com/jeon950523/factoryflow/pull/24) / `71b6ae20` |
 | 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) / `63dbfbb` · main Frontend/실DB SUCCESS |
 | 019 | QC 결과 직접 입력/범위·합계 검증/불가역 확정 전 재확인 | [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / `480c2a0` · 병합 main Frontend/실DB SUCCESS |
-| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) · 기능 CI Node42/Chrome21/30·MySQL3 성공, 최종 HEAD/main 대기 |
+| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / `8cb8617` · main Frontend·MySQL 성공, Vercel 배포 제한 |
 
-## 4. 최종 확인된 자동 검증
+## 4. 최종 확인된 자동 검증 및 배포
 
-TASK-019 코드 병합 `main 480c2a0`에 대해:
-- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43730192091): Node 37/37, Chrome fixture 21/21, IndexedDB Chrome 29/29, 빌드 성공
-- [Fullstack UI E2E](https://github.com/jeon950523/factoryflow/actions/runs/43730192083): 실제 Spring Boot/MySQL+Chrome E2E 2/2
-- GitHub Vercel 배포 status: `main 480c2a0` 성공. TASK-018에서는 공개 사이트 기존 업무 동선 6/6을 검증했지만 **TASK-019의 새 품질검사 직접 입력·재고 확정 과정은 공개 사이트에서 별도 조작하지 않았다.**
+TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
+- [Frontend CI #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956): Node 42/42, Chrome fixture 21/21, IndexedDB 30/30, build SUCCESS.
+- [Fullstack E2E #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860): 처음 job 취소 이후 **같은 실행을 재실행하여** 실 MySQL Chrome 3/3 SUCCESS.
+- **Vercel 배포 실패:** `Deployment rate limited — retry in 24 hours.` 커밋 상태에서 확인. 배포 성공이나 공개 Chrome TASK-020 검증을 주장하지 않는다.
+- Vercel 공개 웹은 브라우저 IndexedDB 데모, Java/MySQL 백엔드는 로컬/CI 전용.
 
-## 5. TASK-019 완료와 다음 시작점
+## 5. TASK-019 완료 이력
 
 - TASK-019는 `OrdersView.vue`에서 QC 결과를 **직접 입력**하고 안전 정수·합계 검증/최종 사용자 확인을 거쳐 검사 POST하도록 변경한 작업이다.
 - 검증 증거는 [검수 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md)와 병합된 main [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091)·[MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43730192083). 이전 CI 테스트 선택자 충돌 및 비동기 초기화 레이스는 [TS-008](TROUBLESHOOTING.md)에 기록돼 있다.
@@ -66,7 +67,7 @@ TASK-019 코드 병합 `main 480c2a0`에 대해:
 
 ## 7. 새 채팅에서 재개할 때
 
-“FactoryFlow 저장소 `jeon950523/factoryflow`의 `main` 최신 커밋과 CI를 먼저 검수해. `docs/PROJECT_HANDOFF.md`, `docs/DEVELOPMENT_REPORTING_STANDARD.md`, 최신 `tasks/` 지시서와 `docs/task-reports/` 보고서를 참고하고, 구현→시니어 검수→브라우저·MySQL E2E→PR·문서 누적 순서로 작업해. 현재 완료한 작업은 TASK-019 품질검사 명시 입력·확정 안전성 개선이니, 다음 작업의 요구사항과 우선순위를 정하기 전 최신 main 및 검증 기록을 확인해.”
+“FactoryFlow 저장소 `jeon950523/factoryflow`의 `main` 최신 커밋과 CI를 먼저 검수해. `docs/PROJECT_HANDOFF.md`, `docs/DEVELOPMENT_REPORTING_STANDARD.md`, 최신 `tasks/` 지시서와 `docs/task-reports/` 보고서를 참고하고, 구현→시니어 검수→브라우저·MySQL E2E→PR·문서 누적 순서로 작업해. TASK-020의 입고·출고 멱등 재시도 코드와 CI는 완료했지만 Vercel 배포가 요청 제한으로 실패했으니, 배포 상태를 확인하고 제한 해제 후 재배포·공개 Chrome 검증을 우선 진행해.”
 
 ## 8. TASK-019 인계
 
@@ -76,7 +77,7 @@ TASK-019 코드 병합 `main 480c2a0`에 대해:
 - 서버 API/FIFO·DB·인증 미변경. 사전 검토 기준 코드는 `feature/task-019-qc-explicit-confirmation`; [PR 기능 HEAD `729e5223`](https://github.com/jeon950523/factoryflow/pull/26)에서 Frontend Node 37/37·Chrome fixture 21/21·IndexedDB 29/29·실DB 2/2 성공. [최종 PR 기능+문서 HEAD `655453af`](https://github.com/jeon950523/factoryflow/pull/26) Frontend/실DB SUCCESS 이후 [병합 main Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091)·[실DB](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) SUCCESS 확인.
 - [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md), [시니어 검수](task-reports/TASK-019-품질검사-명시적확정-검수.md), [학습 누적](learning/CORE_CONCEPTS.md).
 
-## 9. TASK-020 작업 핸드오프 (진행 중)
+## 9. TASK-020 완료 인계 및 배포 차단
 
 - 기준 main: `2b6cde9b2cb724bec512bd5ea4851a260060b4c4` (TASK-019 최종 문서 병합).
 - 코드 검수로 확인한 위험: `InventoryView.vue`와 `ShipmentsView.vue`는 네트워크 쓰기 실패 후 폼을 수정·닫았다 다시 열거나 새로고침하면 새 key를 생성할 수 있어, **서버 커밋 후 응답 유실** 상황의 원래 요청을 복구하기 어렵다.
@@ -84,4 +85,11 @@ TASK-019 코드 병합 `main 480c2a0`에 대해:
 - 실제 Spring Boot/MySQL 재현: `frontend/tests-live/real-manufacturing.spec.js`에서 `route.fetch()`로 서버에 먼저 POST 커밋한 뒤 `route.abort()`로 브라우저 응답만 유실, 새로고침 후 동일 key로 재시도. 원자재 입고/완제품 출고 원장 각각 1건 검증.
 - 서버 SQL/트랜잭션·스키마/FIFO/권한 미변경. 시뮬레이터(IndexeDB)와 실 MySQL CI는 별개. 다중 탭·스토리지 삭제/종료는 미보증.
 - [작업지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) · [검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [TS-009](TROUBLESHOOTING.md) · [기술 학습 §24](learning/CORE_CONCEPTS.md).
-- 기능 CI `278c60fe` 검증 성공: [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [MySQL #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) 실제 E2E 3/3, HTTP 200 replay·원장 1회·409 잠금 해제. 다음 작업자는 [PR #28](https://github.com/jeon950523/factoryflow/pull/28)의 **최종 문서 HEAD 및 병합 main CI**를 따로 확인해야 한다.
+- 기능 CI `278c60fe` 검증 성공: [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node42/Chrome21/IndexedDB30, [MySQL #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) 실제 E2E 3/3, HTTP 200 replay·원장 1회·409 잠금 해제. 병합 main `8cb8617`의 Frontend/MySQL CI 성공을 확인했다. 다음 작업은 Vercel 배포 제한 해제 후 재배포와 **실제 공개 브라우저 화면 확인**이다.
+
+### 다음 작업 착수 조건
+
+1. Vercel 요청 제한이 해제되면 실패한 commit/배포를 재시도하고 최신 GitHub `main`과 실제 Vercel 배포 SHA를 대조한다. 자동 재시도가 될지는 알 수 없으므로 배포 상태를 직접 확인한다.
+2. 공개 사이트 `factoryflow.kro.kr`는 브라우저 IndexedDB 데모. 공개 사이트의 TASK-020 재시도 UI는 현재 배포 실패로 미검증이다.
+3. 다른 탭·세션 복원은 이번 멱등 보장의 범위 밖. 실제 운영을 검토한다면 서버 requestKey 조회 API 및 저장 만료·복구 정책을 별도 설계한다.
+4. 다음 TASK에서도 [개발 기록 표준](DEVELOPMENT_REPORTING_STANDARD.md)의 지시서/실행 증거/시니어 검수/학습·TS·핸드오프 누적을 지킨다.
