@@ -56,3 +56,10 @@
   .erp-inventory-toolbar { align-items: flex-start; flex-direction: column; }
   .erp-inventory-head { align-items: flex-start; flex-direction: column; }
 }
+
+/* TASK-017: selected item's physical movement ledger, independent of its live LOT balance. */
+.erp-lot-heading-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:9px 16px; }
+.erp-lot-trace-link { display:inline-flex; align-items:center; gap:5px; color:#176b62; font-size:12px; font-weight:750; text-decoration:underline; text-decoration-color:#9abeb8; text-underline-offset:3px; white-space:nowrap; }
+.erp-lot-trace-link:hover { color:#0f504a; }
+.erp-lot-trace-link:focus-visible { outline:2px solid #23877a; outline-offset:3px; }
+@media(max-width:850px) { .erp-lot-heading-actions { justify-content:flex-start; } }
