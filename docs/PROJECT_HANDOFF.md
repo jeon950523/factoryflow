@@ -3,15 +3,15 @@
 > 마지막 문서 정리: 2026-11-16
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
 > **현재 완료된 기준**: TASK-019 / code merge `480c2a058cfdbb3bf3bef4657bb3e04e97671883`
-> **TASK-018 최종 검증**: [PR #25](https://github.com/jeon950523/factoryflow/pull/25) 병합 완료, 공개 Chrome 6/6, 병합 [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091)·[실DB](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) 성공. **TASK-019 최종 검증 성공**: [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합, [main Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) 37/21/29 통과, [main MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) 2/2 통과. Vercel 배포 완료; 공개 QC 조작 수동 QA 별도.
+> **TASK-019 완료 검증**: [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합, [main Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) Node 37/37·Chrome 21/21·IndexedDB 29/29 통과, [main MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) E2E 2/2 통과. Vercel 배포 완료; 공개 QC 직접 조작·Windows 수동 QA 별도.
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
 ## 1. 문서 우선순위와 최근 작업
 
 1. 비즈니스 불변조건·상태 기획: [FACTORYFLOW_SSOT_v0.1.md](FACTORYFLOW_SSOT_v0.1.md) **초기 Draft**, 변경은 보고서/ADR/검증과 비교해 판단
 2. 현재 구현·배포 경계: [README](../README.md) + 현재 GitHub `main` 코드, [ADR-013](adr/ADR-013-프론트데모-실백엔드분리.md)
-3. 최신 작업과 검증: [TASK-017 보고서](task-reports/TASK-017-업무동선-데이터정합성-검수.md) / [PR #24](https://github.com/jeon950523/factoryflow/pull/24)
-4. 진행 중 작업: [TASK-018 작업지시서](../tasks/TASK-018-공개배포-QA-문서정합성.md), [TASK-018 보고서](task-reports/TASK-018-공개배포-문서정합성-검수.md)
+3. 최신 작업과 검증: [TASK-019 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md) / [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / [최종 증거 정리 PR #27](https://github.com/jeon950523/factoryflow/pull/27)
+4. 다음 작업: 미착수. 최신 완료 TASK-019의 잔여 위험은 공개 도메인 실제 QC 사용성·운영 검사자 검증과 이후 재고 처리 실패 UX이며, 새 TASK 착수 전에 범위를 결정한다.
 5. 개념·선택 이유: [CORE_CONCEPTS.md](learning/CORE_CONCEPTS.md), [ADR](adr/), [TROUBLESHOOTING](TROUBLESHOOTING.md)
 6. 최신 일정/보류: [로드맵](DELIVERY_ROADMAP_20261111.md)
 
@@ -41,17 +41,17 @@
 ## 4. 최종 확인된 자동 검증
 
 TASK-019 코드 병합 `main 480c2a0`에 대해:
-- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43727388011): Node 37/37, Chrome fixture 21/21, IndexedDB Chrome 27/27, 빌드 성공
-- [Fullstack UI E2E](https://github.com/jeon950523/factoryflow/actions/runs/43727388049): 실제 Spring Boot/MySQL+Chrome E2E 2/2
-- GitHub Vercel status: 성공. **TASK-017의 공개 도메인 새 동선을 직접 검증했다는 주장은 TASK-018 Chrome 증거 이후만 가능.**
+- [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43730192091): Node 37/37, Chrome fixture 21/21, IndexedDB Chrome 29/29, 빌드 성공
+- [Fullstack UI E2E](https://github.com/jeon950523/factoryflow/actions/runs/43730192083): 실제 Spring Boot/MySQL+Chrome E2E 2/2
+- GitHub Vercel 배포 status: `main 480c2a0` 성공. TASK-018에서는 공개 사이트 기존 업무 동선 6/6을 검증했지만 **TASK-019의 새 품질검사 직접 입력·재고 확정 과정은 공개 사이트에서 별도 조작하지 않았다.**
 
-## 5. TASK-018 범위 및 다음 시작점
+## 5. TASK-019 완료와 다음 시작점
 
-- `frontend/tests-public/public-site.spec.js`에 **현재 공개 배포**의 새 업무 연결·URL 상태·잘못된 ID·모달 키보드·CSS zoom(Windows OS 배율과 구분)을 검증한다.
-- GitHub Actions `FactoryFlow Public Site Smoke`는 PR 확인 커밋 `8a1e6c2`에서 **6/6 성공**했다. [증거 실행 #43726967372](https://github.com/jeon950523/factoryflow/actions/runs/43726967372) · [PNG artifact #14166568094](https://github.com/jeon950523/factoryflow/actions/runs/43726967372/artifacts/14166568094). 후속 문서만 수정한 최종 PR HEAD 및 병합된 main CI를 별도 확인한다.
-- 프론트 CI·실DB E2E는 그대로 실행하고, 업무 로직/DB 스키마·데모 상태 엔진 변경 금지.
-- README/로드맵/학습 누적/실제 오류 원인 보고서를 GitHub 기준 최신화한다.
-- 이후 새로운 TASK를 시작할 때 최종 main SHA·CI 성공 여부·미해결 리팩터링 후보를 확인한다.
+- TASK-019는 `OrdersView.vue`에서 QC 결과를 **직접 입력**하고 안전 정수·합계 검증/최종 사용자 확인을 거쳐 검사 POST하도록 변경한 작업이다.
+- 검증 증거는 [검수 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md)와 병합된 main [Frontend](https://github.com/jeon950523/factoryflow/actions/runs/43730192091)·[MySQL](https://github.com/jeon950523/factoryflow/actions/runs/43730192083). 이전 CI 테스트 선택자 충돌 및 비동기 초기화 레이스는 [TS-008](TROUBLESHOOTING.md)에 기록돼 있다.
+- 다음 TASK를 시작할 때는 `main` 최신 SHA와 CI 확인 → [기록 표준](DEVELOPMENT_REPORTING_STANDARD.md) 및 신규 `tasks/` 지시서 작성 → 시니어 검수/테스트 → `docs/task-reports/` 결과 및 핸드오프 누적 원칙을 따른다.
+- **우선 검토 후보:** 실제 배포 후 새 QC 화면의 사용성/확대/키보드 시험, 실패한 출고·입고의 재시도 안내/멱등성 요청 키 유지 검수. 새 API·검사 정정 기능은 별도 업무 설계가 필요하다.
+- 공개 Vercel = 브라우저별 IndexedDB 데모이며, Java/MySQL 서버는 외부 공개하지 않는다. Vercel 배포 SUCCESS와 새 화면의 공개 QA 성공을 혼동하지 않는다.
 
 ## 6. 매 TASK의 완료 기준 (사용자 지정)
 
