@@ -91,6 +91,15 @@ function choose(item) {
   stopRequest()
 }
 
+function onEscape(event) {
+  // An open picker consumes Escape; a closed picker lets the parent dialog close.
+  if (!opened.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  opened.value = false
+  stopRequest()
+}
+
 function clear() {
   selected.value = null
   emit('update:modelValue', '')
@@ -119,7 +128,7 @@ onBeforeUnmount(stopRequest)
 </script>
 
 <template>
-  <div class="item-search-select" @keydown.esc.stop.prevent="opened && toggle()">
+  <div class="item-search-select" @keydown.esc="onEscape">
     <div class="item-search-summary">
       <button type="button" class="item-search-toggle" :class="{ 'has-value': !!modelValue }"
               :disabled="disabled" :aria-expanded="opened" :aria-label="placeholder + ': ' + selectedLabel" aria-haspopup="true" @click="toggle">
