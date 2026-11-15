@@ -41,6 +41,8 @@ test('IndexedDB retains manufacturing actions on reload and user can reset sampl
   await expect(page.getByRole('button', { name: '출고 등록' })).toBeVisible()
   page.once('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: '샘플 초기화' }).click()
+  // Reset is asynchronous IndexedDB work; do not navigate before its completion signal.
+  await expect(page.locator('.toast')).toContainText('이 브라우저의 데모 데이터를 초기화했습니다.')
   await page.goto('/orders')
   await page.getByRole('button', { name: 'WO-DEMO-READY' }).click()
   await expect(page.getByRole('button', { name: '자재 예약' })).toBeVisible()
