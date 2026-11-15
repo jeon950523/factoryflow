@@ -19,7 +19,7 @@ const auth = useAuthStore()
 const listGate = createLatestRequest(), detailGate = createLatestRequest()
 onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
 const requestedPage = Number(route.query.page)
-const initialPage = typeof route.query.page === 'string' && /^\\d+$/.test(route.query.page)
+const initialPage = typeof route.query.page === 'string' && /^\d+$/.test(route.query.page)
   && Number.isSafeInteger(requestedPage) ? requestedPage : 0
 const page = ref(initialPage), list = ref({ content: [], totalPages: 0, totalElements: 0 })
 const loading = ref(false), error = ref(''), drawer = ref(false), saving = ref(false)
