@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **현재 현황(2026-11-16):** 공개 웹 체험 `https://factoryflow.kro.kr` = **Vercel + 개별 브라우저 IndexedDB 데모**. 실제 Java 21/Spring Boot·MySQL 구현은 별도 CI에서 검증. 최신 완료 TASK-018: 공개 Chrome 6/6, [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43727388011), [실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/43727388049), `main 63dbfbb` 성공. TASK-019 품질검사 명시적 입력·최종 확인 안전장치 구현/검증 중. 아래 구형 TASK 절의 실행 횟수는 **당시 이력**이며 최신 검증 결과가 아님.
+> **현재 현황(2026-11-16):** 공개 웹 체험 `https://factoryflow.kro.kr` = **Vercel + 개별 브라우저 IndexedDB 데모**. 실제 Java 21/Spring Boot·MySQL 구현은 별도 CI에서 검증. 최신 완료 TASK-018: 공개 Chrome 6/6, [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/43727388011), [실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/43727388049), `main 63dbfbb` 성공. TASK-019 품질검사 직접 입력·최종 확인 코드가 [PR #26](https://github.com/jeon950523/factoryflow/pull/26)에서 [Frontend Node 37/37·Chrome fixture 21/21·IndexedDB 29/29](https://github.com/jeon950523/factoryflow/actions/runs/43729409460) 및 [실DB E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43729409394) 검증 성공. 병합 main 확인 별도. 아래 구형 TASK 절의 실행 횟수는 **당시 이력**이며 최신 검증 결과가 아님.
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -36,7 +36,7 @@ Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → �
 | TASK-016 · 가독성/모달 접근성 | CI 검증 완료 | [TASK-016 보고서](docs/task-reports/TASK-016-가독성-모달접근성-검수.md) |
 | TASK-017 · 업무 화면 추적/정합성 | CI 검증 완료 · `main` `71b6ae20` | [TASK-017 보고서](docs/task-reports/TASK-017-업무동선-데이터정합성-검수.md) |
 | TASK-018 · 공개 최신 QA/문서 감사 | 공개 Chrome 6/6, 병합 `main` Frontend/MySQL E2E 성공 · 완료 | [검수 보고서](docs/task-reports/TASK-018-공개배포-문서정합성-검수.md) |
-| TASK-019 · 품질검사 명시적 입력 및 최종 확인 | 구현·CI 검증 진행 중 | [작업지시서](tasks/TASK-019-품질검사-명시적확정-안전성.md) |
+| TASK-019 · 품질검사 명시적 입력 및 최종 확인 | PR Chrome/실DB CI 성공, main 검증 별도 | [작업지시서](tasks/TASK-019-품질검사-명시적확정-안전성.md) |
 
 **역사적 TASK-006 PR 검증:** Java 21/Spring Boot + MySQL 8.4 Testcontainers JUnit **57개**, Node **23개**, Chrome Fixture **11개**, 실제 로그인 후 MySQL 브라우저 E2E **2개**를 당시 검증했습니다. **현재 완료 TASK-017의 최신 검증 수치는 맨 위 상태표를 참고**하세요. Vercel에는 인증 없는 IndexedDB 체험만 공개하며, 실제 MySQL 운영 서버의 TLS·쿠키·프록시/비밀번호 복구/운영 배포 보안 검증은 별개입니다.
 
