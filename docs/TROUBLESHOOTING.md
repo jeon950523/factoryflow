@@ -67,5 +67,5 @@
 - **해결:** 두 입력 공란 시작, 명시적 0/안전 정수/합계 검증, 생산지시번호·입력 수량 확인 대화상자 승인 시에만 검사 POST. 원자재·검사·완제품 DB 트랜잭션 계약은 유지.
 - **실제 CI 실패:** [Frontend 첫 PR 검사 #43729184665](https://github.com/jeon950523/factoryflow/actions/runs/43729184665)에서 신규 IndexedDB 테스트 **2건 실패**, 기존 fixture는 정상. Playwright의 `getByRole('spinbutton',{name:'합격 수량'})`가 '불합격 수량'에도 부분 일치하여 strict mode violation이 발생했다. UI 도메인 로직 오류로 보지 않는다.
 - **테스트 수정:** 합격 필드 로케이터를 `getByRole('spinbutton',{name:'합격 수량',exact:true})`로 고정. 전량 불합격(합격0/불합격10) 후 재고 미반영 테스트도 추가.
-- **검증 증거:** [PR #26](https://github.com/jeon950523/factoryflow/pull/26)의 최종 HEAD Frontend/실 MySQL E2E 성공을 확인한 후 완료 판정, [TASK-019 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
+- **검증 증거:** [PR #26](https://github.com/jeon950523/factoryflow/pull/26)의 [Frontend #43729409460](https://github.com/jeon950523/factoryflow/actions/runs/43729409460) Chrome fixture 21/21·IndexedDB 29/29와 [실DB #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394) 2/2 성공. 병합 후 main CI는 별도 확인, [TASK-019 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
 - **재발 방지:** 유사한 한국어 레이블은 `exact:true` 또는 명시적 `label`과 안정적인 ID를 사용하고, UI 기본값이 사용자 승인/재고 변동을 암묵적으로 수행하지 않는지 검토한다.
