@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, X, ArrowRight, Layers } from 'lucide-vue-next'
 import { ApiError, get, post, isDemoMode } from '../lib/api.js'
-import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError } from '../lib/pendingWrite.js'
+import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
@@ -171,6 +171,14 @@ async function submitReceipt() {
       pendingReceipt.value = payload
       pendingPersisted.value = savePendingWrite('receipt', payload)
       ui.notify('입고 처리 여부를 확인할 수 없습니다. 입력을 변경하지 말고 동일 요청을 재시도하세요.', 'error')
+    } else if (pendingReceipt.value && isConfirmedWriteRejection(e)) {
+      // A definitive rejected command did not commit. A corrected attempt is a NEW request.
+      pendingReceipt.value = null
+      clearPendingWrite('receipt')
+      receipt.value = {
+        ...receipt.value, requestKey: requestKey('REC'),
+      }
+      ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
     } else {
       ui.notify(e.message, 'error')
     }
