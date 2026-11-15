@@ -290,8 +290,11 @@ test('real database: lost shipment response followed by definite shortage unlock
   expect(await page.evaluate(() =>
     sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
   await dialog.getByRole('spinbutton', { name: '출고 수량 (EA)' }).fill('2')
+  const rejectedAgain = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/v1/shipments'
+      && response.request().method() === 'POST' && response.status() === 409)
   await dialog.getByRole('button', { name: '출고 확정' }).click()
-  await expect(page.locator('.toast')).toContainText('출고 가능한 완제품 재고가 부족합니다.')
+  await rejectedAgain
   expect(attemptedKeys).toHaveLength(3)
   expect(attemptedKeys.slice(0, 2)).toEqual([formerKey, formerKey])
   expect(attemptedKeys[2]).not.toBe(formerKey) // a confirmed rejection permits a new corrected command.
