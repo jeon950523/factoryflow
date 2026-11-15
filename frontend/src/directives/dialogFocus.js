@@ -54,7 +54,8 @@ export const dialogFocus = {
         el.focus({ preventScroll: true })
       } else if (!el.contains(document.activeElement) || document.activeElement === el) {
         event.preventDefault()
-        ;(event.shiftKey ? last : first).focus({ preventScroll: true })
+        const target = event.shiftKey ? last : first
+        target.focus({ preventScroll: true })
       } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault()
         last.focus({ preventScroll: true })
