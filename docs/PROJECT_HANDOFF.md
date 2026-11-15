@@ -3,7 +3,7 @@
 > 마지막 문서 정리: 2026-11-15
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
 > **현재 완료된 기준**: TASK-017 / main `71b6ae204cf2948414da8fe67aa544f5dab9baf9`
-> **현재 진행 중**: TASK-018 — 실제 공개 도메인 Chrome 회귀·문서 감사
+> **TASK-018 PR 검증 상태**: [PR #25](https://github.com/jeon950523/factoryflow/pull/25)의 공개 Chrome 6/6·Frontend/실DB E2E 성공. 최신 main 병합·CI 여부는 GitHub에서 확인
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
 ## 1. 문서 우선순위와 최근 작업
@@ -35,7 +35,7 @@
 | 015 | 실제 공개 Chrome·1440px 스크린샷·한글 폰트 | [#22](https://github.com/jeon950523/factoryflow/pull/22) / `2899b020` |
 | 016 | 공통 모달 포커스·닫힘·가독성 | [#23](https://github.com/jeon950523/factoryflow/pull/23) / `4d790666` |
 | 017 | BOM/LOT/생산지시/출고 이력 왕복·URL·정합성 | [#24](https://github.com/jeon950523/factoryflow/pull/24) / `71b6ae20` |
-| 018 | 공개 새 동선 직접 검증, 문서 누락 보완 | **진행 중**. PR/CI 확인 전 완료 선언 금지 |
+| 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) · PR Chrome/Frontend/실DB 3종 SUCCESS, main 병합 여부 별도 확인 |
 
 ## 4. 최종 확인된 자동 검증
 
@@ -47,7 +47,7 @@ TASK-017 병합 `main 71b6ae20`에 대해:
 ## 5. TASK-018 범위 및 다음 시작점
 
 - `frontend/tests-public/public-site.spec.js`에 **현재 공개 배포**의 새 업무 연결·URL 상태·잘못된 ID·모달 키보드·CSS zoom(Windows OS 배율과 구분)을 검증한다.
-- GitHub Actions `FactoryFlow Public Site Smoke`가 **최종 HEAD**에서 성공해야 한다. 보고서·PNG 증거 및 작성 시점 PR/commit SHA를 연결한다.
+- GitHub Actions `FactoryFlow Public Site Smoke`는 PR 확인 커밋 `8a1e6c2`에서 **6/6 성공**했다. [증거 실행 #43726967372](https://github.com/jeon950523/factoryflow/actions/runs/43726967372) · [PNG artifact #14166568094](https://github.com/jeon950523/factoryflow/actions/runs/43726967372/artifacts/14166568094). 후속 문서만 수정한 최종 PR HEAD 및 병합된 main CI를 별도 확인한다.
 - 프론트 CI·실DB E2E는 그대로 실행하고, 업무 로직/DB 스키마·데모 상태 엔진 변경 금지.
 - README/로드맵/학습 누적/실제 오류 원인 보고서를 GitHub 기준 최신화한다.
 - 이후 새로운 TASK를 시작할 때 최종 main SHA·CI 성공 여부·미해결 리팩터링 후보를 확인한다.
