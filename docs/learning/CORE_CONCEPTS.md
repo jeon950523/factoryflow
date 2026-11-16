@@ -240,3 +240,12 @@
 - 최초 네트워크 오류는 서버가 처리했는지 모르므로 pending으로 유지한다. 그러나 **같은 키 재전송**이 명확한 400/404 또는 재고 부족 409를 반환하면 원래 커밋된 동일 요청은 정상 200 replay로 반환됐어야 한다. 이 경우 현재 요청이 처리되지 않은 것으로 판단하고 폼 잠금/세션 pending을 해제한 후 수정 요청에 **새 키를 발급**한다.
 - 반대로 401/403(인증 상황 변화), 다른 payload의 같은 키로 이미 사용된 409(충돌), 5xx는 원 커밋 상태에 대한 충분한 증거가 아니므로 pending을 유지한다.
 - **주의:** 이는 해당 코드의 서버 계약에 기반한 클라이언트 동작이며, 미확인 상태에서 모든 4xx를 무조건 처리 실패로 간주해 키를 새로 발행한다는 일반 법칙이 아니다.
+
+## 25. GitHub CI·Vercel 배포·공개 Chrome의 3단계 검증 (TASK-021)
+
+- **GitHub CI:** `frontend-ci.yml`과 `fullstack-ui-ci.yml`의 Node/Chrome/실 MySQL 검증은 코드가 테스트 환경에서 정상 작동한다는 증거다. *그 자체로 사용자에게 배포됐다*는 뜻은 아니다.
+- **Vercel Git 배포:** 커밋 `8cb8617`·`7cd77be`는 기능 CI가 성공했지만 GitHub Commit Status가 `Deployment rate limited — retry in 24 hours`였다. 24시간 초과 이후 새 문서 커밋 `61185a7`를 1회 배포 트리거로 사용해 `main 0e57713`, 이어서 `main a91c0cae`의 Vercel **success**를 확인했다. 이전 실패 상태가 success로 소급 변경된 것이 아니다.
+- **실제 공개 Chrome QA:** Vercel success는 브라우저 JavaScript 실행·IndexedDB·모달 UI까지 보장하지 않으므로 `factoryflow.kro.kr`를 Playwright가 직접 탐색해 기존 동선 6개와 TASK-020 pending 복원·멱등 재전송 2개를 **8/8** 통과했다. 최신 운영 배포 후에도 재실행 8/8 PASS. 원장 중복/현재고는 **브라우저 데모의 격리된 데이터** 기준이다.
+- **서버 멱등성 증명은 별개:** 실제 MySQL 서버가 먼저 커밋한 다음 HTTP 응답이 유실될 때 같은 키의 200 replay 및 원장 1회 보장은 [TASK-020 실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/43733088860)가 증명한다. 웹 데모 QA로 실제 백엔드 트랜잭션을 대체하지 않는다.
+- **장애 운영 원칙:** Vercel 요청 제한은 GitHub CI 실패가 아니다. 원인은 Vercel의 rate limit 상태까지만 확인하고 세부 요금제/쿼터를 추측하지 않는다. 무분별한 push/preview 재배포는 위험하고, 초과 이후 **통제된 재시도 + commit SHA 확인 + 공개 브라우저 검사**가 올바른 복구 절차다.
+- **근거:** [TASK-021 작업지시서](../../tasks/TASK-021-배포재시도-공개검증.md) · [시니어 검수 보고서](../task-reports/TASK-021-배포재시도-공개QA-검수.md) · [TS-010](../TROUBLESHOOTING.md).

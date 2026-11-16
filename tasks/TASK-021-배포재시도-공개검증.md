@@ -1,6 +1,6 @@
 # TASK-021 — Vercel 배포 요청 제한 해제 후 운영 배포 재시도 및 공개 Chrome QA
 
-> 착수: 2026-11-17 · 기준 `main 7cd77beb1bccebce5ce227f2ec11d1ee2389f682` · **배포 성공 전 미완료**
+> 착수: 2026-11-17 · 기준 `main 7cd77beb1bccebce5ce227f2ec11d1ee2389f682` · **배포 제한 해제·공개 Chrome 8/8 완료**
 
 ## 문제·검증된 사실
 
@@ -27,3 +27,11 @@
 - 신규 main SHA의 Vercel `success`(정확한 commit/deployment 증거)
 - **실제 공개 사이트**에서 새 UI가 로드됨을 보여주는 Chrome 실행 로그/화면/링크 근거
 - 기존 공개 smoke/신규 TASK-020 검사 통과 및 문서 최신화. 실행하지 않은 항목은 미검증으로 남긴다.
+
+## 최종 검증 완료 (2026-11-17)
+
+- [PR #30](https://github.com/jeon950523/factoryflow/pull/30) `main 0e57713` Vercel production SUCCESS.
+- [PR #31](https://github.com/jeon950523/factoryflow/pull/31) 테스트 2건 추가 → `main a91c0cae` Vercel production SUCCESS.
+- [실제 공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 신규 2건 포함 **8/8**, 최신 운영 배포 이후 같은 워크플로 재실행도 8/8 성공. 증거 스크린샷은 해당 실행의 7일 유지 아티팩트 참조.
+- [병합 main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806): Node 42/42·Chrome 21/21·IndexedDB 30/30. [실 MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687): 3/3.
+- Vercel 초기 `rate limited` 실패는 과거 역사로 보존하고, 현재 검증된 신규 production 배포는 성공으로 판단한다. 공개 URL에서 MySQL 서버를 호출하는 기능은 구현/검증하지 않았다.

@@ -91,5 +91,12 @@
 - **재현/증거:** TASK-020 코드 [PR #28](https://github.com/jeon950523/factoryflow/pull/28)을 `main 8cb86179294ca702b5d0ad3154b3efca46c3052b`에 병합한 뒤 [해당 커밋 상태](https://github.com/jeon950523/factoryflow/commit/8cb86179294ca702b5d0ad3154b3efca46c3052b)는 Vercel **failure**, 설명은 **`Deployment rate limited — retry in 24 hours.`**이다.
 - **원인 판정:** Vercel 배포 요청 제한으로 새로운 정적 웹 배포가 거부됐다. **정확한 요금제·쿼터 잔여량·원인 제공 파일/요청 수는 확인되지 않았다.** GitHub CI 성공이나 코드 결함으로 취급하지 않는다.
 - **기능 검증은 별개:** [병합 main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) Node42/Chrome21/IndexedDB30 성공, [MySQL #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) 3/3 성공(취소 job 재실행 이후). Vercel 배포 실패 상태에서 **공개 UI 최신 버전의 동작은 보증하지 않는다.**
-- **미해결/복구:** 제한 해제 후 Vercel에서 실패한 최신 commit 배포를 다시 시도해 배포 SHA 및 공개 사이트 HTTP/Chrome 동선을 확인해야 한다. 자동 복구/재시도 여부는 미확인. 현재 배포 성공으로 표시하지 않는다.
+- **당시 미해결 상태/복구 계획:** 제한 해제 후 신규 Git 통합 배포를 유도해 GitHub commit SHA와 실제 공개 Chrome를 별도로 검증한다. 자동 재시도 여부는 확인되지 않았고, 2026-11-17 TASK-021에서 수동 Git 변경 트리거로 새 배포가 완료됐다.
 - **재발 완화:** PR·브랜치 커밋을 불필요하게 자주 만들지 않고 작업과 문서 갱신을 배치한다. 배포 빈도/트리거·할당량을 실제 Vercel 설정에서 검토하고, 인프라 재설계는 별도 결정한다.
+
+### TS-010 해결 — 24시간 경과 후 신규 Git 배포로 복구 (TASK-021)
+
+- **실행 증거:** 과거 실패 `main 7cd77be`(2026-11-15T16:06:50Z, `rate limited`)는 실제 당시 장애로 보존한다. 2026-11-17 06:14 KST 이후 [PR #30](https://github.com/jeon950523/factoryflow/pull/30) 단일 문서 커밋 `61185a7`의 Vercel preview SUCCESS 및 [새 production commit `0e57713`](https://github.com/jeon950523/factoryflow/commit/0e5771364ecdf963c1774d23c550f731a8b7af30)의 Vercel **SUCCESS** 확인.
+- **공개 재검증:** [PR #31](https://github.com/jeon950523/factoryflow/pull/31)의 실제 호스트 Chrome 6개 기존 + 2개 새 pending/입출고 멱등 검사 **8/8 PASS**, [실행 #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614). `main a91c0cae` Vercel production SUCCESS 이후 같은 workflow/job을 다시 돌려 **8/8 PASS**. [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806)와 [MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687)도 성공.
+- **해결 판정:** 신규 배포 실패 제한 해소, 새 코드 공개 사이트 동작 검증 완료. 요금제·리밋 상세 및 향후 재발은 미보증. 웹사이트는 **IndexedDB 데모**이고 MySQL 공개 배포를 의미하지 않는다.
+- **재발 방지:** GitHub에 사소한 커밋을 연속 대량 발행하면 preview/production 빌드 소모 위험이 있다. 문서·코드 변경을 배치하고 Vercel 빌드 제한을 확인하되 유료 업그레이드는 사용자 승인 없는 해결책이 아니다.

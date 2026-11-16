@@ -1,6 +1,6 @@
 # FactoryFlow — 진행 로드맵 및 TASK 상태
 
-> 기준일: 2026-11-16 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
+> 기준일: 2026-11-17 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
 > 이 문서는 기존 TASK-011~013 기록을 보존한 뒤 TASK-014 이후 상태를 추가했다. TASK-001~010의 과거 상세 근거는 [README](../README.md), [task-reports](task-reports/) 및 [SSOT](FACTORYFLOW_SSOT_v0.1.md) 참조.
 > 주의: Vercel 공개 브라우저는 IndexedDB 데모이며 Spring Boot + MySQL 운영 서버 배포가 아니다.
 
@@ -79,7 +79,7 @@
 - **PR 검사 성공:** [Frontend #43729409460](https://github.com/jeon950523/factoryflow/actions/runs/43729409460) Node 37/37·Chrome fixture 21/21·IndexedDB 29/29, [실DB #43729409394](https://github.com/jeon950523/factoryflow/actions/runs/43729409394) Chrome 2/2. [PR #26](https://github.com/jeon950523/factoryflow/pull/26) 병합 `480c2a0`, [main Frontend #43730192091](https://github.com/jeon950523/factoryflow/actions/runs/43730192091) 및 [main 실DB #43730192083](https://github.com/jeon950523/factoryflow/actions/runs/43730192083) SUCCESS로 완료. Vercel 배포 상태 성공, 공개 QC 직접 조작/Windows 실제 환경은 별도.
 - [지시서](../tasks/TASK-019-품질검사-명시적확정-안전성.md) · [시니어 검수 보고서](task-reports/TASK-019-품질검사-명시적확정-검수.md).
 
-## TASK-020 — 입고·출고 응답 유실 시 동일 키/본문 재전송 · 코드·실DB 검증 완료 / 공개 배포 보류
+## TASK-020 — 입고·출고 응답 유실 시 동일 키/본문 재전송 · 코드/실DB 검증 완료 (공개 배포·QA는 TASK-021에서 복구)
 
 - 서버의 receipt/shipment 요청 키와 payloadHash 멱등성·MySQL 락/트랜잭션/원장을 **유지**한다.
 - 네트워크(status 0), 5xx, 응답 형식 오류에서 처리 결과를 단정하지 않고 최초 key+품목+LOT+수량을 고정, 동일 요청으로만 재시도. 같은 탭에서 모달 닫기·새로고침 시 sessionStorage 복원.
@@ -88,9 +88,9 @@
 - **범위 밖:** 새 서버 키 조회 API, 여러 탭/세션 자동 복구, 실제 공개 Java/MySQL 배포.
 - [지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) · [시니어 검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [PR #28](https://github.com/jeon950523/factoryflow/pull/28).
 
-## TASK-021 — Vercel 배포 요청 제한 복구·공개 Chrome QA · 진행 중
+## TASK-021 — Vercel 배포 요청 제한 복구·공개 Chrome QA · 완료
 
-- 최종 Vercel 실패 기준: `2026-11-15T16:06:50Z`, 최신 문서 병합 `7cd77be`의 status `failure`. 정상 배포는 아직 확인되지 않았다.
-- 24시간 경과 후 단일 문서 변경 PR/병합으로 새 Git 통합 배포를 유도하고 **신규 SHA의 Vercel success**로 검증한다.
-- 배포 성공 후 기존 공개 Chrome 스모크 및 TASK-020 새 요청 재시도 UX 검증까지 수행해야 완료한다.
+- 최초 실패 Vercel 상태는 `2026-11-15T16:06:50Z` rate limit. 24시간 초과 후 [PR #30](https://github.com/jeon950523/factoryflow/pull/30) 새 Git 커밋으로 재유도하여 `main 0e57713` Vercel SUCCESS 확인.
+- [PR #31](https://github.com/jeon950523/factoryflow/pull/31) 공개 재시도 검사 2건 추가, `main a91c0cae` Vercel production SUCCESS. 기능/DB 코드는 변경하지 않았다.
+- [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 기존 6+신규 2 = **8/8** 통과, 운영 재배포 후 8/8 재실행 성공. [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) Node42/Chrome21/IndexedDB30 및 [실DB #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) E2E3 모두 SUCCESS.
 - [지시서](../tasks/TASK-021-배포재시도-공개검증.md) · [검수 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md).
