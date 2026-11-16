@@ -1,17 +1,17 @@
 # FactoryFlow — 프로젝트 상태 및 작업 핸드오프
 
-> 마지막 문서 정리: 2026-11-16
+> 마지막 문서 정리: 2026-11-17
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
-> **현재 기능 코드/실DB 검증 완료 기준**: TASK-020 / main `8cb86179294ca702b5d0ad3154b3efca46c3052b` / Vercel 배포 실패
-> **TASK-020 CI:** [main Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) Node42·Chrome21·IndexedDB30 성공, [main MySQL #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) Chrome E2E3 성공(최초 취소 작업 재실행 후 성공). **Vercel rate limit으로 공개 사이트 배포 미완료.**
+> **현재 기능/운영 배포/공개 QA 검증 완료 기준**: TASK-021 / `main a91c0cae0f14654d52e84f46f21710d16a180797` / Vercel SUCCESS / 공개 Chrome 8/8
+> **TASK-021 검증:** [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 8/8(운영 배포 이후 재실행도 8/8), [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 42/21/30, [main MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 3/3, Vercel production SUCCESS.
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
 ## 1. 문서 우선순위와 최근 작업
 
 1. 비즈니스 불변조건·상태 기획: [FACTORYFLOW_SSOT_v0.1.md](FACTORYFLOW_SSOT_v0.1.md) **초기 Draft**, 변경은 보고서/ADR/검증과 비교해 판단
 2. 현재 구현·배포 경계: [README](../README.md) + 현재 GitHub `main` 코드, [ADR-013](adr/ADR-013-프론트데모-실백엔드분리.md)
-3. 최신 작업과 검증: [TASK-020 검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) / [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / [TS-010](TROUBLESHOOTING.md).
-4. 현재 진행: [TASK-021](../tasks/TASK-021-배포재시도-공개검증.md) / [검수 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md). Vercel 24시간 제한 이후 **새 커밋 1회 재배포 유도** 및 실제 공개 Chrome 검증. 기존 배포 실패는 아직 미해결.
+3. 최신 작업과 검증: [TASK-021 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md), [PR #30](https://github.com/jeon950523/factoryflow/pull/30) + [PR #31](https://github.com/jeon950523/factoryflow/pull/31), [TS-010 해결 기록](TROUBLESHOOTING.md).
+4. 최신 완료: TASK-021 Vercel 재배포·실제 공개 Chrome 8/8·main Frontend/실DB 검증. 다음 후보는 운영 UX/사용성 및 배포 횟수 제한 정책 점검. 실제 공용 MySQL 백엔드는 아직 공개하지 않았다.
 5. 개념·선택 이유: [CORE_CONCEPTS.md](learning/CORE_CONCEPTS.md), [ADR](adr/), [TROUBLESHOOTING](TROUBLESHOOTING.md)
 6. 최신 일정/보류: [로드맵](DELIVERY_ROADMAP_20261111.md)
 
@@ -37,14 +37,14 @@
 | 017 | BOM/LOT/생산지시/출고 이력 왕복·URL·정합성 | [#24](https://github.com/jeon950523/factoryflow/pull/24) / `71b6ae20` |
 | 018 | 공개 동선/URL/예외/모달 6/6, 기록 누락 복원 | [PR #25](https://github.com/jeon950523/factoryflow/pull/25) / `63dbfbb` · main Frontend/실DB SUCCESS |
 | 019 | QC 결과 직접 입력/범위·합계 검증/불가역 확정 전 재확인 | [PR #26](https://github.com/jeon950523/factoryflow/pull/26) / `480c2a0` · 병합 main Frontend/실DB SUCCESS |
-| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / `8cb8617` · main Frontend·MySQL 성공, Vercel 배포 제한 |
+| 020 | 입고·출고 처리 결과 미확인 시 동일 키/본문 복원·멱등 재시도 | [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / `8cb8617` · 실DB 성공, 공개 반영은 TASK-021에서 확인 |
 
-## 4. 최종 확인된 자동 검증 및 배포
+## 4. TASK-020 당시 검증 이력 및 TASK-021 최신 근거
 
 TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - [Frontend CI #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956): Node 42/42, Chrome fixture 21/21, IndexedDB 30/30, build SUCCESS.
 - [Fullstack E2E #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860): 처음 job 취소 이후 **같은 실행을 재실행하여** 실 MySQL Chrome 3/3 SUCCESS.
-- **Vercel 배포 실패:** `Deployment rate limited — retry in 24 hours.` 커밋 상태에서 확인. 배포 성공이나 공개 Chrome TASK-020 검증을 주장하지 않는다.
+- **당시 Vercel 배포 실패:** `Deployment rate limited — retry in 24 hours.`는 TASK-020 당시의 이력이다. **2026-11-17 TASK-021에서 신규 `main a91c0cae` Vercel success 및 공개 Chrome 8/8로 복구 확인**.
 - Vercel 공개 웹은 브라우저 IndexedDB 데모, Java/MySQL 백엔드는 로컬/CI 전용.
 
 ## 5. TASK-019 완료 이력
@@ -67,7 +67,7 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 
 ## 7. 새 채팅에서 재개할 때
 
-“FactoryFlow 저장소 `jeon950523/factoryflow`의 `main` 최신 커밋과 CI를 먼저 검수해. `docs/PROJECT_HANDOFF.md`, `docs/DEVELOPMENT_REPORTING_STANDARD.md`, 최신 `tasks/` 지시서와 `docs/task-reports/` 보고서를 참고하고, 구현→시니어 검수→브라우저·MySQL E2E→PR·문서 누적 순서로 작업해. TASK-020의 입고·출고 멱등 재시도 코드와 CI는 완료했지만 Vercel 배포가 요청 제한으로 실패했으니, 배포 상태를 확인하고 제한 해제 후 재배포·공개 Chrome 검증을 우선 진행해.”
+“FactoryFlow 저장소 `jeon950523/factoryflow`의 `main` 최신 커밋과 CI를 먼저 검수해. `docs/PROJECT_HANDOFF.md`, `docs/DEVELOPMENT_REPORTING_STANDARD.md`, 최신 `tasks/` 지시서와 `docs/task-reports/` 보고서를 참고하고, 구현→시니어 검수→브라우저·MySQL E2E→PR·문서 누적 순서로 작업해. TASK-021에서 Vercel 배포 제한을 해소하고 실제 공개 Chrome 8/8·최종 main Frontend/실DB CI를 검증했어. 이제 `main` 최신 상태를 확인하고 다음 개선 항목을 결정해.”
 
 ## 8. TASK-019 인계
 
@@ -92,4 +92,13 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 1. Vercel 요청 제한이 해제되면 실패한 commit/배포를 재시도하고 최신 GitHub `main`과 실제 Vercel 배포 SHA를 대조한다. 자동 재시도가 될지는 알 수 없으므로 배포 상태를 직접 확인한다.
 2. 공개 사이트 `factoryflow.kro.kr`는 브라우저 IndexedDB 데모. 공개 사이트의 TASK-020 재시도 UI는 현재 배포 실패로 미검증이다.
 3. 다른 탭·세션 복원은 이번 멱등 보장의 범위 밖. 실제 운영을 검토한다면 서버 requestKey 조회 API 및 저장 만료·복구 정책을 별도 설계한다.
-4. 다음 TASK에서도 [개발 기록 표준](DEVELOPMENT_REPORTING_STANDARD.md)의 지시서/실행 증거/시니어 검수/학습·TS·핸드오프 누적을 지킨다.
+4. 다음 TASK에서도 [개발 기록 표준](DEVELOPMENT_REPORTING_STANDARD.md)의 지시서/실행 증거/시니어 검수/학습·TS·핸드오프 누적을 지킨다. TASK-021에서 배포 문제/공개 QA는 완료했다.
+
+## 10. TASK-021 배포 제한 해제·공개 UI 검증 완료 인계
+
+- 기능 정본: TASK-020 [PR #28](https://github.com/jeon950523/factoryflow/pull/28) 병합 `8cb8617`, 기존 실DB 응답 유실·멱등성 3/3.
+- 배포 복구: [PR #30](https://github.com/jeon950523/factoryflow/pull/30) → `main 0e577136` Vercel production SUCCESS. [PR #31](https://github.com/jeon950523/factoryflow/pull/31) 테스트 추가 → `main a91c0cae` Vercel production SUCCESS.
+- 공개 브라우저: [Github Public Site Smoke #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) **8/8**. PR 때 8/8 통과하고 이후 `a91c0cae` 새 production 배포 성공 뒤 **job `133620793468` 재실행도 8/8** 성공. screenshots 아티팩트(7일): `public-qa/task-021-receipt-retry.png`, `public-qa/task-021-shipment-retry.png`.
+- 코드 병합 main CI: [Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) Node42/Chrome21/IndexedDB30 SUCCESS, [MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 3/3 SUCCESS.
+- 기존 실패가 실제로 해소됐다는 의미는 신규 Vercel success와 실제 공개 Chrome 성공으로 제한한다. 사용량 한도/자동 재시도 정책 및 타 브라우저의 과거 IndexedDB 데이터 상태는 조사하지 않았다.
+- **TASK-021 추가 서비스 코드/DB 변경 없음.** Public Site Smoke 테스트 2건만 추가했다. 다음 TASK에서는 실운영 백엔드 보안/접근 경계 및 오류 메시지·현장 사용자 UX를 우선 검토하면 좋다.

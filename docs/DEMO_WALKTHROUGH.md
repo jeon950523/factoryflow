@@ -1,5 +1,5 @@
 # FactoryFlow 브라우저 체험 가이드
-> **배포 상태 주의 (2026-11-16):** TASK-020 코드와 테스트는 GitHub main에서 통과했지만 Vercel이 새 배포를 요청 제한으로 거절했습니다. 공개 사이트는 이전 배포일 수 있으므로 아래 시연을 최신 TASK-020 UI의 공개 반영 증거로 해석하지 마세요.
+> **공개 검증 상태(2026-11-17):** Vercel 신규 production 배포가 정상 완료되고 [실제 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614)에서 TASK-020 입고·출고 미확인 요청 복원·동일 키 재시도까지 확인했습니다. 이 사이트는 MySQL 서비스가 아닌 브라우저 IndexedDB 데모입니다.
 
 ## 어디서 실행하나?
 - Vercel: **https://factoryflow.kro.kr**
