@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **현재 현황(2026-11-16):** 최신 TASK-020 코드 병합 [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / `main 8cb8617`. [Frontend Node 42/42·Chrome fixture 21/21·IndexedDB 30/30](https://github.com/jeon950523/factoryflow/actions/runs/43733088956), [Spring Boot/MySQL 실DB Chrome 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) 성공. **Vercel 배포는 `Deployment rate limited — retry in 24 hours` 오류로 실패**했으므로 공개 `factoryflow.kro.kr`의 새 TASK-020 기능 반영은 미확인. 공개 웹은 여전히 브라우저별 IndexedDB 시뮬레이터이며 실제 Java/MySQL 공개 서버가 아니다. 아래 과거 TASK 절의 실행 횟수는 해당 시점의 이력이다.
+> **현재 현황(2026-11-16):** 최신 TASK-020 코드 병합 [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / `main 8cb8617`. [Frontend Node 42/42·Chrome fixture 21/21·IndexedDB 30/30](https://github.com/jeon950523/factoryflow/actions/runs/43733088956), [Spring Boot/MySQL 실DB Chrome 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) 성공. **Vercel 배포는 `Deployment rate limited — retry in 24 hours` 오류로 실패**했으므로 공개 `factoryflow.kro.kr`의 새 TASK-020 기능 반영은 미확인. **TASK-021 배포 재시도 진행:** [작업지시서](tasks/TASK-021-배포재시도-공개검증.md)와 [검수 기록](docs/task-reports/TASK-021-배포재시도-공개QA-검수.md)을 분리 작성. 재시도 후 실제 배포/Chrome 검증 전에는 공개 반영 완료 아님. 공개 웹은 여전히 브라우저별 IndexedDB 시뮬레이터이며 실제 Java/MySQL 공개 서버가 아니다. 아래 과거 TASK 절의 실행 횟수는 해당 시점의 이력이다.
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
