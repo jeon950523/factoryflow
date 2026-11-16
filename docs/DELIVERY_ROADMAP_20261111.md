@@ -87,3 +87,10 @@
 - **기능 CI 성공:** [Frontend #43732644025](https://github.com/jeon950523/factoryflow/actions/runs/43732644025) Node 42/42·Chrome fixture 21/21·IndexedDB 30/30, [실DB #43732644015](https://github.com/jeon950523/factoryflow/actions/runs/43732644015) 3/3. 커밋 후 응답 유실→같은 key+본문 HTTP 200 replay/원장 1회, 재시도 후 확정 409 잠금 해제까지 검증. [PR #28](https://github.com/jeon950523/factoryflow/pull/28) 병합 `main 8cb8617`의 [Frontend #43733088956](https://github.com/jeon950523/factoryflow/actions/runs/43733088956) 및 [실DB #43733088860](https://github.com/jeon950523/factoryflow/actions/runs/43733088860) SUCCESS 확인. 단, Vercel은 `Deployment rate limited — retry in 24 hours`로 배포 실패해 공개 UI 반영/QA는 미완료.
 - **범위 밖:** 새 서버 키 조회 API, 여러 탭/세션 자동 복구, 실제 공개 Java/MySQL 배포.
 - [지시서](../tasks/TASK-020-입출고-재시도-멱등성.md) · [시니어 검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) · [PR #28](https://github.com/jeon950523/factoryflow/pull/28).
+
+## TASK-021 — Vercel 배포 요청 제한 복구·공개 Chrome QA · 진행 중
+
+- 최종 Vercel 실패 기준: `2026-11-15T16:06:50Z`, 최신 문서 병합 `7cd77be`의 status `failure`. 정상 배포는 아직 확인되지 않았다.
+- 24시간 경과 후 단일 문서 변경 PR/병합으로 새 Git 통합 배포를 유도하고 **신규 SHA의 Vercel success**로 검증한다.
+- 배포 성공 후 기존 공개 Chrome 스모크 및 TASK-020 새 요청 재시도 UX 검증까지 수행해야 완료한다.
+- [지시서](../tasks/TASK-021-배포재시도-공개검증.md) · [검수 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md).

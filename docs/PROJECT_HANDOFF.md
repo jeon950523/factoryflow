@@ -11,7 +11,7 @@
 1. 비즈니스 불변조건·상태 기획: [FACTORYFLOW_SSOT_v0.1.md](FACTORYFLOW_SSOT_v0.1.md) **초기 Draft**, 변경은 보고서/ADR/검증과 비교해 판단
 2. 현재 구현·배포 경계: [README](../README.md) + 현재 GitHub `main` 코드, [ADR-013](adr/ADR-013-프론트데모-실백엔드분리.md)
 3. 최신 작업과 검증: [TASK-020 검수 보고서](task-reports/TASK-020-쓰기재시도-멱등성-검수.md) / [PR #28](https://github.com/jeon950523/factoryflow/pull/28) / [TS-010](TROUBLESHOOTING.md).
-4. 다음 우선 과제: Vercel 배포 요청 제한 해제 후 `8cb8617` 이상 최신 정본 재배포·공개 Chrome 확인. 미해결 상태로 두고 '공개 반영 완료'라고 표시하지 않는다.
+4. 현재 진행: [TASK-021](../tasks/TASK-021-배포재시도-공개검증.md) / [검수 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md). Vercel 24시간 제한 이후 **새 커밋 1회 재배포 유도** 및 실제 공개 Chrome 검증. 기존 배포 실패는 아직 미해결.
 5. 개념·선택 이유: [CORE_CONCEPTS.md](learning/CORE_CONCEPTS.md), [ADR](adr/), [TROUBLESHOOTING](TROUBLESHOOTING.md)
 6. 최신 일정/보류: [로드맵](DELIVERY_ROADMAP_20261111.md)
 
