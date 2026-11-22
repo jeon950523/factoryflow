@@ -320,3 +320,9 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 
 - TASK-021 배포·공개 Chrome 증거는 그대로 유지. 다음 변경은 **전송 전 sessionStorage 기록 확인**을 입고·출고의 필수 조건으로 추가하고 실패 시 전송을 중단하는 작업이다.
 - [TASK-022 지시서](tasks/TASK-022-입출고-사전기록-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md) · [PR #33](https://github.com/jeon950523/factoryflow/pull/33). PR·병합 main Frontend/실 MySQL CI 성공 및 운영 Vercel/기존 공개 Chrome 8/8 재검증 완료.
+
+
+## TASK-023 — 다중 탭 입출고 미확인 요청 충돌/복구 (검증 대기)
+- 전송 전 `Web Locks` 배타 잠금으로 같은 출처 탭들의 미확인 입고·출고 **키/본문**을 공유·검사한다. `localStorage` 공유 intent + 기존 `sessionStorage` 복원 병행. 다른 키/소유자/저장 실패 시 POST 차단.
+- [TASK-023 지시서](tasks/TASK-023-입출고-다중탭-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](docs/adr/ADR-014-다중탭-쓰기의도-WebLocks.md). **CI·운영 배포 미확인**, TASK-022의 최신 검증 결과를 TASK-023의 통과로 간주하지 않는다.
+- Web Locks 미지원 또는 브라우저 저장소 차단 시 안전을 위해 새 물리 재고 쓰기를 거절한다. 다른 브라우저/장치의 키 조회는 범위 밖.

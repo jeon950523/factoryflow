@@ -121,3 +121,10 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - **Vercel production:** 정확한 main SHA `1c03e94` status SUCCESS. [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614)의 재실행(run attempt 4) **8/8 성공**, 운영 배포 이후 실행됨. 기존 TASK-021 공개 테스트 스크립트이므로 TASK-022의 새 사전 기록 경계는 PR Chrome fixture + 실 MySQL에서 별도 검증함.
 - Vercel은 IndexedDB 데모, 실 MySQL은 CI에서 검증. 브라우저 탭 종료/스토리지 삭제/다른 탭/OS 충돌까지 복구 보증하지 않는다. Windows 확대·접근성 실측 및 멀티탭 복구가 다음 검토 후보.
 - 작업 기록: [지시서](../tasks/TASK-022-입출고-사전기록-복구.md), [시니어 보고서](task-reports/TASK-022-입출고-사전기록-복구-검수.md), [핵심 개념](learning/CORE_CONCEPTS.md). 새 실행 장애는 재현되지 않아 TROUBLESHOOTING에 미확인 장애를 신규 등록하지 않았다.
+
+
+## 13. TASK-023 진행 인계 (CI 검증 대기)
+- 기준 main: `e0858f4d1f26e437d91eae99e2061b09cee1b11f`; TASK-022 이후 미확인 요청은 같은 탭 sessionStorage에만 기록돼, 다른 탭이 새로운 key를 생성할 위험을 시니어 코드 검수로 확인했다.
+- 기능 브랜치 `feature/task-023-multitab-recovery`에서 Web Locks + `localStorage` 공유 intent, 로그인 owner별 복구, 이전 sessionStorage 호환, 변경 알림, 충돌 시 POST 중단을 구현한다.
+- Node 동시성/owner/락 불가 테스트, Chrome 두 탭 fixture, 실제 MySQL 두 번째 탭 재생, 기존 회귀검사 후 검수 문서 최신화. 서버 API/DB/FIFO 및 공개 IndexedDB 데모의 경계는 유지.
+- [작업지시서](../tasks/TASK-023-입출고-다중탭-복구.md), [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md), [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md). 실행 근거 없는 항목은 통과로 표시하지 않는다.

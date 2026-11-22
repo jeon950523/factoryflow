@@ -91,3 +91,45 @@ for (const operation of operations) {
     await expect(dialog.locator('button[type=submit]')).toBeEnabled()
   })
 }
+
+
+for (const operation of operations) {
+  test(`TASK-023 ${operation.kind} blocks a different tab key while original request is unresolved`, async ({ page }) => {
+    const second = await page.context().newPage()
+    let firstPosts = 0, secondPosts = 0
+    await installApi(page, operation, async route => {
+      firstPosts++
+      return route.abort('failed') // Browser never receives the original result.
+    })
+    await installApi(second, operation, async route => {
+      secondPosts++
+      return reply(route, { id: 91, ...route.request().postDataJSON() }, 201)
+    })
+    try {
+      const firstDialog = await fillCommand(page, operation)
+      const secondDialog = await fillCommand(second, operation)
+      // Both forms have distinct keys before either POST.
+      await firstDialog.locator('button[type=submit]').click()
+      await expect(firstDialog.getByRole('alert')).toContainText('요청 키')
+      const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)),
+        'factoryflow:shared-pending-' + (operation.kind === 'receipt' ? 'raw-receipt' : 'finished-shipment') + ':v1')
+      expect(saved?.payload?.requestKey).toBeTruthy()
+      await secondDialog.locator('button[type=submit]').click()
+      await expect(second.locator('.toast')).toContainText('새 요청을 전송하지 않고')
+      expect(firstPosts).toBe(1)
+      expect(secondPosts).toBe(0)
+      // A second tab can recover the original command (same owner), not mint a competing key.
+      await second.reload()
+      const recovered = second.getByRole('dialog', {
+        name: operation.kind === 'receipt' ? '원자재 입고' : '완제품 출고 등록',
+      })
+      await expect(recovered.getByRole('alert')).toContainText(saved.payload.requestKey)
+      await recovered.getByRole('button', { name: '동일 요청 재시도' }).click()
+      expect(secondPosts).toBe(1)
+      expect(await second.evaluate(key => localStorage.getItem(key),
+        'factoryflow:shared-pending-' + (operation.kind === 'receipt' ? 'raw-receipt' : 'finished-shipment') + ':v1')).toBeNull()
+    } finally {
+      await second.close()
+    }
+  })
+}

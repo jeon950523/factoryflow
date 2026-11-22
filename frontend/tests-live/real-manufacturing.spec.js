@@ -84,6 +84,19 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await expect(pendingReceipt.getByRole('spinbutton', { name: '입고 수량 (EA)' })).toBeDisabled()
   const receiptKey = await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem('factoryflow:pending-raw-receipt:v1')).requestKey)
+  // TASK-023: another same-origin tab restores the original key despite separate sessionStorage.
+  const receiptTab = await page.context().newPage()
+  const receiptReplayStatuses = []
+  receiptTab.on('response', response => {
+    if (new URL(response.url()).pathname === '/api/v1/stock-receipts') receiptReplayStatuses.push(response.status())
+  })
+  await receiptTab.goto('/inventory')
+  const receiptRecovery = receiptTab.getByRole('dialog', { name: '원자재 입고' })
+  await expect(receiptRecovery.getByRole('alert')).toContainText(receiptKey)
+  await receiptRecovery.getByRole('button', { name: '동일 요청 재시도' }).click()
+  await expect(receiptRecovery).toHaveCount(0)
+  expect(receiptReplayStatuses).toContain(200)
+  await receiptTab.close()
   await pendingReceipt.getByRole('button', { name: '취소' }).click()
   await page.getByRole('button', { name: '미확인 입고 요청 확인' }).click()
   await expect(pendingReceipt.getByRole('alert')).toContainText(receiptKey)
@@ -149,6 +162,18 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await expect(pendingShipment.getByRole('spinbutton', { name: '출고 수량 (EA)' })).toBeDisabled()
   const shipmentKey = await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem('factoryflow:pending-finished-shipment:v1')).requestKey)
+  const shipmentTab = await page.context().newPage()
+  const shipmentReplayStatuses = []
+  shipmentTab.on('response', response => {
+    if (new URL(response.url()).pathname === '/api/v1/shipments') shipmentReplayStatuses.push(response.status())
+  })
+  await shipmentTab.goto('/shipments')
+  const shipmentRecovery = shipmentTab.getByRole('dialog', { name: '완제품 출고 등록' })
+  await expect(shipmentRecovery.getByRole('alert')).toContainText(shipmentKey)
+  await shipmentRecovery.getByRole('button', { name: '동일 요청 재시도' }).click()
+  await expect(shipmentRecovery).toHaveCount(0)
+  expect(shipmentReplayStatuses).toContain(200)
+  await shipmentTab.close()
   await page.reload()
   await expect(pendingShipment).toBeVisible()
   await expect(pendingShipment.getByRole('alert')).toContainText(shipmentKey)

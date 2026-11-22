@@ -4,7 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Truck, Plus, RefreshCw, X, PackageCheck, ArrowRight } from 'lucide-vue-next'
 import './shipments-workbench.css'
 import { ApiError, get, post } from '../lib/api.js'
-import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
+import { readPendingWrite, readSharedPendingWrite, claimPendingWrite, releasePendingWrite, observeSharedPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
@@ -18,14 +18,16 @@ const ui = useUiStore()
 const route = useRoute(), router = useRouter()
 const auth = useAuthStore()
 const listGate = createLatestRequest(), detailGate = createLatestRequest()
-onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel() })
+onBeforeUnmount(() => { listGate.cancel(); detailGate.cancel(); stopObservingPending() })
 const requestedPage = Number(route.query.page)
 const initialPage = typeof route.query.page === 'string' && /^\d+$/.test(route.query.page)
   && Number.isSafeInteger(requestedPage) ? requestedPage : 0
 const page = ref(initialPage), list = ref({ content: [], totalPages: 0, totalElements: 0 })
-const pendingShipment = ref(readPendingWrite('shipment'))
+const pendingShipment = ref(readPendingWrite('shipment', auth.user?.username))
 const loading = ref(false), error = ref(''), drawer = ref(Boolean(pendingShipment.value)), saving = ref(false)
 const pendingPersisted = ref(true)
+const otherTabConflict = ref(false)
+let stopObservingPending = () => {}
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
 const detailSection = ref(null), requestedId = ref(null)
 const allocatedQty = computed(() => selected.value?.allocations?.reduce((sum, row) => sum + row.quantity, 0) ?? 0)
@@ -78,7 +80,32 @@ async function choose(id) {
     if (request.isCurrent()) detailLoading.value = false
   }
 }
+function refreshOtherTabPending() {
+  if (saving.value) return
+  const shared = readSharedPendingWrite('shipment', auth.user?.username)
+  if (shared) {
+    // Keep an in-progress draft untouched; fail closed when it is submitted.
+    if (drawer.value && !pendingShipment.value) {
+      otherTabConflict.value = true
+      return
+    }
+    pendingShipment.value = shared
+    shipment.value = { ...shared }
+    return
+  }
+  otherTabConflict.value = false
+  const own = readPendingWrite('shipment', auth.user?.username)
+  if (!own && pendingShipment.value) {
+    pendingShipment.value = null
+    drawer.value = false
+    ui.notify('다른 탭에서 출고 요청 상태가 변경됐습니다. 재고와 이력을 확인하세요.')
+    load()
+  }
+}
+
 function openCreate() {
+  pendingShipment.value = readPendingWrite('shipment', auth.user?.username)
+  otherTabConflict.value = false
   shipment.value = pendingShipment.value ? { ...pendingShipment.value } : {
     requestKey: requestKey('SHIP'), finishedItemId: '', quantity: 1,
   }
@@ -99,11 +126,21 @@ async function submit() {
   let created
   saving.value = true
   // Persist before POST; an interrupted response must preserve the original key.
-  if (!savePendingWrite('shipment', payload)) {
+  const claimed = await claimPendingWrite('shipment', payload, auth.user?.username)
+  if (!claimed.ok) {
     saving.value = false
-    ui.notify('출고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소 설정을 확인하세요.', 'error')
+    otherTabConflict.value = claimed.reason === 'OTHER_PENDING'
+    const old = readPendingWrite('shipment', auth.user?.username)
+    if (old && claimed.reason === 'OTHER_PENDING') {
+      pendingShipment.value = old
+      shipment.value = { ...old }
+    }
+    ui.notify(claimed.reason === 'OTHER_PENDING'
+      ? '다른 탭에 미확인 출고 요청이 있습니다. 새 요청을 전송하지 않고 원래 요청을 확인하세요.'
+      : '출고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소·브라우저 잠금 지원을 확인하세요.', 'error')
     return
   }
+  otherTabConflict.value = false
   pendingPersisted.value = true
   try {
     created = await post('/api/v1/shipments', payload)
@@ -116,13 +153,16 @@ async function submit() {
       pendingShipment.value = payload
       ui.notify('출고 처리 여부를 확인할 수 없습니다. 동일 요청으로만 재시도하세요.', 'error')
     } else if (isConfirmedWriteRejection(e)) {
-      // A definitive rejection of THIS command permits a new key and corrected input.
-      pendingShipment.value = null
-      clearPendingWrite('shipment')
-      shipment.value = {
-        ...shipment.value, requestKey: requestKey('SHIP'),
+      // Definitive rejection: clear the shared intent before issuing another key.
+      const released = await releasePendingWrite('shipment', payload, auth.user?.username)
+      if (released.ok) {
+        pendingShipment.value = null
+        shipment.value = { ...shipment.value, requestKey: requestKey('SHIP') }
+        ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
+      } else {
+        pendingShipment.value = payload
+        ui.notify('출고는 거절됐지만 복구 기록을 지우지 못했습니다. 새 요청을 만들지 마세요.', 'error')
       }
-      ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
     } else {
       // 401/403 and conflicts must preserve the key; never turn them into new stock writes.
       pendingShipment.value = payload
@@ -132,8 +172,16 @@ async function submit() {
   } finally {
     saving.value = false
   }
+  // Keep the form locked while the shared intent is being released.
+  saving.value = true
+  const released = await releasePendingWrite('shipment', payload, auth.user?.username)
+  saving.value = false
+  if (!released.ok) {
+    pendingShipment.value = payload
+    ui.notify('출고 결과는 확인했지만 복구 기록 삭제에 실패했습니다. 동일 요청만 다시 확인하세요.', 'error')
+    return
+  }
   pendingShipment.value = null
-  clearPendingWrite('shipment')
   drawer.value = false
   ui.notify('완제품 출고를 확정했습니다.')
   try {
@@ -161,6 +209,8 @@ function openShipment(row) {
 }
 function closeDrawer() { if (!saving.value) drawer.value = false }
 onMounted(() => {
+  stopObservingPending = observeSharedPendingWrite('shipment', refreshOtherTabPending)
+  refreshOtherTabPending()
   load()
   const id = route.query.id
   if (typeof id === 'string' && /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id))) choose(Number(id))
@@ -296,6 +346,7 @@ onMounted(() => {
             <label class="field-label">출고 수량 (EA) <span>*</span>
               <input v-model.number="shipment.quantity" type="number" min="1" step="1" required :disabled="saving || !!pendingShipment" />
             </label>
+            <p v-if="otherTabConflict" class="info-hint" role="alert">다른 탭에 미확인 출고 요청이 있습니다. 새 요청 전송이 차단됩니다. 원래 요청을 확인하세요.</p>
             <p v-if="pendingShipment" class="info-hint" role="alert">
               출고 결과가 미확인 상태입니다. 중복 출고를 막기 위해 요청 키 {{ pendingShipment.requestKey }}와 수량을 고정했습니다.
               이 요청으로만 다시 전송하세요.
