@@ -1,6 +1,6 @@
 # FactoryFlow
 
-> **현재 검증 기준(2026-11-23):** [TASK-022 PR #33](https://github.com/jeon950523/factoryflow/pull/33) 병합 앱 코드 `main 1c03e94` — [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) Node 44/44·Chrome 25/25·IndexedDB 30/30, [실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) 3/3, Vercel production SUCCESS, [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) (운영 배포 후 재실행, 기존 TASK-021 테스트 코드) 확인. **공개 Vercel은 브라우저 IndexedDB 데모이며 실제 MySQL 운영 서버가 아니다.**
+> **현재 검증 기준(2026-11-23):** [TASK-023 PR #35](https://github.com/jeon950523/factoryflow/pull/35) 기능 병합 `main b43beca` — [Frontend CI #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176) Node 46/46·Chrome fixture 27/27·IndexedDB 30/30, [실DB #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) E2E 3/3, Vercel production SUCCESS 및 [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) (운영 배포 이후 run attempt 6) 성공. **Vercel 공개 사이트는 IndexedDB 데모이며 Java/MySQL 운영 서버가 아니다.**
 
 > **직전 TASK-021 이력(2026-11-17):** 최신 앱/공개 QA 기준은 [TASK-021 PR #30](https://github.com/jeon950523/factoryflow/pull/30)·[PR #31](https://github.com/jeon950523/factoryflow/pull/31) 병합 `main a91c0cae`. Vercel 신규 production **SUCCESS**로 [기존 TS-010 요청 제한](docs/TROUBLESHOOTING.md) 해결. [실제 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) — 기존 업무 동선6 + 입고·출고 pending 재시도2; 운영 배포 이후 재실행도 8/8 통과. [병합 main Frontend 42/21/30](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 및 [실 MySQL E2E 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 통과. 공개 `https://factoryflow.kro.kr`는 **브라우저별 IndexedDB 시뮬레이터**이며 Java/MySQL 공개 운영 서버가 아니다. 아래 이전 TASK·배포 실패 기록은 당시의 이력이다.
 
@@ -322,7 +322,9 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - [TASK-022 지시서](tasks/TASK-022-입출고-사전기록-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md) · [PR #33](https://github.com/jeon950523/factoryflow/pull/33). PR·병합 main Frontend/실 MySQL CI 성공 및 운영 Vercel/기존 공개 Chrome 8/8 재검증 완료.
 
 
-## TASK-023 — 다중 탭 입출고 미확인 요청 충돌/복구 (검증 대기)
+## TASK-023 — 다중 탭 입출고 미확인 요청 충돌/복구 (검증 완료)
 - 전송 전 `Web Locks` 배타 잠금으로 같은 출처 탭들의 미확인 입고·출고 **키/본문**을 공유·검사한다. `localStorage` 공유 intent + 기존 `sessionStorage` 복원 병행. 다른 키/소유자/저장 실패 시 POST 차단.
-- [TASK-023 지시서](tasks/TASK-023-입출고-다중탭-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](docs/adr/ADR-014-다중탭-쓰기의도-WebLocks.md). **CI·운영 배포 미확인**, TASK-022의 최신 검증 결과를 TASK-023의 통과로 간주하지 않는다.
+- [TASK-023 지시서](tasks/TASK-023-입출고-다중탭-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](docs/adr/ADR-014-다중탭-쓰기의도-WebLocks.md). PR·병합 main CI/실DB/Vercel/공개 Chrome 회귀검증 완료. 새 2탭 로직은 fixture와 실DB에서 확인했으며 공개 Chrome 기존 8건은 추가된 다중탭 검사 자체는 아니다.
 - Web Locks 미지원 또는 브라우저 저장소 차단 시 안전을 위해 새 물리 재고 쓰기를 거절한다. 다른 브라우저/장치의 키 조회는 범위 밖.
+
+- 남은 위험: 브라우저 데모 초기화와 다른 탭의 미확인 요청 간 경합, 웹 저장소가 삭제된 경우의 복구, Windows 실사용성은 다음 TASK에서 별도 검증한다.
