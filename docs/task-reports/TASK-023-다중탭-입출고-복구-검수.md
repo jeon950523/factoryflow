@@ -1,6 +1,6 @@
 # TASK-023 — 다중 탭 입출고 쓰기 의도 공유·복구 시니어 검수
 
-> 2026-11-23 · 기준 `main e0858f4d1f26e437d91eae99e2061b09cee1b11f` · **정적 검수/구현안 작성, 실행 증거 확인 전**
+> 2026-11-23 · 기준 `main e0858f4d1f26e437d91eae99e2061b09cee1b11f` · **PR·main CI/실DB·Vercel·공개 Chrome 검증 완료**
 > [작업지시서](../../tasks/TASK-023-입출고-다중탭-복구.md) · [ADR-014](../adr/ADR-014-다중탭-쓰기의도-WebLocks.md)
 
 ## 1. 목적·배경과 문제
@@ -9,11 +9,11 @@ TASK-020/022는 탭 내 요청 키 보존과 전송 전 영속 기록을 개선�
 ## 2. 구현 목록·정적 상태
 | 파일 | 수정 목적 | 근거 | 상태 |
 |---|---|---|---|
-| `frontend/src/lib/pendingWrite.js` | Web Locks 배타 잠금, owner 분리, shared/local 두 기록 확인, 일치하는 요청만 삭제 | 타 탭의 다른 키 덮어쓰기 방지 | 코드 작성, 실행 미검증 |
-| `InventoryView.vue` / `ShipmentsView.vue` | async claim/release, 공유 복원·경합 안내, 탭 storage event | 기존 사용자 동선 유지 | 코드 작성, 실행 미검증 |
-| `pendingWrite.test.js` | 키 경합/동일 키 재생/owner 분리/Web Locks 미지원 | 단위 계약 | 작성, 실행 미검증 |
-| `tests/write-preflight.spec.js` | 실제 두 탭의 서로 다른 POST 차단과 재접속 복원 | fixture Chrome | 작성, 실행 미검증 |
-| `tests-live/real-manufacturing.spec.js` | 실제 DB commit 뒤 두 번째 탭 200 replay와 재고 불변식 | 실제 Spring Boot/MySQL | 작성, 실행 미검증 |
+| `frontend/src/lib/pendingWrite.js` | Web Locks 배타 잠금, owner 분리, shared/local 두 기록 확인, 일치하는 요청만 삭제 | 타 탭의 다른 키 덮어쓰기 방지 | 구현 및 CI 검증 완료 |
+| `InventoryView.vue` / `ShipmentsView.vue` | async claim/release, 공유 복원·경합 안내, 탭 storage event | 기존 사용자 동선 유지 | 구현 및 CI 검증 완료 |
+| `pendingWrite.test.js` | 키 경합/동일 키 재생/owner 분리/Web Locks 미지원 | 단위 계약 | CI 실행 통과 |
+| `tests/write-preflight.spec.js` | 실제 두 탭의 서로 다른 POST 차단과 재접속 복원 | fixture Chrome | CI 실행 통과 |
+| `tests-live/real-manufacturing.spec.js` | 실제 DB commit 뒤 두 번째 탭 200 replay와 재고 불변식 | 실제 Spring Boot/MySQL | CI 실행 통과 |
 
 ## 3. 호출 흐름·트랜잭션·책임
 `Vue submit → 값 검증 → navigator.locks.request('factoryflow:stock-write:'+kind) → localStorage 기존 owner/key/body 원자적 검사 → 같은 탭 sessionStorage 기록 확인 → POST → Spring Boot Service(@Transactional writer) → MySQL UNIQUE·LOT/원장 → 검증된 200/201 → 동일 공유 key/body만 해제`.
@@ -51,9 +51,11 @@ TASK-020/022는 탭 내 요청 키 보존과 전송 전 영속 기록을 개선�
 **기능적 리팩터링:** submit 함수 두 곳에 동일한 claim/release 계약 적용. **효율적 리팩터링:** 서버 조회와 캐시 추가 대신 브라우저 lock/스토리지 활용. UI composable 공통화는 실제 중복 유지비가 증가할 때 재검토.
 
 ## 7. 테스트·증거
-- 사전 정적 검수: 코드 흐름과 JS API 계약 확인. 현재 **CI 실행 전**, 테스트 통과 숫자/실DB 결과/배포 성공을 미리 단정하지 않는다.
-- 계획: `cd frontend && npm ci && npm test`, Chrome fixture `npx playwright test --config playwright.config.js`, demo `npx playwright test --config playwright.demo.config.js`, Java21/Spring Boot/MySQL 8.4 `npx playwright test --config playwright.live.config.js`.
-- PR 및 main CI 링크, QA 스크린샷·새 코드 기준 Chrome 결과는 실행된 후 첨부한다. 성능 실측 없음.
+- 실행 환경: GitHub Actions Ubuntu24.04, Node22, Chrome, Java21, Spring Boot + MySQL8.4(격리 CI DB). `npm test`, `npm run build`, `npx playwright test --config playwright.config.js`, `npx playwright test --config playwright.demo.config.js`, `npx playwright test --config playwright.live.config.js`.
+- 수정 후 PR [Frontend #45052883984](https://github.com/jeon950523/factoryflow/actions/runs/45052883984): **Node46/46, Chrome fixture27/27(신규 2탭 2건 포함), IndexedDB30/30, build PASS**. [실 MySQL #45052884127](https://github.com/jeon950523/factoryflow/actions/runs/45052884127): 3/3. 탭 A POST 서버 commit 후 응답 abort, 탭 B 별도 세션Storage에서 같은 키 HTTP 200 replay, LOT/원장 1회 확인.
+- 병합 기능 main `b43beca` [Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176) **46/27/30 PASS**, [실 MySQL #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) **3/3 PASS**.
+- Vercel GitHub commit `b43beca` production SUCCESS 이후 기존 [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) **run attempt 6 8/8 PASS**. 이 8건은 TASK-021 기존 검증 스크립트다. 신규 2탭 로직은 fixture/실DB에서 검증했으며 공개 Chrome 8건이 이를 직접 재현한 것은 아니다.
+- 실제 물리 기기/Windows DPI/OS 프로세스 강제 종료, 여러 브라우저/장치, 서버 requestKey 조회는 미검증. 성능 수치 미측정.
 
 ## 8. 시니어 검수 판정
 - **정확성: 검증 대기.** 탭 경쟁의 실제 동작과 저장 API 장애 주입 필수.
@@ -76,4 +78,12 @@ PR 통과 → 병합 main CI → 정확한 SHA의 Vercel production → **실제
 
 - [Frontend CI #45052685004](https://github.com/jeon950523/factoryflow/actions/runs/45052685004)에서 Node 단위 테스트/빌드는 성공했고 기존 fixture 포함 **25/27 PASS, 신규 다중 탭 Chrome 2건 FAIL**. 실패 단정이 아니라 실제 테스트 로그 `expect(secondPosts).toBe(1)`의 클릭 직후 검사 때문일 가능성이 높아 검사 종료 신호를 기다리도록 변경.
 - 수정 후 `await expect(recovered).toHaveCount(0)` 및 `expect.poll`를 이용해 비동기 claim→CSRF→POST→확정 응답까지 확인한다. 두 탭의 다른 기존 요청이 충돌할 경우 remote storage 이벤트가 탭 로컬 키를 덮어쓰지 않도록 보호했다.
-- [TS-011](../TROUBLESHOOTING.md)에 증상·실패 로그·해결 방향을 남겼다. 수정 버전의 실제 CI 성공 여부는 별도로 확인 후 판정한다.
+- [TS-011](../TROUBLESHOOTING.md)에 실패 원인·해결과 수정 PR/main 검증을 분리해 기록했다. 수정 후 PR fixture 27/27 및 main 27/27 성공.
+
+## 12. 최종 시니어 판정 및 후속 리팩터링 우선순위
+
+- **기능 정확성/데이터 정합성: 통과(검증 범위 내).** 브라우저 Web Locks로 *동종 작업의 미확인 다른 키* claim을 차단, 같은 키 replay는 실제 MySQL 테스트에서 DB 원장 1회. 서로 다른 의도의 완료된 주문을 내용만 같다고 자동 합치는 기능은 없음.
+- **회귀/배포: 통과.** PR 및 병합 main Node46/fixture Chrome27/IndexedDB30·실DB E2E3, Vercel production과 공개 8/8 각각 확인. 최초 fixture 실패는 비동기 click 후 즉시 assertion이며 Web Locks/DB 정합성 오류로 단정하지 않는다.
+- **보안: 조건부.** localStorage owner로 다른 로그인 화면 복원을 제한하지만 XSS 및 동일 출처 개발자도구에는 접근 가능, 서버 인가 대체 아님.
+- **리팩터링:** 동종 write-ahead claim의 두 화면 중복 코드를 공통 composable로 묶는 것은 **2차 개선**. 잠금은 저장 임계 구간에만 짧게 사용하므로 캐시/Redis **현 시점 불필요**. `App.vue#resetDemo`/`demo/store.js#resetDemoData`와 다른 탭 pending 충돌 시 재현/차단 정책은 **다음 TASK 전 검수** 권장(이번에는 미검증). 탭/프로필 저장소 삭제 후 안전한 재개는 별도 서버 조회 API 정책 필요.
+- **한계:** 브라우저 Web Locks 미지원에서 입출고 쓰기는 안전을 위해 차단. 공개 도메인은 IndexedDB 데모, 실제 운영 MySQL 공개 아님. 브라우저를 완전히 종료한 경우 shared localStorage는 남을 수 있지만 설정/삭제/프로필에 따라 복구 보증 불가.

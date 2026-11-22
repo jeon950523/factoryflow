@@ -105,8 +105,9 @@
 - **비범위:** 실제 실행 중 강제 탭 종료/브라우저 프로세스 크래시 및 다른 탭 복원은 보장하지 않음. 성능 수치 미측정.
 
 
-## TASK-023 — 입고·출고 다중 탭 공유/충돌 차단 · 검증 대기
+## TASK-023 — 입고·출고 다중 탭 공유/충돌 차단 · 완료
 - 진단: TASK-022의 `sessionStorage`만으로 다른 탭이 독립 요청 키를 생성하는 것을 막을 수 없음. 서버는 같은 키 재생만 보장.
 - 구현: Web Locks 배타 잠금 + 공유 `localStorage` intent와 기존 탭 세션 복원, 성공/확정 거절 때 일치한 기록만 삭제. 미지원 브라우저는 fail-closed.
-- 검증 계획: Node/Chrome 2탭/IndexedDB/실DB E2E, main CI·Vercel 공개 Chromium 분리 검증. 실행 전 수치 미기재.
+- [PR #35](https://github.com/jeon950523/factoryflow/pull/35) / main `b43beca` 병합. 수정 후 PR Frontend Node46/Chrome27/IndexedDB30 및 MySQL3 성공, 병합 [Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176)·[MySQL #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) 성공. Vercel production SUCCESS 후 [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) run attempt 6도 성공.
+- 최초 fixture 2건 실패→비동기 검사 수정 [TS-011](TROUBLESHOOTING.md). 공개 8건은 기존 스모크이며 새 다중 탭 2건은 fixture/실DB에서 검증. 다음 위험: 데모 초기화·미확인 요청 경합.
 - [지시서](../tasks/TASK-023-입출고-다중탭-복구.md) · [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md).

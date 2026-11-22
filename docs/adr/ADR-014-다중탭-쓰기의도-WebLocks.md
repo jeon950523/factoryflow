@@ -1,6 +1,6 @@
 # ADR-014 — 다중 탭 입고·출고 쓰기 의도 공유와 Web Locks
 
-상태: **선택안 (2026-11-23), CI 검증 대기**
+상태: **선택 (2026-11-23), PR·main CI/실DB 검증 완료**
 
 ## 배경
 TASK-022까지는 `sessionStorage`에 POST 전 key/payload를 기록하지만, 같은 브라우저의 다른 탭은 같은 요청을 공유하지 않아 서로 다른 키로 같은 입고·출고를 중복 생성할 수 있다.
@@ -21,3 +21,7 @@ TASK-022까지는 `sessionStorage`에 POST 전 key/payload를 기록하지만, �
 - 브라우저 로컬 공유는 서버 분산 락이 아니며 OS 충돌·저장소 삭제/복원 실패를 보증하지 않는다. 공개 Vercel은 IndexedDB 데모, 실제 MySQL 보호는 서버 UNIQUE+트랜잭션.
 - 미확인 요청을 임의 삭제해 새 key를 발급하는 UI는 제공하지 않는다. 다른 로그인 owner의 데이터는 UI에서 노출하지 않지만 공유 PC의 개발자 도구에 저장소가 접근 가능하므로 보안 경계로 취급하지 않는다.
 - 브라우저 잠금이 지원되지 않으면 **안전성 우선으로 입출고 전송 중단**. 호환성 요구가 생기면 서버측 조회 또는 IndexedDB 트랜잭션 재설계.
+
+## 사후 검증
+- [PR #35](https://github.com/jeon950523/factoryflow/pull/35) HEAD `328aecf` / main `b43beca`, [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/45053092176) Node46/Chrome27/IndexedDB30 및 [실 MySQL](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) 3/3 성공. Vercel production 및 [공개 Chrome 기존 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 재검증 완료.
+- Web Locks가 브라우저 데모 초기화·외부 저장소 삭제 자체를 막는 것은 아님. 남은 충돌 정책은 다음 TASK 검토.

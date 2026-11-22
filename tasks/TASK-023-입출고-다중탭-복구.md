@@ -1,6 +1,6 @@
 # TASK-023 — 입고·출고 다중 탭 미확인 요청 충돌 차단 및 복구
 
-> 착수: 2026-11-23 · 기준 main `e0858f4d1f26e437d91eae99e2061b09cee1b11f` · 상태: **코드/테스트 작성, GitHub CI 검증 대기**
+> 착수: 2026-11-23 · 기준 main `e0858f4d1f26e437d91eae99e2061b09cee1b11f` · 상태: **PR·main 회귀/실DB·Vercel·공개 Chrome 검증 완료**
 
 ## 1. 사전 코드 검수
 - `frontend/src/lib/pendingWrite.js`는 같은 탭의 `sessionStorage`에서만 요청을 읽는다. 다른 탭은 서로 다른 requestKey를 발급해, 사용자가 같은 의도로 입고/출고를 다시 실행할 수 있다.
@@ -31,3 +31,12 @@
 - 한 목적 브랜치 → PR 검증 후 main 병합, 문서에 각각 SHA/CI 증거 반영.
 - 데모 사이트는 IndexedDB로만 운영, MySQL E2E는 격리된 CI 환경.
 - 다중 탭 대기 중 사용자에게 요청을 삭제/포기하는 UI를 자동 제공하지 않는다. 임의 폐기 후 새 키 전송은 이중 재고 위험.
+
+## 6. 실행·최종 완료 증거 (2026-11-23)
+
+- [기능 PR #35](https://github.com/jeon950523/factoryflow/pull/35), HEAD `328aecf` → main `b43beca`.
+- [PR Frontend #45052883984](https://github.com/jeon950523/factoryflow/actions/runs/45052883984), [main Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176): Node **46/46**·Chrome fixture **27/27**·IndexedDB **30/30**, Vite 빌드 성공.
+- [PR MySQL #45052884127](https://github.com/jeon950523/factoryflow/actions/runs/45052884127), [main MySQL #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151): Java21/Spring Boot/MySQL Chrome E2E **3/3** 성공. 두 번째 탭의 동일 key HTTP 200 replay와 원장 1회·FIFO 불변식 확인.
+- Vercel `b43beca` production SUCCESS, 운영 배포 이후 [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) attempt 6 **8/8**. 공개는 IndexedDB 데모이고 기존 smoke 8건의 재실행이다.
+- 최초 Chrome 2건 실패는 테스트의 비동기 대기 문제로 [TS-011](../docs/TROUBLESHOOTING.md)에 기록, 수정 후 전부 성공.
+- **추가 후속:** 브라우저 데모 데이터 초기화와 미확인 쓰기 경합은 이번 변경에서 보호했다는 주장을 하지 않는다. 별도 TASK로 검수한다.

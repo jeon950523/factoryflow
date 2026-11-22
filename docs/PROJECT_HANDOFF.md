@@ -2,8 +2,9 @@
 
 > 마지막 문서 정리: 2026-11-23
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
-> **현재 기능/운영 배포/공개 QA 검증 완료 기준**: TASK-022 / `main 1c03e94c6ad30877060cb53a34f127f159d28ce8` / Vercel SUCCESS / 공개 Chrome 8/8 (기존 테스트 코드의 운영 배포 후 재실행)
-> **TASK-022 검증:** [main Frontend #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) 44/25/30, [main 실 MySQL #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) 3/3, [운영 배포 후 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614), Vercel production SUCCESS.
+> **현재 기능/운영 배포/공개 QA 검증 완료 기준**: TASK-023 / `main b43beca8c17aef952b9a51aeac1ab7a14ebe690c` / Vercel SUCCESS / 공개 Chrome 8/8 (기존 공개 검사 재실행)
+> **TASK-023 검증:** [main Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176) Node46/Chrome27/IndexedDB30, [main 실 MySQL #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) 3/3, [운영 배포 후 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) run attempt 6, production SUCCESS.
+> **TASK-022 이전 검증:** [main Frontend #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) 44/25/30, [main 실 MySQL #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) 3/3, [운영 배포 후 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614), Vercel production SUCCESS.
 > **TASK-021 이전 검증 이력:** [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 8/8(운영 배포 이후 재실행도 8/8), [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 42/21/30, [main MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 3/3, Vercel production SUCCESS.
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
@@ -123,8 +124,18 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - 작업 기록: [지시서](../tasks/TASK-022-입출고-사전기록-복구.md), [시니어 보고서](task-reports/TASK-022-입출고-사전기록-복구-검수.md), [핵심 개념](learning/CORE_CONCEPTS.md). 새 실행 장애는 재현되지 않아 TROUBLESHOOTING에 미확인 장애를 신규 등록하지 않았다.
 
 
-## 13. TASK-023 진행 인계 (CI 검증 대기)
+## 13. TASK-023 진행 인계 (검증 완료)
 - 기준 main: `e0858f4d1f26e437d91eae99e2061b09cee1b11f`; TASK-022 이후 미확인 요청은 같은 탭 sessionStorage에만 기록돼, 다른 탭이 새로운 key를 생성할 위험을 시니어 코드 검수로 확인했다.
 - 기능 브랜치 `feature/task-023-multitab-recovery`에서 Web Locks + `localStorage` 공유 intent, 로그인 owner별 복구, 이전 sessionStorage 호환, 변경 알림, 충돌 시 POST 중단을 구현한다.
 - Node 동시성/owner/락 불가 테스트, Chrome 두 탭 fixture, 실제 MySQL 두 번째 탭 재생, 기존 회귀검사 후 검수 문서 최신화. 서버 API/DB/FIFO 및 공개 IndexedDB 데모의 경계는 유지.
 - [작업지시서](../tasks/TASK-023-입출고-다중탭-복구.md), [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md), [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md). 실행 근거 없는 항목은 통과로 표시하지 않는다.
+
+## 14. TASK-023 최종 기능·검증 인계 (2026-11-23)
+
+- 기능 HEAD `328aecf7313ad472cdecae403d4a23cb538ad644`, [PR #35](https://github.com/jeon950523/factoryflow/pull/35) 병합 `main b43beca8c17aef952b9a51aeac1ab7a14ebe690c`. 서버/DB/인증/FIFO 코드는 미변경.
+- Web Locks 배타 잠금 아래 입고·출고의 공유 localStorage intent(owner+key+본문) 확인/저장/해제. 탭별 sessionStorage는 유지. 다른 탭의 새 key와 타 계정은 차단, 같은 key/본문만 안전 재시도.
+- 최초 [Frontend #45052685004](https://github.com/jeon950523/factoryflow/actions/runs/45052685004)의 새 Chrome 2건 실패(즉시 POST 단정) → 비동기 완료 대기로 수정. [TS-011](TROUBLESHOOTING.md)와 [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md)에 근거 기록.
+- 수정 PR [Frontend #45052883984](https://github.com/jeon950523/factoryflow/actions/runs/45052883984) Node46/Chrome27/IndexedDB30, [실DB #45052884127](https://github.com/jeon950523/factoryflow/actions/runs/45052884127) E2E3 성공. 병합 [main Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176), [main MySQL #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151)도 성공.
+- Vercel production commit `b43beca` SUCCESS, 운영 배포 후 [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) attempt 6 기존 8/8 성공. 공개는 IndexedDB 데모, MySQL 서버는 CI에서만 검증.
+- **다음 TASK 우선 검토:** 데모 샘플 초기화 `App.vue#resetDemo`/`demo/store.js#resetDemoData`와 타 탭 미확인 공유 intent 경합: 초기화 이후 기존 요청 키 재사용/원장 혼동을 방지하는 정책 검증. 서버측 key 조회/계정 간 복구, Windows DPI·키보드/다기기 복구는 별도 설계. 브라우저 저장소 삭제·프로필 교체·Web Locks 미지원은 보장하지 않음.
+- [작업지시서](../tasks/TASK-023-입출고-다중탭-복구.md) · [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md) · [학습 기록](learning/CORE_CONCEPTS.md). 동일 내용으로 이전 TASK들의 역사적 검증 상태를 소급 변경하지 않는다.
