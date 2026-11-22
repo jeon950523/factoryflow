@@ -160,6 +160,14 @@ async function submitReceipt() {
   }
   let created
   saving.value = true
+  // Record the exact command BEFORE dispatch. A refresh while fetch is in flight
+  // must not mint a second key for a command already committed on the server.
+  if (!savePendingWrite('receipt', payload)) {
+    saving.value = false
+    ui.notify('입고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소 설정을 확인하세요.', 'error')
+    return
+  }
+  pendingPersisted.value = true
   try {
     created = await post('/api/v1/stock-receipts', payload)
     if (!Number.isSafeInteger(created?.id) || created?.requestKey?.toUpperCase() !== payload.requestKey.toUpperCase()
@@ -169,10 +177,9 @@ async function submitReceipt() {
   } catch (e) {
     if (isUncertainWriteError(e)) {
       pendingReceipt.value = payload
-      pendingPersisted.value = savePendingWrite('receipt', payload)
       ui.notify('입고 처리 여부를 확인할 수 없습니다. 입력을 변경하지 말고 동일 요청을 재시도하세요.', 'error')
-    } else if (pendingReceipt.value && isConfirmedWriteRejection(e)) {
-      // A definitive rejected command did not commit. A corrected attempt is a NEW request.
+    } else if (isConfirmedWriteRejection(e)) {
+      // A definitive rejection of THIS command permits a new key and corrected input.
       pendingReceipt.value = null
       clearPendingWrite('receipt')
       receipt.value = {
@@ -180,7 +187,9 @@ async function submitReceipt() {
       }
       ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
     } else {
-      ui.notify(e.message, 'error')
+      // 401/403, unknown 409, and other errors do not prove the write was absent.
+      pendingReceipt.value = payload
+      ui.notify(`입고 결과를 확정할 수 없습니다. 동일 요청을 재시도하세요. (${e.message})`, 'error')
     }
     return
   } finally {

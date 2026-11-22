@@ -312,3 +312,9 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **수정:** 모달보다 높은 토스트가 등록 버튼을 가리던 문제를 z-index 순서 교정으로 해결.
 - **검증:** [Frontend Node 37/37·Chrome fixture 14/14·IndexedDB Chrome 19/19](https://github.com/jeon950523/factoryflow/actions/runs/43321664299), [Spring Boot+MySQL 8.4 실DB Chrome E2E 2/2](https://github.com/jeon950523/factoryflow/actions/runs/43321663928).
 - **문서:** [TASK-013 시니어 검수](docs/task-reports/TASK-013-품목BOM-출고UI-검수.md) · [CI 근거](docs/verification/TASK-013-품목출고UI-CI.md).
+
+
+## TASK-022 — 입출고 POST 사전 기록·복구 강화 (검증 대기)
+
+- TASK-021 배포·공개 Chrome 증거는 그대로 유지. 다음 변경은 **전송 전 sessionStorage 기록 확인**을 입고·출고의 필수 조건으로 추가하고 실패 시 전송을 중단하는 작업이다.
+- [TASK-022 지시서](tasks/TASK-022-입출고-사전기록-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md). 브랜치 CI/배포 확인 전에는 **완료로 표시하지 않는다**.

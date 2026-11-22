@@ -98,6 +98,13 @@ async function submit() {
   }
   let created
   saving.value = true
+  // Persist before POST; an interrupted response must preserve the original key.
+  if (!savePendingWrite('shipment', payload)) {
+    saving.value = false
+    ui.notify('출고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소 설정을 확인하세요.', 'error')
+    return
+  }
+  pendingPersisted.value = true
   try {
     created = await post('/api/v1/shipments', payload)
     if (!Number.isSafeInteger(created?.id) || created?.requestKey?.toUpperCase() !== payload.requestKey.toUpperCase()
@@ -107,10 +114,9 @@ async function submit() {
   } catch (e) {
     if (isUncertainWriteError(e)) {
       pendingShipment.value = payload
-      pendingPersisted.value = savePendingWrite('shipment', payload)
       ui.notify('출고 처리 여부를 확인할 수 없습니다. 동일 요청으로만 재시도하세요.', 'error')
-    } else if (pendingShipment.value && isConfirmedWriteRejection(e)) {
-      // A definitive rejected command did not commit. A corrected attempt is a NEW request.
+    } else if (isConfirmedWriteRejection(e)) {
+      // A definitive rejection of THIS command permits a new key and corrected input.
       pendingShipment.value = null
       clearPendingWrite('shipment')
       shipment.value = {
@@ -118,7 +124,9 @@ async function submit() {
       }
       ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
     } else {
-      ui.notify(e.message, 'error')
+      // 401/403 and conflicts must preserve the key; never turn them into new stock writes.
+      pendingShipment.value = payload
+      ui.notify(`출고 결과를 확정할 수 없습니다. 동일 요청을 재시도하세요. (${e.message})`, 'error')
     }
     return
   } finally {

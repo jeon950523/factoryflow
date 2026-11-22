@@ -52,8 +52,13 @@ export function readPendingWrite(kind) {
 export function savePendingWrite(kind, payload) {
   if (!validPayload(kind, payload)) return false
   try {
-    sessionStorage.setItem(KEYS[kind], JSON.stringify(payload))
-    return true
+    const serialized = JSON.stringify(payload)
+    const existing = sessionStorage.getItem(KEYS[kind])
+    // Never silently replace a different unresolved command in this tab.
+    if (existing && existing !== serialized) return false
+    sessionStorage.setItem(KEYS[kind], serialized)
+    // Treat a silent storage failure exactly like a quota/security exception.
+    return sessionStorage.getItem(KEYS[kind]) === serialized
   } catch {
     return false
   }
