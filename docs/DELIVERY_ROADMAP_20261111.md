@@ -1,6 +1,6 @@
 # FactoryFlow — 진행 로드맵 및 TASK 상태
 
-> 기준일: 2026-11-17 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
+> 기준일: 2026-11-23 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
 > 이 문서는 기존 TASK-011~013 기록을 보존한 뒤 TASK-014 이후 상태를 추가했다. TASK-001~010의 과거 상세 근거는 [README](../README.md), [task-reports](task-reports/) 및 [SSOT](FACTORYFLOW_SSOT_v0.1.md) 참조.
 > 주의: Vercel 공개 브라우저는 IndexedDB 데모이며 Spring Boot + MySQL 운영 서버 배포가 아니다.
 
@@ -96,9 +96,10 @@
 - [지시서](../tasks/TASK-021-배포재시도-공개검증.md) · [검수 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md).
 
 
-## TASK-022 — 입출고 POST 사전 기록 및 재시도 복구 강화 · 검증 대기
+## TASK-022 — 입출고 POST 사전 기록 및 재시도 복구 강화 · 완료
 
 - 사전 검수: TASK-020의 네트워크 실패 후 저장에는 **서버 commit 이후 브라우저 새로고침 전에 기록되지 않는 틈**이 있다.
 - 브라우저 사전 동기 저장/읽기 확인 성공 시에만 POST, 저장 실패·다른 미확인 payload 충돌 시 전송하지 않음. 401/403·불명확한 409는 pending 유지.
 - [지시서](../tasks/TASK-022-입출고-사전기록-복구.md) · [코드·검수 보고서](task-reports/TASK-022-입출고-사전기록-복구-검수.md).
-- **상태:** 구현과 테스트 작성 후 CI 검증 대기. TASK-021의 8/8 공개 Chrome 성공은 **이전 배포 코드 기준**이다.
+- **상태:** [PR #33](https://github.com/jeon950523/factoryflow/pull/33) 병합 `main 1c03e94`, [Frontend CI #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) Node44/Chrome25/IndexedDB30 + [실DB #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) E2E3 성공. Vercel `1c03e94` 운영 배포 SUCCESS 이후 [기존 공개 Chrome 8/8 재실행](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) SUCCESS. 공개는 IndexedDB 데모, 실DB 운영 배포 아님.
+- **비범위:** 실제 실행 중 강제 탭 종료/브라우저 프로세스 크래시 및 다른 탭 복원은 보장하지 않음. 성능 수치 미측정.

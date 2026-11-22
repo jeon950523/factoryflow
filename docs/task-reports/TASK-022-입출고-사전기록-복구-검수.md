@@ -1,6 +1,6 @@
 # TASK-022 — 입출고 POST 사전 기록·복구 시니어 검수 보고서
 
-> 작성일: 2026-11-23 · 기준 `main 2d064047b2471e411f63fcdfdc8ccd70a185c3e0` · 상태: **코드/테스트 작성, 실제 CI·배포 결과 확인 전**
+> 작성일: 2026-11-23 · 기준 `main 2d064047b2471e411f63fcdfdc8ccd70a185c3e0` · 상태: **PR + 병합 main CI/실DB·Vercel 배포·공개 Chrome 검증 완료**
 > 관련 지시서: [TASK-022](../../tasks/TASK-022-입출고-사전기록-복구.md)
 
 ## 1. 목적과 배경
@@ -9,12 +9,12 @@ TASK-020은 **오류를 받은 뒤** 미확인 요청을 저장했지만, POST�
 ## 2. 구현 범위·상태
 | 대상 | 변경 | 검증 상태 |
 |---|---|---|
-| `frontend/src/lib/pendingWrite.js` | 동일 payload 저장 확인, 기존 다른 payload 덮어쓰기 차단, readback 검사 | 실행 전 |
-| `InventoryView.vue` | 입고 POST 전 기록; 실패 시 POST 중단; 불확실한 오류 전체에 잠금 적용 | 실행 전 |
-| `ShipmentsView.vue` | 출고 POST 전 기록 및 동일한 오류 정책 | 실행 전 |
-| `pendingWrite.test.js` | 덮어쓰기/저장 거절 단위 테스트 | 작성, 실행 전 |
-| `tests/write-preflight.spec.js` | POST 경계와 저장 실패 Chrome fixture 4건 | 작성, 실행 전 |
-| `tests-live/real-manufacturing.spec.js` | 기존 서버 응답 유실 테스트에 실제 POST 경계의 저장 확인 추가 | 작성, 실행 전 |
+| `frontend/src/lib/pendingWrite.js` | 동일 payload 저장 확인, 기존 다른 payload 덮어쓰기 차단, readback 검사 | PR/main 검증 성공 |
+| `InventoryView.vue` | 입고 POST 전 기록; 실패 시 POST 중단; 불확실한 오류 전체에 잠금 적용 | PR/main 검증 성공 |
+| `ShipmentsView.vue` | 출고 POST 전 기록 및 동일한 오류 정책 | PR/main 검증 성공 |
+| `pendingWrite.test.js` | 덮어쓰기/저장 거절 단위 테스트 | PR/main 검증 성공 |
+| `tests/write-preflight.spec.js` | POST 경계와 저장 실패 Chrome fixture 4건 | PR/main 검증 성공 |
+| `tests-live/real-manufacturing.spec.js` | 기존 서버 응답 유실 테스트에 실제 POST 경계의 저장 확인 추가 | PR/main 검증 성공 |
 
 ## 3. 호출 순서와 트랜잭션
 `Vue submit → 값 검증 → payload 스냅샷 → savePendingWrite(동기 setItem+getItem 확인) → POST → 서버 Service+UNIQUE+트랜잭션 commit → 검증된 결과 200/201 → clearPendingWrite`.
@@ -43,10 +43,11 @@ created = await post('/api/v1/stock-receipts', payload)
 - `sessionStorage` 비활성·quota·쓰기 거부 시 서버 전송 0회. 사용자 탭 종료/스토리지 삭제/기기간 동기화는 범위 밖.
 
 ## 7. 검증 증거
-- 제출 전 정적 코드 검토: 완료. 원격 PR 및 CI/실DB/공개 사이트 검증: **아직 실행/확인하지 않음**.
-- 예정: `cd frontend && npm ci && npm test`, `npx playwright test --config playwright.config.js`, `npx playwright test --config playwright.demo.config.js` (CI).
-- 실제 Java 21 + MySQL 8.4 E2E는 PR CI `FactoryFlow Fullstack Browser E2E`에서 확인 예정.
-- 실제 테스트 숫자·빌드 시간·성능 향상은 검증 근거가 생긴 뒤 기록한다.
+- [PR #33](https://github.com/jeon950523/factoryflow/pull/33) 기능 HEAD `b75615f` → main 병합 `1c03e94`.
+- [PR Frontend #45044548625](https://github.com/jeon950523/factoryflow/actions/runs/45044548625) 및 [main Frontend #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329): **Node 44/44, Chrome fixture 25/25, IndexedDB Chrome 30/30, 프로덕션 빌드 SUCCESS**. 새 preflight fixture 4건 포함.
+- [PR MySQL #45044548595](https://github.com/jeon950523/factoryflow/actions/runs/45044548595) 및 [main MySQL #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273): Java 21/Spring Boot/MySQL + Chrome **3/3 PASS**. 라우트의 전송 시점에 sessionStorage와 POST 본문이 같음을 확인하고, 서버 commit → response abort → 200 replay 및 이동 원장 1회 검증.
+- GitHub `main 1c03e94` Vercel status SUCCESS. 운영 배포 이후 [공개 Chrome 재실행 #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) run attempt 4: 기존 공개 8건 모두 PASS. 공개 사이트는 IndexedDB 데모이고 **이 8건은 TASK-021 기준 스크립트**다.
+- 실행 환경: GitHub Actions Ubuntu 24.04/Node 22/Chrome, 실DB runner Java 21 + MySQL 8.4. 운영 시스템 성능 수치는 미측정.
 
 ## 8. 시니어 검수
 | 영역 | 정적 판정 | 근거·후속 |
@@ -70,10 +71,17 @@ created = await post('/api/v1/stock-receipts', payload)
 ADR: 이번 변경은 기존 ADR-013 경계를 유지하므로 신규 ADR 불필요.
 
 ## 10. 다음 작업
-- PR CI에서 테스트 실패가 나오면 수정 후 재실행. 성공 증거를 본 보고서와 로드맵/README/핸드오프에 남긴 뒤 병합·Vercel 공개 QA 판정.
+- PR #33과 병합 main의 기능 CI·실 MySQL E2E·Vercel 운영 배포·공개 Chrome 재실행은 성공. 문서 전용 후속 PR에서 새 기능/DB를 추가하지 않는다.
 - 멀티탭/브라우저 종료 후 조회는 다음 TASK 후보. 실제 Windows 접근성은 별도 수동 QA.
 
 ## 11. 직접 설명 가능한 20~40초 요약
-> 서버가 입고나 출고를 이미 확정했는데 브라우저가 결과를 받기 전에 새로고침하면 새 요청 키가 생겨 중복 재고 이동이 일어날 위험이 있었습니다. 그래서 프론트에서 전송 전에 키와 내용을 sessionStorage에 저장하고 저장 여부까지 확인한 뒤 POST를 보내도록 변경했습니다. 서버의 멱등 로직은 그대로 두고, 실제 DB/브라우저 테스트로 검증할 계획입니다.
+> 서버가 입고나 출고를 이미 확정했는데 브라우저가 결과를 받기 전에 새로고침하면 새 요청 키가 생겨 중복 재고 이동이 일어날 위험이 있었습니다. 그래서 프론트에서 전송 전에 키와 내용을 sessionStorage에 저장하고 저장 여부까지 확인한 뒤 POST를 보내도록 변경했습니다. 서버의 멱등 로직은 그대로 두고, 실제 Spring Boot·MySQL과 Chrome CI에서 동일 요청의 저장·재생 및 원장 1회만 반영되는 것을 검증했습니다.
 
 이해 질문: 1) 사전 기록이 사후 오류 기록보다 안전한 이유는? 2) 왜 401/403은 처리 실패로 확정할 수 없는가? 3) sessionStorage만으로 해결할 수 없는 장애는 무엇인가?
+
+## 12. 최종 시니어 판정·검증 경계
+
+- **기능/데이터 안전성 통과:** 사전 기록된 key+payload가 실제 HTTP POST와 같음을 프론트 fixture 및 실DB 브라우저 경계에서 검증. 저장 실패 시 POST 0회, 같은 키 재송신 시 원장 1회라는 서로 다른 보장을 확인했다.
+- **CI·운영 구분:** PR/병합 main의 Node 44/Chrome fixture 25/IndexedDB 30/실 MySQL E2E 3은 모두 성공. Vercel production 성공과 공개 Chrome 8/8은 별도 증거이며, 공개는 IndexedDB 데모다. 공개 Chrome 8건은 TASK-021 기존 스크립트의 재실행으로 이번 새 사전 기록 직전 인터셉트 자체를 직접 검사하지 않는다.
+- **남은 미검증:** 실제 브라우저 프로세스 강제 종료 또는 OS crash 시 sessionStorage의 디스크 flush, 탭 완전 종료, 다중 탭/기기간 복원, Windows 실환경 DPI·키보드 사용성. 실제 호스트에 MySQL 운영 백엔드 배포 여부는 이번 작업에서 변하지 않았다.
+- **리팩터링:** 즉시 수정은 모두 반영. 입력 잠금/동일 키 보존은 회귀 검증됨. 공통 Vue composable 및 서버측 key 조회는 **2차 개선**, 실측 없는 캐시/성능 튜닝은 **현 시점 불필요**. 과거 미확인 장애를 TROUBLESHOOTING에 새 사고처럼 소급하지 않았다.
