@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, X, ArrowRight, Layers } from 'lucide-vue-next'
 import { ApiError, get, post, isDemoMode } from '../lib/api.js'
-import { readPendingWrite, savePendingWrite, clearPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
+import { readPendingWrite, readSharedPendingWrite, claimPendingWrite, releasePendingWrite, observeSharedPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
@@ -18,7 +18,7 @@ const route = useRoute(), router = useRouter()
 const ui = useUiStore(), auth = useAuthStore()
 const listGate = createLatestRequest(), lotGate = createLatestRequest()
 let mounted = true
-onBeforeUnmount(() => { mounted = false; listGate.cancel(); lotGate.cancel() })
+onBeforeUnmount(() => { mounted = false; listGate.cancel(); lotGate.cancel(); stopObservingPending() })
 
 // URL filters use only fields understood by both Spring Boot and the demo engine.
 const types = new Set(['RAW_MATERIAL', 'FINISHED_GOOD'])
@@ -39,11 +39,13 @@ const selectedSummary = ref(null), lotPage = ref(0)
 const lots = ref({ content: [], totalPages: 0, totalElements: 0 })
 const lotsLoading = ref(false), lotsError = ref('')
 const lotSection = ref(null)
-const pendingReceipt = ref(readPendingWrite('receipt'))
+const pendingReceipt = ref(readPendingWrite('receipt', auth.user?.username))
 const drawer = ref(Boolean(pendingReceipt.value)), saving = ref(false)
 const receipt = ref(pendingReceipt.value
   ? { ...pendingReceipt.value } : { itemId: '', lotCode: '', quantity: 1, requestKey: requestKey('REC') })
 const pendingPersisted = ref(true)
+const otherTabConflict = ref(false)
+let stopObservingPending = () => {}
 
 // This is a visible-page metric, not an inventory shortage alert.
 const zeroAvailableOnPage = computed(() => list.value.content.filter(row => row.available === 0).length)
@@ -136,8 +138,34 @@ function changePage(next) {
 }
 function changeLotPage(next) { lotPage.value = next; loadLots() }
 
+function refreshOtherTabPending() {
+  if (saving.value) return
+  const shared = readSharedPendingWrite('receipt', auth.user?.username)
+  if (shared) {
+    // Do not replace a different unresolved tab-local intent with a remote key.
+    const own = readPendingWrite('receipt', auth.user?.username)
+    if ((own && JSON.stringify(own) !== JSON.stringify(shared))
+      || (drawer.value && !pendingReceipt.value)) {
+      otherTabConflict.value = true
+      return
+    }
+    pendingReceipt.value = shared
+    receipt.value = { ...shared }
+    return
+  }
+  otherTabConflict.value = false
+  const own = readPendingWrite('receipt', auth.user?.username)
+  if (!own && pendingReceipt.value) {
+    pendingReceipt.value = null
+    drawer.value = false
+    ui.notify('다른 탭에서 입고 요청 상태가 변경됐습니다. 재고와 이력을 확인하세요.')
+    load(); loadLots()
+  }
+}
+
 function openReceipt(itemId = '') {
-  // Never mint another key for an unresolved stock write in this tab.
+  pendingReceipt.value = readPendingWrite('receipt', auth.user?.username)
+  otherTabConflict.value = false
   receipt.value = pendingReceipt.value ? { ...pendingReceipt.value } : {
     itemId: itemId ? String(itemId) : '', lotCode: '', quantity: 1, requestKey: requestKey('REC'),
   }
@@ -162,11 +190,21 @@ async function submitReceipt() {
   saving.value = true
   // Record the exact command BEFORE dispatch. A refresh while fetch is in flight
   // must not mint a second key for a command already committed on the server.
-  if (!savePendingWrite('receipt', payload)) {
+  const claimed = await claimPendingWrite('receipt', payload, auth.user?.username)
+  if (!claimed.ok) {
     saving.value = false
-    ui.notify('입고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소 설정을 확인하세요.', 'error')
+    otherTabConflict.value = claimed.reason === 'OTHER_PENDING'
+    const old = readPendingWrite('receipt', auth.user?.username)
+    if (old && claimed.reason === 'OTHER_PENDING') {
+      pendingReceipt.value = old
+      receipt.value = { ...old }
+    }
+    ui.notify(claimed.reason === 'OTHER_PENDING'
+      ? '다른 탭에 미확인 입고 요청이 있습니다. 새 요청을 전송하지 않고 원래 요청을 확인하세요.'
+      : '입고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소·브라우저 잠금 지원을 확인하세요.', 'error')
     return
   }
+  otherTabConflict.value = false
   pendingPersisted.value = true
   try {
     created = await post('/api/v1/stock-receipts', payload)
@@ -179,13 +217,16 @@ async function submitReceipt() {
       pendingReceipt.value = payload
       ui.notify('입고 처리 여부를 확인할 수 없습니다. 입력을 변경하지 말고 동일 요청을 재시도하세요.', 'error')
     } else if (isConfirmedWriteRejection(e)) {
-      // A definitive rejection of THIS command permits a new key and corrected input.
-      pendingReceipt.value = null
-      clearPendingWrite('receipt')
-      receipt.value = {
-        ...receipt.value, requestKey: requestKey('REC'),
+      // Definitive rejection: clear the shared intent before issuing another key.
+      const released = await releasePendingWrite('receipt', payload, auth.user?.username)
+      if (released.ok) {
+        pendingReceipt.value = null
+        receipt.value = { ...receipt.value, requestKey: requestKey('REC') }
+        ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
+      } else {
+        pendingReceipt.value = payload
+        ui.notify('입고는 거절됐지만 복구 기록을 지우지 못했습니다. 새 요청을 만들지 마세요.', 'error')
       }
-      ui.notify(`${e.message} 입력을 수정해 새 요청으로 진행할 수 있습니다.`, 'error')
     } else {
       // 401/403, unknown 409, and other errors do not prove the write was absent.
       pendingReceipt.value = payload
@@ -195,8 +236,16 @@ async function submitReceipt() {
   } finally {
     saving.value = false
   }
+  // Keep the form locked while the shared intent is being released.
+  saving.value = true
+  const released = await releasePendingWrite('receipt', payload, auth.user?.username)
+  saving.value = false
+  if (!released.ok) {
+    pendingReceipt.value = payload
+    ui.notify('입고 결과는 확인했지만 복구 기록 삭제에 실패했습니다. 동일 요청만 다시 확인하세요.', 'error')
+    return
+  }
   pendingReceipt.value = null
-  clearPendingWrite('receipt')
   drawer.value = false
   ui.notify(`LOT ${created.lotCode} 입고를 처리했습니다.`)
   const id = String(created.itemId)
@@ -217,6 +266,8 @@ async function submitReceipt() {
 }
 
 onMounted(async () => {
+  stopObservingPending = observeSharedPendingWrite('receipt', refreshOtherTabPending)
+  refreshOtherTabPending()
   await load()
   // Do not start a new LOT request after a route change unmounted this view.
   if (mounted && selectedId.value) await loadLots({ scroll: true })
@@ -368,6 +419,7 @@ onMounted(async () => {
             <label class="field-label">입고 수량 (EA) <span>*</span>
               <input v-model.number="receipt.quantity" type="number" min="1" step="1" required :disabled="saving || !!pendingReceipt" />
             </label>
+            <p v-if="otherTabConflict" class="info-hint" role="alert">다른 탭에 미확인 입고 요청이 있습니다. 새 요청 전송이 차단됩니다. 원래 요청을 확인하세요.</p>
             <p v-if="pendingReceipt" class="info-hint" role="alert">
               입고 결과를 확인하지 못했습니다. 중복 처리를 막기 위해 요청 키 {{ pendingReceipt.requestKey }}와 입력 내용을 고정했습니다.
               같은 요청을 재시도하면 이미 처리된 입고는 다시 반영되지 않습니다.

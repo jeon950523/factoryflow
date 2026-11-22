@@ -89,3 +89,70 @@ test('write-ahead storage rejects exceptions and silent non-persistence', () => 
   assert.equal(savePendingWrite('shipment', payload), false)
   storage.getItem = originalGet
 }))
+
+test('cross-tab claim serializes different keys and shares only the owning login intent', async () => {
+  const oldSession = globalThis.sessionStorage
+  const oldLocal = globalThis.localStorage
+  const oldNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  const shared = new Map(), tabA = new Map(), tabB = new Map()
+  const storage = data => ({
+    getItem: key => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+    removeItem: key => data.delete(key),
+  })
+  // Minimal FIFO Web Locks simulation. No localStorage get/set race is allowed.
+  let tail = Promise.resolve()
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {
+    locks: { request: async (_name, _options, callback) => {
+      const before = tail
+      let release
+      tail = new Promise(resolve => { release = resolve })
+      await before
+      try { return await callback() } finally { release() }
+    } },
+  } })
+  globalThis.localStorage = storage(shared)
+  const { claimPendingWrite, readSharedPendingWrite, releasePendingWrite } = await import('./pendingWrite.js')
+  const first = { requestKey: 'REC-TAB-A', itemId: 51, lotCode: 'LOT-A', quantity: 3 }
+  const second = { ...first, requestKey: 'REC-TAB-B' }
+  try {
+    globalThis.sessionStorage = storage(tabA)
+    assert.deepEqual(await claimPendingWrite('receipt', first, 'operator'), { ok: true })
+    globalThis.sessionStorage = storage(tabB)
+    assert.deepEqual(readSharedPendingWrite('receipt', 'operator'), first)
+    assert.equal(readSharedPendingWrite('receipt', 'other-login'), null)
+    assert.deepEqual(await claimPendingWrite('receipt', second, 'operator'),
+      { ok: false, reason: 'OTHER_PENDING' })
+    assert.deepEqual(await claimPendingWrite('receipt', second, 'other-login'),
+      { ok: false, reason: 'OTHER_PENDING' })
+    assert.deepEqual(await claimPendingWrite('receipt', first, 'operator'), { ok: true })
+    assert.deepEqual(await releasePendingWrite('receipt', second, 'operator'),
+      { ok: false, reason: 'OTHER_PENDING' })
+    assert.deepEqual(await releasePendingWrite('receipt', first, 'operator'), { ok: true })
+    assert.equal(readSharedPendingWrite('receipt', 'operator'), null)
+    globalThis.sessionStorage = storage(tabA)
+    assert.deepEqual(await releasePendingWrite('receipt', first, 'operator'), { ok: true })
+    assert.deepEqual(await claimPendingWrite('receipt', second, 'operator'), { ok: true })
+  } finally {
+    if (oldSession === undefined) delete globalThis.sessionStorage
+    else globalThis.sessionStorage = oldSession
+    if (oldLocal === undefined) delete globalThis.localStorage
+    else globalThis.localStorage = oldLocal
+    if (oldNavigator) Object.defineProperty(globalThis, 'navigator', oldNavigator)
+    else delete globalThis.navigator
+  }
+})
+
+test('missing Web Locks fails closed without writing pending stock command', async () => {
+  const oldNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  const { claimPendingWrite } = await import('./pendingWrite.js')
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} })
+  try {
+    assert.deepEqual(await claimPendingWrite('shipment',
+      { requestKey: 'SHIP-NO-LOCK', finishedItemId: 7, quantity: 2 }, 'operator'),
+      { ok: false, reason: 'LOCK_UNAVAILABLE' })
+  } finally {
+    if (oldNavigator) Object.defineProperty(globalThis, 'navigator', oldNavigator)
+    else delete globalThis.navigator
+  }
+})

@@ -103,3 +103,10 @@
 - [지시서](../tasks/TASK-022-입출고-사전기록-복구.md) · [코드·검수 보고서](task-reports/TASK-022-입출고-사전기록-복구-검수.md).
 - **상태:** [PR #33](https://github.com/jeon950523/factoryflow/pull/33) 병합 `main 1c03e94`, [Frontend CI #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) Node44/Chrome25/IndexedDB30 + [실DB #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) E2E3 성공. Vercel `1c03e94` 운영 배포 SUCCESS 이후 [기존 공개 Chrome 8/8 재실행](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) SUCCESS. 공개는 IndexedDB 데모, 실DB 운영 배포 아님.
 - **비범위:** 실제 실행 중 강제 탭 종료/브라우저 프로세스 크래시 및 다른 탭 복원은 보장하지 않음. 성능 수치 미측정.
+
+
+## TASK-023 — 입고·출고 다중 탭 공유/충돌 차단 · 검증 대기
+- 진단: TASK-022의 `sessionStorage`만으로 다른 탭이 독립 요청 키를 생성하는 것을 막을 수 없음. 서버는 같은 키 재생만 보장.
+- 구현: Web Locks 배타 잠금 + 공유 `localStorage` intent와 기존 탭 세션 복원, 성공/확정 거절 때 일치한 기록만 삭제. 미지원 브라우저는 fail-closed.
+- 검증 계획: Node/Chrome 2탭/IndexedDB/실DB E2E, main CI·Vercel 공개 Chromium 분리 검증. 실행 전 수치 미기재.
+- [지시서](../tasks/TASK-023-입출고-다중탭-복구.md) · [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md).
