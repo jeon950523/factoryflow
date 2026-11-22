@@ -142,8 +142,10 @@ function refreshOtherTabPending() {
   if (saving.value) return
   const shared = readSharedPendingWrite('receipt', auth.user?.username)
   if (shared) {
-    // Keep an in-progress draft untouched; fail closed when it is submitted.
-    if (drawer.value && !pendingReceipt.value) {
+    // Do not replace a different unresolved tab-local intent with a remote key.
+    const own = readPendingWrite('receipt', auth.user?.username)
+    if ((own && JSON.stringify(own) !== JSON.stringify(shared))
+      || (drawer.value && !pendingReceipt.value)) {
       otherTabConflict.value = true
       return
     }

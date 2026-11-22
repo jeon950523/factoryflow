@@ -125,8 +125,10 @@ for (const operation of operations) {
       })
       await expect(recovered.getByRole('alert')).toContainText(saved.payload.requestKey)
       await recovered.getByRole('button', { name: '동일 요청 재시도' }).click()
-      expect(secondPosts).toBe(1)
-      expect(await second.evaluate(key => localStorage.getItem(key),
+      // Vue's async claim/CSRF/POST chain continues after the click event completes.
+      await expect(recovered).toHaveCount(0)
+      await expect.poll(() => secondPosts).toBe(1)
+      await expect.poll(() => second.evaluate(key => localStorage.getItem(key),
         'factoryflow:shared-pending-' + (operation.kind === 'receipt' ? 'raw-receipt' : 'finished-shipment') + ':v1')).toBeNull()
     } finally {
       await second.close()

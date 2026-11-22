@@ -100,3 +100,11 @@
 - **공개 재검증:** [PR #31](https://github.com/jeon950523/factoryflow/pull/31)의 실제 호스트 Chrome 6개 기존 + 2개 새 pending/입출고 멱등 검사 **8/8 PASS**, [실행 #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614). `main a91c0cae` Vercel production SUCCESS 이후 같은 workflow/job을 다시 돌려 **8/8 PASS**. [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806)와 [MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687)도 성공.
 - **해결 판정:** 신규 배포 실패 제한 해소, 새 코드 공개 사이트 동작 검증 완료. 요금제·리밋 상세 및 향후 재발은 미보증. 웹사이트는 **IndexedDB 데모**이고 MySQL 공개 배포를 의미하지 않는다.
 - **재발 방지:** GitHub에 사소한 커밋을 연속 대량 발행하면 preview/production 빌드 소모 위험이 있다. 문서·코드 변경을 배치하고 Vercel 빌드 제한을 확인하되 유료 업그레이드는 사용자 승인 없는 해결책이 아니다.
+
+
+## TS-011 · 다중 탭 Chrome 테스트가 비동기 재시도 완료 전 POST를 판정 (TASK-023)
+
+- **발견:** [TASK-023 PR #35](https://github.com/jeon950523/factoryflow/pull/35)의 최초 Frontend CI [#45052685004](https://github.com/jeon950523/factoryflow/actions/runs/45052685004)에서 기존 25건은 통과했으나 새 Chrome 두 탭 입고/출고 테스트 2건이 각각 `Expected: 1 / Received: 0`으로 실패했다.
+- **재현 지점:** `frontend/tests/write-preflight.spec.js`가 '동일 요청 재시도' 클릭 반환 직후 `expect(secondPosts).toBe(1)`을 동기 실행. 요청은 Web Locks 획득→sessionStorage 검증→CSRF→HTTP POST로 비동기 진행되므로 클릭 완료가 서버 호출 완료를 뜻하지 않는다. 종료 중 추가로 관찰된 Vite proxy `ECONNREFUSED`는 실패 후 요청 비동기 정리와 겹친 기록이며 이를 별도 운영 장애로 단정하지 않는다.
+- **수정:** `await expect(recovered).toHaveCount(0)`으로 실제 제출/응답 종료를 대기하고 `expect.poll`로 POST 횟수 및 shared 저장소 해제를 검사한다. 두 탭의 서로 다른 미확인 key가 존재할 때 타 탭의 변경 알림이 기존 탭 로컬 기록을 덮어쓰지 않도록 추가 보호.
+- **검증 상태:** 최초 실패 로그 확인. 수정 후 PR CI 재검증 결과는 별도 기록에 반영하며, 미통과인 상태를 '해결'로 표현하지 않는다.

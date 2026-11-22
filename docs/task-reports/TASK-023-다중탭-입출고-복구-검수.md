@@ -70,3 +70,10 @@ PR 통과 → 병합 main CI → 정확한 SHA의 Vercel production → **실제
 > 서버는 같은 키의 중복 요청을 방어하지만, 브라우저 탭마다 다른 키로 같은 재고 이동을 보내면 그 보호가 무력해질 수 있습니다. 그래서 Web Locks로 브라우저 내 요청 의도의 등록과 삭제를 직렬화하고, localStorage에서 같은 로그인 사용자의 미확인 요청을 공유하도록 설계했습니다. 이미 처리됐는지는 최종적으로 MySQL에서 동일 키 재생과 원장 1회로 검증합니다.
 
 **이해 점검:** 1) localStorage만 쓰면 왜 충돌이 날 수 있나? 2) Web Locks를 POST 동안 잡지 않는 이유? 3) 동일 브라우저 멀티탭과 다기기 복구 차이?
+
+
+## 11. 최초 PR CI 발견·수정 이력 (2026-11-23)
+
+- [Frontend CI #45052685004](https://github.com/jeon950523/factoryflow/actions/runs/45052685004)에서 Node 단위 테스트/빌드는 성공했고 기존 fixture 포함 **25/27 PASS, 신규 다중 탭 Chrome 2건 FAIL**. 실패 단정이 아니라 실제 테스트 로그 `expect(secondPosts).toBe(1)`의 클릭 직후 검사 때문일 가능성이 높아 검사 종료 신호를 기다리도록 변경.
+- 수정 후 `await expect(recovered).toHaveCount(0)` 및 `expect.poll`를 이용해 비동기 claim→CSRF→POST→확정 응답까지 확인한다. 두 탭의 다른 기존 요청이 충돌할 경우 remote storage 이벤트가 탭 로컬 키를 덮어쓰지 않도록 보호했다.
+- [TS-011](../TROUBLESHOOTING.md)에 증상·실패 로그·해결 방향을 남겼다. 수정 버전의 실제 CI 성공 여부는 별도로 확인 후 판정한다.
