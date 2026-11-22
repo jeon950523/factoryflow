@@ -1,9 +1,10 @@
 # FactoryFlow — 프로젝트 상태 및 작업 핸드오프
 
-> 마지막 문서 정리: 2026-11-17
+> 마지막 문서 정리: 2026-11-23
 > GitHub: [jeon950523/factoryflow](https://github.com/jeon950523/factoryflow)
-> **현재 기능/운영 배포/공개 QA 검증 완료 기준**: TASK-021 / `main a91c0cae0f14654d52e84f46f21710d16a180797` / Vercel SUCCESS / 공개 Chrome 8/8
-> **TASK-021 검증:** [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 8/8(운영 배포 이후 재실행도 8/8), [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 42/21/30, [main MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 3/3, Vercel production SUCCESS.
+> **현재 기능/운영 배포/공개 QA 검증 완료 기준**: TASK-022 / `main 1c03e94c6ad30877060cb53a34f127f159d28ce8` / Vercel SUCCESS / 공개 Chrome 8/8 (기존 테스트 코드의 운영 배포 후 재실행)
+> **TASK-022 검증:** [main Frontend #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) 44/25/30, [main 실 MySQL #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) 3/3, [운영 배포 후 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614), Vercel production SUCCESS.
+> **TASK-021 이전 검증 이력:** [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 8/8(운영 배포 이후 재실행도 8/8), [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 42/21/30, [main MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 3/3, Vercel production SUCCESS.
 > 이 문서의 HEAD는 작업 시작 시 확인한 값이다. 더 최신 코드가 생기면 반드시 GitHub `main`과 PR/CI 결과를 먼저 확인한다.
 
 ## 1. 문서 우선순위와 최근 작업
@@ -104,9 +105,19 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - **TASK-021 추가 서비스 코드/DB 변경 없음.** Public Site Smoke 테스트 2건만 추가했다. 다음 TASK에서는 실운영 백엔드 보안/접근 경계 및 오류 메시지·현장 사용자 UX를 우선 검토하면 좋다.
 
 
-## 11. TASK-022 개발 인계 (검증 대기)
+## 11. TASK-022 개발 인계 (검증 완료)
 
 - 기준 `main 2d064047b2471e411f63fcdfdc8ccd70a185c3e0`에서 확인: `pendingWrite.js` 및 두 Vue 폼은 오류 처리 후에만 sessionStorage에 미확인 POST를 저장했다. 서버 commit→브라우저 새로고침 틈새가 남아 있었다.
 - 브랜치 예정: `feature/task-022-write-ahead-recovery`; 신규 지시서 `tasks/TASK-022-입출고-사전기록-복구.md`, 결과 보고 `docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md`.
 - 서버 키 재생·MySQL 원장·FIFO·CSRF·ADR-013 경계 **변경 없음**. 입고/출고 저장 실패 시 전송하지 않고, 명백한 확정 거절을 제외한 실패는 동일 키/본문으로만 복구한다.
 - Node+브라우저 fixture + IndexedDB + 실DB CI의 실행 증거를 확인하고서만 완료 판정. 배포 SHA+공개 Chrome 별도 확인. 탭 종료/다중 탭은 비범위.
+
+## 12. TASK-022 최종 완료·다음 작업 인계
+
+- [기능 PR #33](https://github.com/jeon950523/factoryflow/pull/33), 기능 HEAD `b75615ff651bca14dc34f159ac89eda9e6edd275`, 병합 main `1c03e94c6ad30877060cb53a34f127f159d28ce8`.
+- **사전 저장 불변조건:** 입고·출고의 requestKey와 본문을 먼저 sessionStorage에 기록하고 readback이 정확해야 POST를 허용한다. 실패하면 요청을 보내지 않는다. 명백한 확정 거절을 제외한 401/403/409 및 네트워크 미확인은 같은 키/본문으로 복구한다.
+- [PR Frontend #45044548625](https://github.com/jeon950523/factoryflow/actions/runs/45044548625), [PR MySQL #45044548595](https://github.com/jeon950523/factoryflow/actions/runs/45044548595): 각각 44/25/30, 실DB 3/3 통과.
+- [병합 main Frontend #45044738329](https://github.com/jeon950523/factoryflow/actions/runs/45044738329): Node44/Chrome25/IndexedDB30 PASS, [main 실 MySQL #45044738273](https://github.com/jeon950523/factoryflow/actions/runs/45044738273): E2E3 PASS.
+- **Vercel production:** 정확한 main SHA `1c03e94` status SUCCESS. [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614)의 재실행(run attempt 4) **8/8 성공**, 운영 배포 이후 실행됨. 기존 TASK-021 공개 테스트 스크립트이므로 TASK-022의 새 사전 기록 경계는 PR Chrome fixture + 실 MySQL에서 별도 검증함.
+- Vercel은 IndexedDB 데모, 실 MySQL은 CI에서 검증. 브라우저 탭 종료/스토리지 삭제/다른 탭/OS 충돌까지 복구 보증하지 않는다. Windows 확대·접근성 실측 및 멀티탭 복구가 다음 검토 후보.
+- 작업 기록: [지시서](../tasks/TASK-022-입출고-사전기록-복구.md), [시니어 보고서](task-reports/TASK-022-입출고-사전기록-복구-검수.md), [핵심 개념](learning/CORE_CONCEPTS.md). 새 실행 장애는 재현되지 않아 TROUBLESHOOTING에 미확인 장애를 신규 등록하지 않았다.

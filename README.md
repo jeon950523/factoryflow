@@ -1,6 +1,8 @@
 # FactoryFlow
 
-> **현재 현황(2026-11-17):** 최신 앱/공개 QA 기준은 [TASK-021 PR #30](https://github.com/jeon950523/factoryflow/pull/30)·[PR #31](https://github.com/jeon950523/factoryflow/pull/31) 병합 `main a91c0cae`. Vercel 신규 production **SUCCESS**로 [기존 TS-010 요청 제한](docs/TROUBLESHOOTING.md) 해결. [실제 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) — 기존 업무 동선6 + 입고·출고 pending 재시도2; 운영 배포 이후 재실행도 8/8 통과. [병합 main Frontend 42/21/30](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 및 [실 MySQL E2E 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 통과. 공개 `https://factoryflow.kro.kr`는 **브라우저별 IndexedDB 시뮬레이터**이며 Java/MySQL 공개 운영 서버가 아니다. 아래 이전 TASK·배포 실패 기록은 당시의 이력이다.
+> **현재 검증 기준(2026-11-23):** [TASK-022 PR #33](https://github.com/jeon950523/factoryflow/pull/33) 병합 앱 코드 `main 1c03e94` — [Frontend CI](https://github.com/jeon950523/factoryflow/actions/runs/45044738329) Node 44/44·Chrome 25/25·IndexedDB 30/30, [실DB E2E](https://github.com/jeon950523/factoryflow/actions/runs/45044738273) 3/3, Vercel production SUCCESS, [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) (운영 배포 후 재실행, 기존 TASK-021 테스트 코드) 확인. **공개 Vercel은 브라우저 IndexedDB 데모이며 실제 MySQL 운영 서버가 아니다.**
+
+> **직전 TASK-021 이력(2026-11-17):** 최신 앱/공개 QA 기준은 [TASK-021 PR #30](https://github.com/jeon950523/factoryflow/pull/30)·[PR #31](https://github.com/jeon950523/factoryflow/pull/31) 병합 `main a91c0cae`. Vercel 신규 production **SUCCESS**로 [기존 TS-010 요청 제한](docs/TROUBLESHOOTING.md) 해결. [실제 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) — 기존 업무 동선6 + 입고·출고 pending 재시도2; 운영 배포 이후 재실행도 8/8 통과. [병합 main Frontend 42/21/30](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 및 [실 MySQL E2E 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 통과. 공개 `https://factoryflow.kro.kr`는 **브라우저별 IndexedDB 시뮬레이터**이며 Java/MySQL 공개 운영 서버가 아니다. 아래 이전 TASK·배포 실패 기록은 당시의 이력이다.
 
 Java 21 / Spring Boot 기반으로 제조업의 **원자재 입고 → BOM → 생산지시 → 재고 예약·소모 → 품질검사 → 완제품 입고·출고** 흐름을 구현하는 개인 백엔드 포트폴리오 프로젝트입니다.
 
@@ -314,7 +316,7 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - **문서:** [TASK-013 시니어 검수](docs/task-reports/TASK-013-품목BOM-출고UI-검수.md) · [CI 근거](docs/verification/TASK-013-품목출고UI-CI.md).
 
 
-## TASK-022 — 입출고 POST 사전 기록·복구 강화 (검증 대기)
+## TASK-022 — 입출고 POST 사전 기록·복구 강화 (검증 완료)
 
 - TASK-021 배포·공개 Chrome 증거는 그대로 유지. 다음 변경은 **전송 전 sessionStorage 기록 확인**을 입고·출고의 필수 조건으로 추가하고 실패 시 전송을 중단하는 작업이다.
-- [TASK-022 지시서](tasks/TASK-022-입출고-사전기록-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md). 브랜치 CI/배포 확인 전에는 **완료로 표시하지 않는다**.
+- [TASK-022 지시서](tasks/TASK-022-입출고-사전기록-복구.md) · [시니어 검수 보고서](docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md) · [PR #33](https://github.com/jeon950523/factoryflow/pull/33). PR·병합 main Frontend/실 MySQL CI 성공 및 운영 Vercel/기존 공개 Chrome 8/8 재검증 완료.
