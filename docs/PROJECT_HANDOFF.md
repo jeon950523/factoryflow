@@ -102,3 +102,11 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - 코드 병합 main CI: [Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) Node42/Chrome21/IndexedDB30 SUCCESS, [MySQL #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 3/3 SUCCESS.
 - 기존 실패가 실제로 해소됐다는 의미는 신규 Vercel success와 실제 공개 Chrome 성공으로 제한한다. 사용량 한도/자동 재시도 정책 및 타 브라우저의 과거 IndexedDB 데이터 상태는 조사하지 않았다.
 - **TASK-021 추가 서비스 코드/DB 변경 없음.** Public Site Smoke 테스트 2건만 추가했다. 다음 TASK에서는 실운영 백엔드 보안/접근 경계 및 오류 메시지·현장 사용자 UX를 우선 검토하면 좋다.
+
+
+## 11. TASK-022 개발 인계 (검증 대기)
+
+- 기준 `main 2d064047b2471e411f63fcdfdc8ccd70a185c3e0`에서 확인: `pendingWrite.js` 및 두 Vue 폼은 오류 처리 후에만 sessionStorage에 미확인 POST를 저장했다. 서버 commit→브라우저 새로고침 틈새가 남아 있었다.
+- 브랜치 예정: `feature/task-022-write-ahead-recovery`; 신규 지시서 `tasks/TASK-022-입출고-사전기록-복구.md`, 결과 보고 `docs/task-reports/TASK-022-입출고-사전기록-복구-검수.md`.
+- 서버 키 재생·MySQL 원장·FIFO·CSRF·ADR-013 경계 **변경 없음**. 입고/출고 저장 실패 시 전송하지 않고, 명백한 확정 거절을 제외한 실패는 동일 키/본문으로만 복구한다.
+- Node+브라우저 fixture + IndexedDB + 실DB CI의 실행 증거를 확인하고서만 완료 판정. 배포 SHA+공개 Chrome 별도 확인. 탭 종료/다중 탭은 비범위.

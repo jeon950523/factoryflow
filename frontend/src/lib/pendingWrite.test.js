@@ -64,3 +64,28 @@ test('only explicit business/validation rejections may unlock an unresolved writ
   assert.equal(isConfirmedWriteRejection({ status: 403 }), false)
   assert.equal(isConfirmedWriteRejection({ status: 503 }), false)
 })
+
+test('write-ahead record refuses to replace another unresolved command', () => withStorage(() => {
+  const first = { requestKey: 'REC-A', itemId: 7, lotCode: 'LOT-A', quantity: 2 }
+  const another = { ...first, requestKey: 'REC-B' }
+  assert.equal(savePendingWrite('receipt', first), true)
+  assert.equal(savePendingWrite('receipt', first), true)
+  assert.equal(savePendingWrite('receipt', another), false)
+  assert.deepEqual(readPendingWrite('receipt'), first)
+  clearPendingWrite('receipt')
+  assert.equal(savePendingWrite('receipt', another), true)
+}))
+
+test('write-ahead storage rejects exceptions and silent non-persistence', () => withStorage(data => {
+  const payload = { requestKey: 'SHIP-PREFLIGHT', finishedItemId: 7, quantity: 1 }
+  const storage = globalThis.sessionStorage
+  const originalSet = storage.setItem
+  storage.setItem = () => { throw new Error('QuotaExceededError') }
+  assert.equal(savePendingWrite('shipment', payload), false)
+  assert.deepEqual([...data.values()], [])
+  storage.setItem = originalSet
+  const originalGet = storage.getItem
+  storage.getItem = () => null
+  assert.equal(savePendingWrite('shipment', payload), false)
+  storage.getItem = originalGet
+}))

@@ -70,6 +70,10 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await page.locator('.dialog input[type="number"]').fill('25')
   // Server commits the receipt, but the browser never receives that HTTP response.
   await page.route('**/api/v1/stock-receipts', async route => {
+    // The browser must have stored this exact key AND body before the HTTP POST.
+    const savedBeforeSend = await page.evaluate(() =>
+      JSON.parse(sessionStorage.getItem('factoryflow:pending-raw-receipt:v1')))
+    expect(savedBeforeSend).toEqual(route.request().postDataJSON())
     const reply = await route.fetch()
     expect(reply.status(), await reply.text()).toBe(201)
     await route.abort('failed')
@@ -132,6 +136,9 @@ test('real backend and MySQL: receipt → reserve → consume → QC → shipmen
   await page.locator('.dialog input[type="number"]').fill('3')
   // The shipment is already persisted in MySQL, but the first response is lost.
   await page.route('**/api/v1/shipments', async route => {
+    const savedBeforeSend = await page.evaluate(() =>
+      JSON.parse(sessionStorage.getItem('factoryflow:pending-finished-shipment:v1')))
+    expect(savedBeforeSend).toEqual(route.request().postDataJSON())
     const reply = await route.fetch()
     expect(reply.status(), await reply.text()).toBe(201)
     await route.abort('failed')

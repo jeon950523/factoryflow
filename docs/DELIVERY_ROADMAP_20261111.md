@@ -94,3 +94,11 @@
 - [PR #31](https://github.com/jeon950523/factoryflow/pull/31) 공개 재시도 검사 2건 추가, `main a91c0cae` Vercel production SUCCESS. 기능/DB 코드는 변경하지 않았다.
 - [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) 기존 6+신규 2 = **8/8** 통과, 운영 재배포 후 8/8 재실행 성공. [main Frontend #43958811806](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) Node42/Chrome21/IndexedDB30 및 [실DB #43958811687](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) E2E3 모두 SUCCESS.
 - [지시서](../tasks/TASK-021-배포재시도-공개검증.md) · [검수 보고서](task-reports/TASK-021-배포재시도-공개QA-검수.md).
+
+
+## TASK-022 — 입출고 POST 사전 기록 및 재시도 복구 강화 · 검증 대기
+
+- 사전 검수: TASK-020의 네트워크 실패 후 저장에는 **서버 commit 이후 브라우저 새로고침 전에 기록되지 않는 틈**이 있다.
+- 브라우저 사전 동기 저장/읽기 확인 성공 시에만 POST, 저장 실패·다른 미확인 payload 충돌 시 전송하지 않음. 401/403·불명확한 409는 pending 유지.
+- [지시서](../tasks/TASK-022-입출고-사전기록-복구.md) · [코드·검수 보고서](task-reports/TASK-022-입출고-사전기록-복구-검수.md).
+- **상태:** 구현과 테스트 작성 후 CI 검증 대기. TASK-021의 8/8 공개 Chrome 성공은 **이전 배포 코드 기준**이다.
