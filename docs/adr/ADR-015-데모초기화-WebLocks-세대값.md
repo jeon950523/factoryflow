@@ -1,6 +1,6 @@
 # ADR-015 — 데모 초기화 Web Locks 잠금 순서와 세대값 도입
 
-> 선택: 2026-11-24 · PR/main CI·실DB·Vercel production 검증 완료(신규 공개 Chrome 대기) · 선행 [ADR-013](ADR-013-프론트데모-실백엔드분리.md), [ADR-014](ADR-014-다중탭-쓰기의도-WebLocks.md)
+> 선택: 2026-11-24 · PR/main CI·실DB·Vercel production 검증 완료(공개 Chrome 신규 포함 9/9 성공) · 선행 [ADR-013](ADR-013-프론트데모-실백엔드분리.md), [ADR-014](ADR-014-다중탭-쓰기의도-WebLocks.md)
 
 ## 배경
 IndexedDB snapshot 초기화는 원자적이지만, TASK-023의 `localStorage` write-ahead intent는 별도 저장소에 존재한다. 공유 미확인 요청이 남은 초기화는 결과/원장 판단을 망가뜨린다. 공유 intent를 다른 탭이 정상 삭제한 후에도 기존 탭 세션에 요청 키가 남을 수 있어, 초기화 후 옛 키 재사용이라는 두 번째 위험이 존재한다.
@@ -29,5 +29,5 @@ CI 통과 전에는 결과를 기재하지 않는다. PR Node/Chrome IndexedDB/�
 ## 사후 검증 및 범위
 
 - [기능 PR #37](https://github.com/jeon950523/factoryflow/pull/37) 병합 main `fe0eacb`. [main Frontend #45240451984](https://github.com/jeon950523/factoryflow/actions/runs/45240451984): Node49/Chrome fixture27/IndexedDB33, [main MySQL #45240452073](https://github.com/jeon950523/factoryflow/actions/runs/45240452073): E2E3 통과. Vercel production commit `fe0eacb` SUCCESS.
-- 실제 공개 Chrome 신규 1건 포함 총 9건은 결과 확인 전. CI의 IndexedDB 33건 중 TASK-024 신규 3건과 구분한다.
+- 실제 [공개 Chrome #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567)에서 기존 8건 + TASK-024 신규 리셋 경합 1건 **9/9 통과**. 로컬 IndexedDB 33건 중 신규 3건, 서버 MySQL3 회귀와 각각 구분한다.
 - 비물리 작업과 reset의 상대 순서, OS 크래시, Web Locks 비협조 구버전 탭, 저장소 삭제는 이번 ADR 보장 범위 밖.
