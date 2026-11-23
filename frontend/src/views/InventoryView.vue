@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Plus, RefreshCw, X, ArrowRight, Layers } from 'lucide-vue-next'
 import { ApiError, get, post, isDemoMode } from '../lib/api.js'
-import { readPendingWrite, readSharedPendingWrite, claimPendingWrite, releasePendingWrite, observeSharedPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
+import { readPendingWrite, readSharedPendingWrite, claimPendingWrite, releasePendingWrite, observeSharedPendingWrite, demoResetEpoch, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { number, dateTime, requestKey } from '../lib/format.js'
@@ -45,6 +45,7 @@ const receipt = ref(pendingReceipt.value
   ? { ...pendingReceipt.value } : { itemId: '', lotCode: '', quantity: 1, requestKey: requestKey('REC') })
 const pendingPersisted = ref(true)
 const otherTabConflict = ref(false)
+const receiptEpoch = ref(demoResetEpoch())
 let stopObservingPending = () => {}
 
 // This is a visible-page metric, not an inventory shortage alert.
@@ -164,6 +165,7 @@ function refreshOtherTabPending() {
 }
 
 function openReceipt(itemId = '') {
+  receiptEpoch.value = demoResetEpoch()
   pendingReceipt.value = readPendingWrite('receipt', auth.user?.username)
   otherTabConflict.value = false
   receipt.value = pendingReceipt.value ? { ...pendingReceipt.value } : {
@@ -190,7 +192,7 @@ async function submitReceipt() {
   saving.value = true
   // Record the exact command BEFORE dispatch. A refresh while fetch is in flight
   // must not mint a second key for a command already committed on the server.
-  const claimed = await claimPendingWrite('receipt', payload, auth.user?.username)
+  const claimed = await claimPendingWrite('receipt', payload, auth.user?.username, receiptEpoch.value)
   if (!claimed.ok) {
     saving.value = false
     otherTabConflict.value = claimed.reason === 'OTHER_PENDING'
@@ -201,7 +203,9 @@ async function submitReceipt() {
     }
     ui.notify(claimed.reason === 'OTHER_PENDING'
       ? '다른 탭에 미확인 입고 요청이 있습니다. 새 요청을 전송하지 않고 원래 요청을 확인하세요.'
-      : '입고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소·브라우저 잠금 지원을 확인하세요.', 'error')
+      : claimed.reason === 'RESET_CHANGED'
+        ? '다른 탭에서 데모 데이터가 초기화되어 이전 입고 요청을 전송하지 않았습니다. 화면을 다시 열어 새 요청으로 진행하세요.'
+        : '입고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소·브라우저 잠금 지원을 확인하세요.', 'error')
     return
   }
   otherTabConflict.value = false

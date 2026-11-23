@@ -139,3 +139,12 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - Vercel production commit `b43beca` SUCCESS, 운영 배포 후 [공개 Chrome #43958402614](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) attempt 6 기존 8/8 성공. 공개는 IndexedDB 데모, MySQL 서버는 CI에서만 검증.
 - **다음 TASK 우선 검토:** 데모 샘플 초기화 `App.vue#resetDemo`/`demo/store.js#resetDemoData`와 타 탭 미확인 공유 intent 경합: 초기화 이후 기존 요청 키 재사용/원장 혼동을 방지하는 정책 검증. 서버측 key 조회/계정 간 복구, Windows DPI·키보드/다기기 복구는 별도 설계. 브라우저 저장소 삭제·프로필 교체·Web Locks 미지원은 보장하지 않음.
 - [작업지시서](../tasks/TASK-023-입출고-다중탭-복구.md) · [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md) · [학습 기록](learning/CORE_CONCEPTS.md). 동일 내용으로 이전 TASK들의 역사적 검증 상태를 소급 변경하지 않는다.
+
+
+## 15. TASK-024 진행 인계 (실행 검증 대기)
+
+- 기준 main `41eac9d5e71e2d266d32cf1e344446bf388f53b1`; TASK-023의 두 탭 intent 보호가 완료됐지만 `demo/store.js#resetDemoData`는 해당 락·기록을 확인하지 않고 샘플 초기화 가능.
+- 추가 경계: 타 탭에서 공유 intent가 해제된 뒤 원래 탭 `sessionStorage`에 오래된 키가 남아 초기화 이후 재생될 수 있다.
+- TASK-024 기능은 `feature/task-024-demo-reset-guard`에서 receipt→shipment Web Locks와 실제 IDB reset 트랜잭션, reset epoch 저장/검사, 입고·출고 폼에 초기화 세대 캡처, 초기화 버튼 중복 클릭 방지를 연결한다.
+- 새 Node unit 3건, IndexedDB 실제 Chrome 2탭 3건을 추가해 사전 저장 차단·epoch mismatch·정상 reset/새 요청 검증. 기존 Spring/MySQL 검증 및 공개 IndexedDB 증거를 혼동하지 않는다.
+- 지시서 [TASK-024](../tasks/TASK-024-데모초기화-경합.md), [ADR-015](adr/ADR-015-데모초기화-WebLocks-세대값.md), [검수 보고서](task-reports/TASK-024-데모초기화-경합-검수.md). PR/main CI·Vercel SHA·공개 Chrome 실제 실행 후에만 완료 판정. **이번 변경은 실제 운영 MySQL DB 초기화가 아니다.**

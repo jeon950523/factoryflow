@@ -401,3 +401,80 @@ test('confirmed insufficient stock remains editable and never becomes an unresol
   expect(await page.evaluate(() =>
     sessionStorage.getItem('factoryflow:pending-finished-shipment:v1'))).toBeNull()
 })
+
+
+for (const operation of [
+  { kind: 'receipt', shared: 'factoryflow:shared-pending-raw-receipt:v1',
+    tab: 'factoryflow:pending-raw-receipt:v1', page: '/inventory',
+    dialog: '원자재 입고',
+    payload: { requestKey: 'REC-RESET-BLOCK', itemId: 1, lotCode: 'LOT-BLOCK', quantity: 2 } },
+  { kind: 'shipment', shared: 'factoryflow:shared-pending-finished-shipment:v1',
+    tab: 'factoryflow:pending-finished-shipment:v1', page: '/shipments',
+    dialog: '완제품 출고 등록',
+    payload: { requestKey: 'SHIP-RESET-BLOCK', finishedItemId: 4, quantity: 1 } },
+]) {
+  test(`TASK-024 ${operation.kind} multi-tab unresolved intent blocks demo reset without deleting data`, async ({ page, context }) => {
+    const resetTab = await context.newPage()
+    try {
+      await page.goto('/orders')
+      await page.getByRole('button', { name: 'WO-DEMO-READY' }).click()
+      await page.getByRole('button', { name: '자재 예약', exact: true }).click()
+      await expect(page.getByRole('button', { name: '생산 시작', exact: true })).toBeVisible()
+      await page.goto(operation.page)
+      await resetTab.goto('/orders')
+      await page.evaluate(({ shared, tab, payload }) => {
+        localStorage.setItem(shared, JSON.stringify({ owner: 'demo', payload }))
+        sessionStorage.setItem(tab, JSON.stringify(payload))
+      }, operation)
+      await page.reload()
+      await expect(page.getByRole('dialog', { name: operation.dialog })).toBeVisible()
+      resetTab.once('dialog', dialog => dialog.accept())
+      await resetTab.getByRole('button', { name: '샘플 초기화' }).click()
+      await expect(resetTab.locator('.toast')).toContainText('미확인 입고·출고 요청')
+      expect(await resetTab.evaluate(() => localStorage.getItem('factoryflow:demo-reset-epoch:v1'))).toBeNull()
+      await resetTab.reload()
+      await resetTab.getByRole('button', { name: 'WO-DEMO-READY' }).click()
+      await expect(resetTab.getByRole('button', { name: '생산 시작', exact: true })).toBeVisible()
+      // Another tab acknowledges the command and clears its shared marker.
+      await page.evaluate(shared => localStorage.removeItem(shared), operation.shared)
+      resetTab.once('dialog', dialog => dialog.accept())
+      await resetTab.getByRole('button', { name: '샘플 초기화' }).click()
+      await expect(resetTab.locator('.toast')).toContainText('데모 데이터를 초기화했습니다.')
+      const epoch = await resetTab.evaluate(() => localStorage.getItem('factoryflow:demo-reset-epoch:v1'))
+      expect(epoch).toBeTruthy()
+      await resetTab.reload()
+      await resetTab.getByRole('button', { name: 'WO-DEMO-READY' }).click()
+      await expect(resetTab.getByRole('button', { name: '자재 예약', exact: true })).toBeVisible()
+      // Tab A's obsolete sessionStorage does not reopen an old command.
+      await page.reload()
+      await expect(page.getByRole('dialog', { name: operation.dialog })).toHaveCount(0)
+    } finally {
+      await resetTab.close()
+    }
+  })
+}
+
+test('TASK-024 a pre-reset open form refuses to POST after another tab resets', async ({ page, context }) => {
+  const resetTab = await context.newPage()
+  try {
+    await page.goto('/inventory')
+    await page.getByRole('button', { name: '원자재 입고', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '원자재 입고' })
+    await dialog.locator('.item-search-toggle').click()
+    await dialog.locator('.item-search-option').filter({ hasText: 'RAW-PLATE-001' }).click()
+    await dialog.locator('input[placeholder^="LOT-"]').fill('LOT-RESET-RACE')
+    await dialog.getByRole('spinbutton', { name: '입고 수량 (EA)' }).fill('3')
+    await resetTab.goto('/orders')
+    resetTab.once('dialog', entry => entry.accept())
+    await resetTab.getByRole('button', { name: '샘플 초기화' }).click()
+    await expect(resetTab.locator('.toast')).toContainText('데모 데이터를 초기화했습니다.')
+    await dialog.locator('button[type=submit]').click()
+    await expect(page.locator('.toast')).toContainText('이전 입고 요청을 전송하지 않았습니다')
+    expect(await page.evaluate(() => localStorage.getItem('factoryflow:shared-pending-raw-receipt:v1'))).toBeNull()
+    await page.goto('/inventory?itemType=RAW_MATERIAL&itemId=1')
+    await expect(page.locator('.erp-lot-summary')).toContainText('현재고 40 EA')
+    await expect(page.locator('.erp-lot-summary')).not.toContainText('LOT-RESET-RACE')
+  } finally {
+    await resetTab.close()
+  }
+})

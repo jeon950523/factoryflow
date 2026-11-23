@@ -156,3 +156,162 @@ test('missing Web Locks fails closed without writing pending stock command', asy
     else delete globalThis.navigator
   }
 })
+
+
+test('TASK-024 reset locks both kinds and rejects shared or tab-local unresolved stock writes', async () => {
+  const prevSession = globalThis.sessionStorage
+  const prevLocal = globalThis.localStorage
+  const prevNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  const prevCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  const shared = new Map(), tabA = new Map(), tabB = new Map()
+  const storage = data => ({
+    getItem: key => data.get(key) ?? null,
+    setItem: (key, value) => { data.set(key, value) },
+    removeItem: key => { data.delete(key) },
+  })
+  const pendingLocks = new Map()
+  const mutex = {
+    async request(name, _options, work) {
+      const before = pendingLocks.get(name) ?? Promise.resolve()
+      let release
+      pendingLocks.set(name, new Promise(resolve => { release = resolve }))
+      await before
+      try { return await work() } finally { release() }
+    },
+  }
+  Object.defineProperty(globalThis, 'navigator',
+    { configurable: true, value: { locks: mutex } })
+  Object.defineProperty(globalThis, 'crypto',
+    { configurable: true, value: { randomUUID: () => 'TASK-024-EPOCH-1' } })
+  globalThis.localStorage = storage(shared)
+  const { claimPendingWrite, releasePendingWrite, readPendingWrite, demoResetEpoch,
+    withDemoResetGuard } = await import('./pendingWrite.js')
+  const receipt = { requestKey: 'REC-RESET-A', itemId: 7, lotCode: 'LOT-RESET', quantity: 2 }
+  const shipment = { requestKey: 'SHIP-RESET-A', finishedItemId: 4, quantity: 1 }
+  try {
+    globalThis.sessionStorage = storage(tabA)
+    const before = demoResetEpoch()
+    assert.equal(before, '')
+    assert.deepEqual(await claimPendingWrite('receipt', receipt, 'demo', before), { ok: true })
+    globalThis.sessionStorage = storage(tabB)
+    let resets = 0
+    await assert.rejects(withDemoResetGuard(async () => { resets++ }), /미확인.*초기화하지/)
+    assert.equal(resets, 0)
+    assert.equal(demoResetEpoch(), before)
+    // The other tab can release the same command. A still has stale session state.
+    assert.deepEqual(await claimPendingWrite('receipt', receipt, 'demo', before), { ok: true })
+    assert.deepEqual(await releasePendingWrite('receipt', receipt, 'demo'), { ok: true })
+    assert.deepEqual(await claimPendingWrite('shipment', shipment, 'demo', before), { ok: true })
+    await assert.rejects(withDemoResetGuard(async () => { resets++ }), /미확인.*초기화하지/)
+    assert.deepEqual(await releasePendingWrite('shipment', shipment, 'demo'), { ok: true })
+    await withDemoResetGuard(async () => { resets++ })
+    assert.equal(resets, 1)
+    assert.equal(demoResetEpoch(), 'TASK-024-EPOCH-1')
+    globalThis.sessionStorage = storage(tabA)
+    // Stale A cannot read/replay its pre-reset request after B reset.
+    assert.equal(readPendingWrite('receipt', 'demo'), null)
+    assert.deepEqual(await claimPendingWrite('receipt', receipt, 'demo', before),
+      { ok: false, reason: 'RESET_CHANGED' })
+    assert.deepEqual(await claimPendingWrite('receipt', receipt, 'demo', demoResetEpoch()),
+      { ok: false, reason: 'RESET_CHANGED' })
+    const next = { ...receipt, requestKey: 'REC-RESET-NEXT' }
+    assert.deepEqual(await claimPendingWrite('receipt', next, 'demo', demoResetEpoch()), { ok: true })
+    assert.deepEqual(await releasePendingWrite('receipt', next, 'demo'), { ok: true })
+  } finally {
+    if (prevSession === undefined) delete globalThis.sessionStorage
+    else globalThis.sessionStorage = prevSession
+    if (prevLocal === undefined) delete globalThis.localStorage
+    else globalThis.localStorage = prevLocal
+    if (prevNavigator) Object.defineProperty(globalThis, 'navigator', prevNavigator)
+    else delete globalThis.navigator
+    if (prevCrypto) Object.defineProperty(globalThis, 'crypto', prevCrypto)
+    else delete globalThis.crypto
+  }
+})
+
+test('TASK-024 reset fails closed without Web Locks or epoch persistence', async () => {
+  const beforeNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  const beforeLocal = globalThis.localStorage
+  const beforeSession = globalThis.sessionStorage
+  let changes = 0
+  const { withDemoResetGuard } = await import('./pendingWrite.js')
+  try {
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} })
+    await assert.rejects(withDemoResetGuard(async () => { changes++ }), /잠금/)
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: { locks: { request: async (_name, _opts, task) => task() } },
+    })
+    globalThis.localStorage = {
+      getItem: () => null,
+      setItem: () => { throw new Error('QuotaExceededError') },
+      removeItem: () => {},
+    }
+    globalThis.sessionStorage = { getItem: () => null }
+    await assert.rejects(withDemoResetGuard(async () => { changes++ }), /QuotaExceededError/)
+    assert.equal(changes, 0)
+  } finally {
+    if (beforeNavigator) Object.defineProperty(globalThis, 'navigator', beforeNavigator)
+    else delete globalThis.navigator
+    if (beforeLocal === undefined) delete globalThis.localStorage
+    else globalThis.localStorage = beforeLocal
+    if (beforeSession === undefined) delete globalThis.sessionStorage
+    else globalThis.sessionStorage = beforeSession
+  }
+})
+
+test('TASK-024 reset that wins the lock invalidates a queued pre-reset claim', async () => {
+  const beforeNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  const beforeLocal = globalThis.localStorage
+  const beforeSession = globalThis.sessionStorage
+  const beforeCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  const shared = new Map(), tab = new Map(), queues = new Map()
+  const store = map => ({
+    getItem: key => map.get(key) ?? null,
+    setItem: (key, value) => map.set(key, value),
+    removeItem: key => map.delete(key),
+  })
+  const locks = {
+    async request(name, _options, callback) {
+      const previous = queues.get(name) ?? Promise.resolve()
+      let release
+      queues.set(name, new Promise(resolve => { release = resolve }))
+      await previous
+      try { return await callback() } finally { release() }
+    },
+  }
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks } })
+  Object.defineProperty(globalThis, 'crypto',
+    { configurable: true, value: { randomUUID: () => 'TASK-024-EPOCH-QUEUED' } })
+  globalThis.localStorage = store(shared)
+  globalThis.sessionStorage = store(tab)
+  const { withDemoResetGuard, claimPendingWrite, demoResetEpoch } = await import('./pendingWrite.js')
+  try {
+    let finishReset
+    const hold = new Promise(resolve => { finishReset = resolve })
+    let started
+    const began = new Promise(resolve => { started = resolve })
+    const reset = withDemoResetGuard(async () => {
+      started()
+      await hold
+    })
+    await began
+    const attempted = claimPendingWrite('receipt',
+      { requestKey: 'REC-PRE-RESET', itemId: 1, lotCode: 'LOT-OLD', quantity: 2 },
+      'demo', '') // Captured by UI before waiting for the reset-held Web Lock.
+    finishReset()
+    await reset
+    assert.equal(demoResetEpoch(), 'TASK-024-EPOCH-QUEUED')
+    assert.deepEqual(await attempted, { ok: false, reason: 'RESET_CHANGED' })
+    assert.equal([...shared.keys()].filter(key => key.includes('shared-pending')).length, 0)
+  } finally {
+    if (beforeNavigator) Object.defineProperty(globalThis, 'navigator', beforeNavigator)
+    else delete globalThis.navigator
+    if (beforeCrypto) Object.defineProperty(globalThis, 'crypto', beforeCrypto)
+    else delete globalThis.crypto
+    if (beforeLocal === undefined) delete globalThis.localStorage
+    else globalThis.localStorage = beforeLocal
+    if (beforeSession === undefined) delete globalThis.sessionStorage
+    else globalThis.sessionStorage = beforeSession
+  }
+})

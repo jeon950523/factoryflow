@@ -111,3 +111,11 @@
 - [PR #35](https://github.com/jeon950523/factoryflow/pull/35) / main `b43beca` 병합. 수정 후 PR Frontend Node46/Chrome27/IndexedDB30 및 MySQL3 성공, 병합 [Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176)·[MySQL #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) 성공. Vercel production SUCCESS 후 [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) run attempt 6도 성공.
 - 최초 fixture 2건 실패→비동기 검사 수정 [TS-011](TROUBLESHOOTING.md). 공개 8건은 기존 스모크이며 새 다중 탭 2건은 fixture/실DB에서 검증. 다음 위험: 데모 초기화·미확인 요청 경합.
 - [지시서](../tasks/TASK-023-입출고-다중탭-복구.md) · [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md).
+
+
+## TASK-024 — 데모 초기화·미확인 입출고 경합 차단 · 검증 대기
+
+- 사전 검수: `resetDemoData`가 `pendingWrite.js`의 receipt/shipment Web Locks와 무관하게 실행됨. 공유 기록 삭제 후 다른 탭에 낡은 복구키가 남아 초기화된 데모에 새로 반영될 수 있음.
+- 변경: 원자재 입고→완제품 출고 잠금 순서로 두 잠금을 잡고 shared/tab 미확인 의도 검사, 두 락을 쥔 채 reset IDB 트랜잭션 완료. `localStorage` reset epoch는 DB 변경 전 저장. 입력 폼 epoch mismatch는 POST 거절.
+- 회귀 목표: Node unit, Chrome fixture/IndexedDB 2탭/실 MySQL E2E·build. 배포 SHA·공개 Chrome은 별도로 증거 남길 것. 실행 전 통과 수치 미기재.
+- [TASK-024](../tasks/TASK-024-데모초기화-경합.md) · [보고서](task-reports/TASK-024-데모초기화-경합-검수.md) · [ADR-015](adr/ADR-015-데모초기화-WebLocks-세대값.md).

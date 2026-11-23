@@ -13,6 +13,7 @@ const ui = useUiStore()
 const auth = useAuthStore()
 const sidebarOpen = ref(true)
 const reloadKey = ref(0)
+const resettingDemo = ref(false)
 const navGroups = [
   { title: '운영', entries: [{ path: '/', title: '운영 개요', icon: LayoutDashboard }] },
   { title: '기준 · 재고', entries: [{ path: '/items', title: '품목 · BOM', icon: Boxes }, { path: '/inventory', title: '재고 · 입고', icon: Warehouse }] },
@@ -24,13 +25,17 @@ const title = computed(() => route.meta.title ?? '운영 개요')
 const subtitle = computed(() => route.meta.subtitle ?? '')
 function refresh() { reloadKey.value += 1 }
 async function resetDemo() {
+  if (!isDemoMode || resettingDemo.value) return
   if (!window.confirm('이 브라우저의 체험용 품목·LOT·생산지시·출고 기록을 샘플 초기 상태로 되돌릴까요?')) return
+  resettingDemo.value = true
   try {
     await resetDemoData()
     reloadKey.value += 1
     ui.notify('이 브라우저의 데모 데이터를 초기화했습니다.')
   } catch (error) {
     ui.notify(error.message || '데모 데이터를 초기화하지 못했습니다.', 'error')
+  } finally {
+    resettingDemo.value = false
   }
 }
 async function signOut() {
@@ -66,7 +71,7 @@ async function signOut() {
       <main class="page-content">
         <div v-if="isDemoMode" class="demo-banner" role="note">
           <div><strong>브라우저 체험 모드</strong><span>샘플 데이터는 이 브라우저의 IndexedDB에만 저장됩니다. 실제 서버 인증·MySQL 트랜잭션·다중 사용자 동기화는 수행하지 않습니다.</span><small class="demo-hint">체험 순서: 품목·BOM 확인 → 재고·입고 → 생산지시 WO-DEMO-READY → 자재 예약 → 생산 시작 → 품질검사 → 출고</small></div>
-          <button type="button" class="btn btn-outline" @click="resetDemo"><RotateCcw :size="15" /> 샘플 초기화</button>
+          <button type="button" class="btn btn-outline" :disabled="resettingDemo" @click="resetDemo"><RotateCcw :size="15" /> {{ resettingDemo ? '초기화 중…' : '샘플 초기화' }}</button>
         </div>
         <div class="page-heading"><div><div class="eyebrow">제조 운영 업무</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div><div class="heading-aside"><span class="outline-pill"><span class="pulse-dot"></span>{{ isDemoMode ? '로컬 시뮬레이션 데이터' : '실제 API 데이터' }}</span></div></div>
         <RouterView :key="`${route.fullPath}-${reloadKey}`" />

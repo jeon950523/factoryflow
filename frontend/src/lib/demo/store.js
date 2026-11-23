@@ -1,4 +1,5 @@
 import { createSeedState, executeDemo, DemoError } from './engine.js'
+import { withDemoResetGuard } from '../pendingWrite.js'
 
 const DB_NAME = 'factoryflow-browser-demo'
 const STORE_NAME = 'snapshot'
@@ -70,12 +71,16 @@ export async function requestDemo(path, { method = 'GET', body, signal } = {}) {
 
 /** Explicit user action only; never reset data on page reload or login. */
 export async function resetDemoData() {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put({ key: KEY, value: createSeedState() })
-    tx.oncomplete = resolve
-    tx.onabort = () => reject(tx.error ?? new Error('브라우저 데모 초기화에 실패했습니다.'))
-    tx.onerror = () => { /* onabort supplies the final rejection */ }
+  // Keep both receipt/shipment Web Locks for the whole IndexedDB reset.
+  // A previously issued command cannot be replayed into a new demo generation.
+  return withDemoResetGuard(async () => {
+    const db = await openDatabase()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite')
+      tx.objectStore(STORE_NAME).put({ key: KEY, value: createSeedState() })
+      tx.oncomplete = resolve
+      tx.onabort = () => reject(tx.error ?? new Error('브라우저 데모 초기화에 실패했습니다.'))
+      tx.onerror = () => { /* onabort supplies the final rejection */ }
+    })
   })
 }
