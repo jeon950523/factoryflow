@@ -1,6 +1,6 @@
 # FactoryFlow — 진행 로드맵 및 TASK 상태
 
-> 기준일: 2026-11-23 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
+> 기준일: 2026-11-24 · 실제 정본: [GitHub main](https://github.com/jeon950523/factoryflow) 및 TASK별 CI/PR 보고서
 > 이 문서는 기존 TASK-011~013 기록을 보존한 뒤 TASK-014 이후 상태를 추가했다. TASK-001~010의 과거 상세 근거는 [README](../README.md), [task-reports](task-reports/) 및 [SSOT](FACTORYFLOW_SSOT_v0.1.md) 참조.
 > 주의: Vercel 공개 브라우저는 IndexedDB 데모이며 Spring Boot + MySQL 운영 서버 배포가 아니다.
 
@@ -113,9 +113,9 @@
 - [지시서](../tasks/TASK-023-입출고-다중탭-복구.md) · [검수 보고서](task-reports/TASK-023-다중탭-입출고-복구-검수.md) · [ADR-014](adr/ADR-014-다중탭-쓰기의도-WebLocks.md).
 
 
-## TASK-024 — 데모 초기화·미확인 입출고 경합 차단 · 검증 대기
+## TASK-024 — 데모 초기화·미확인 입출고 경합 차단 · 기능 검증 완료, 공개 QA 대기
 
 - 사전 검수: `resetDemoData`가 `pendingWrite.js`의 receipt/shipment Web Locks와 무관하게 실행됨. 공유 기록 삭제 후 다른 탭에 낡은 복구키가 남아 초기화된 데모에 새로 반영될 수 있음.
 - 변경: 원자재 입고→완제품 출고 잠금 순서로 두 잠금을 잡고 shared/tab 미확인 의도 검사, 두 락을 쥔 채 reset IDB 트랜잭션 완료. `localStorage` reset epoch는 DB 변경 전 저장. 입력 폼 epoch mismatch는 POST 거절.
-- 회귀 목표: Node unit, Chrome fixture/IndexedDB 2탭/실 MySQL E2E·build. 배포 SHA·공개 Chrome은 별도로 증거 남길 것. 실행 전 통과 수치 미기재.
+- **기능 회귀 성공:** [PR #37](https://github.com/jeon950523/factoryflow/pull/37) → main `fe0eacb`, [PR Frontend #45240068073](https://github.com/jeon950523/factoryflow/actions/runs/45240068073) 49/27/33 + [PR 실DB #45240067965](https://github.com/jeon950523/factoryflow/actions/runs/45240067965) 3, [main Frontend #45240451984](https://github.com/jeon950523/factoryflow/actions/runs/45240451984) 49/27/33 + [main 실DB #45240452073](https://github.com/jeon950523/factoryflow/actions/runs/45240452073) 3 통과. Vercel production `fe0eacb` SUCCESS. 공개 사이트 Chrome 9건(기존8 + 신규 TASK-024 1)은 검증 결과 대기.
 - [TASK-024](../tasks/TASK-024-데모초기화-경합.md) · [보고서](task-reports/TASK-024-데모초기화-경합-검수.md) · [ADR-015](adr/ADR-015-데모초기화-WebLocks-세대값.md).
