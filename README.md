@@ -1,6 +1,8 @@
 # FactoryFlow
 
-> **현재 검증 기준(2026-11-23):** [TASK-023 PR #35](https://github.com/jeon950523/factoryflow/pull/35) 기능 병합 `main b43beca` — [Frontend CI #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176) Node 46/46·Chrome fixture 27/27·IndexedDB 30/30, [실DB #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) E2E 3/3, Vercel production SUCCESS 및 [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) (운영 배포 이후 run attempt 6) 성공. **Vercel 공개 사이트는 IndexedDB 데모이며 Java/MySQL 운영 서버가 아니다.**
+> **현재 기능 기준(2026-11-24):** TASK-024 / `main fe0eacb` / Frontend Node49/Chrome27/IndexedDB33·실 MySQL3 / Vercel production SUCCESS. **실제 공개 Chrome 9/9 성공** ([QA #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567)). 공개 사이트는 IndexedDB 데모이며 운영 MySQL은 아님.
+
+> **이전 TASK-023 검증 기준(2026-11-23):** [TASK-023 PR #35](https://github.com/jeon950523/factoryflow/pull/35) 기능 병합 `main b43beca` — [Frontend CI #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176) Node 46/46·Chrome fixture 27/27·IndexedDB 30/30, [실DB #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) E2E 3/3, Vercel production SUCCESS 및 [공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) (운영 배포 이후 run attempt 6) 성공. **Vercel 공개 사이트는 IndexedDB 데모이며 Java/MySQL 운영 서버가 아니다.**
 
 > **직전 TASK-021 이력(2026-11-17):** 최신 앱/공개 QA 기준은 [TASK-021 PR #30](https://github.com/jeon950523/factoryflow/pull/30)·[PR #31](https://github.com/jeon950523/factoryflow/pull/31) 병합 `main a91c0cae`. Vercel 신규 production **SUCCESS**로 [기존 TS-010 요청 제한](docs/TROUBLESHOOTING.md) 해결. [실제 공개 Chrome 8/8](https://github.com/jeon950523/factoryflow/actions/runs/43958402614) — 기존 업무 동선6 + 입고·출고 pending 재시도2; 운영 배포 이후 재실행도 8/8 통과. [병합 main Frontend 42/21/30](https://github.com/jeon950523/factoryflow/actions/runs/43958811806) 및 [실 MySQL E2E 3/3](https://github.com/jeon950523/factoryflow/actions/runs/43958811687) 통과. 공개 `https://factoryflow.kro.kr`는 **브라우저별 IndexedDB 시뮬레이터**이며 Java/MySQL 공개 운영 서버가 아니다. 아래 이전 TASK·배포 실패 기록은 당시의 이력이다.
 
@@ -330,9 +332,9 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - 남은 위험: 브라우저 데모 초기화와 다른 탭의 미확인 요청 간 경합, 웹 저장소가 삭제된 경우의 복구, Windows 실사용성은 다음 TASK에서 별도 검증한다.
 
 
-## TASK-024 — 데모 초기화와 다중 탭 미확인 입출고 충돌 보호 (검증 대기)
+## TASK-024 — 데모 초기화와 다중 탭 미확인 입출고 충돌 보호 (기능·공개 Chrome 검증 완료)
 
 - 코드 검수: 기존 `resetDemoData()`는 입고·출고의 공유 미확인 요청을 확인하지 않고 IndexedDB 초기화 가능. 다른 탭이 결과를 확정한 뒤 본 탭의 낡은 sessionStorage 키가 재전송되는 경계도 발견.
 - 구현 방향: receipt→shipment **Web Locks를 순서대로 획득**하고, shared/tab 미확인 기록이 있으면 초기화를 거부. reset epoch를 IDB commit **전에** 저장·검증하고 초기화 전 생성된 요청은 전송 거절. 초기화 버튼 중복 클릭 방지.
 - [작업지시서](tasks/TASK-024-데모초기화-경합.md) · [시니어 보고서](docs/task-reports/TASK-024-데모초기화-경합-검수.md) · [ADR-015](docs/adr/ADR-015-데모초기화-WebLocks-세대값.md).
-- **상태:** 기능 코드·테스트 작성, PR/실DB/공개 배포 미검증. 이전 TASK-023의 성공은 이 변경에 대한 증거가 아니다.
+- **기능 검증:** [PR #37](https://github.com/jeon950523/factoryflow/pull/37) 병합 앱 코드 `fe0eacb`. PR [Frontend #45240068073](https://github.com/jeon950523/factoryflow/actions/runs/45240068073) Node49/Chrome27/IndexedDB33, [실DB #45240067965](https://github.com/jeon950523/factoryflow/actions/runs/45240067965) 3/3, 병합 [main Frontend #45240451984](https://github.com/jeon950523/factoryflow/actions/runs/45240451984) 49/27/33, [main 실DB #45240452073](https://github.com/jeon950523/factoryflow/actions/runs/45240452073) 3/3 통과. Vercel `fe0eacb` production SUCCESS. 기존 공개 8건과 신규 초기화 1건을 합쳐 [공개 Chrome #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567) **9/9 성공**. 실제 운영 도메인에서 2탭 미확인 요청의 reset 거절·해소 후 reset·구세대 키 불복원·신규 입고 정상 처리 검증.

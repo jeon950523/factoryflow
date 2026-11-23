@@ -1,6 +1,6 @@
 # TASK-024 — 데모 초기화와 다중 탭 미확인 입출고 충돌 보호
 
-> 착수 2026-11-24 · 기준 main `41eac9d5e71e2d266d32cf1e344446bf388f53b1` · 상태 **구현안 작성/CI 실행 대기**
+> 착수 2026-11-24 · 기준 main `41eac9d5e71e2d266d32cf1e344446bf388f53b1` · 상태 **PR/main 기능 CI·실DB·Vercel 성공, 공개 Chrome 신규 포함 9/9 성공**
 
 ## 1. 사전 검수로 확인한 위험
 - `frontend/src/lib/demo/store.js#resetDemoData`는 현재 `IndexedDB` 스냅샷을 바로 샘플 상태로 교체한다. TASK-023에서 추가한 브라우저 공유 `localStorage`의 미확인 물리 재고 요청은 검사하지 않는다.
@@ -34,3 +34,11 @@
 
 ## 7. 후속
 실제 브라우저 프로세스 종료·스토리지 삭제·구버전 탭 혼용은 후속 운영 정책으로 검토하며, 이번 작업에서 완전한 분산 트랜잭션을 구현했다고 주장하지 않는다.
+
+## 8. 실제 CI/운영 검증 결과 (2026-11-24)
+
+- [기능 PR #37](https://github.com/jeon950523/factoryflow/pull/37) HEAD `7de69578595d039cf98224478e9f29fb2ce5640e` → main `fe0eacbd756e3ea05c62cd45d72723e96e8ccbbd`.
+- [PR Frontend #45240068073](https://github.com/jeon950523/factoryflow/actions/runs/45240068073) 및 [main Frontend #45240451984](https://github.com/jeon950523/factoryflow/actions/runs/45240451984): Node **49/49**, Chrome fixture **27/27**, IndexedDB Chrome **33/33** (TASK-024 신규 2탭 3건 포함), Vite build 성공.
+- [PR 실제 MySQL #45240067965](https://github.com/jeon950523/factoryflow/actions/runs/45240067965) 및 [main MySQL #45240452073](https://github.com/jeon950523/factoryflow/actions/runs/45240452073): Spring Boot·Java21·MySQL8.4·Chrome **3/3** 성공. 서버 코드 미수정 회귀검증.
+- Vercel main `fe0eacb` production SUCCESS. 공개 도메인 신규 1건 포함 [Chrome #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567) **9/9 통과**, 실 배포된 IndexedDB 데모의 reset 거절/복구 확인.
+- 실제 Windows DPI/키보드, 프로세스 강제 종료, 구버전 JS 탭 혼용은 미검증.

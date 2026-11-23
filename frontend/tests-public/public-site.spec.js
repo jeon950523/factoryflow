@@ -238,3 +238,57 @@ test('TASK-020 deployed shipment retry restores pending request and never double
   expect(apiCalls).toEqual([])
   expect(errors).toEqual([])
 })
+
+
+test('TASK-024 public demo protects unresolved receipt from another-tab reset and invalidates its old key', async ({ page, context }) => {
+  const errors = scriptErrors(page)
+  const otherTab = await context.newPage()
+  const otherErrors = scriptErrors(otherTab)
+  const sharedKey = 'factoryflow:shared-pending-raw-receipt:v1'
+  const tabKey = 'factoryflow:pending-raw-receipt:v1'
+  const payload = { requestKey: 'REC-PUBLIC-RESET-024', itemId: 1, lotCode: 'LOT-PUBLIC-PENDING', quantity: 3 }
+  try {
+    await page.goto('/inventory')
+    await expect(page.getByText('브라우저 체험 모드')).toBeVisible()
+    await otherTab.goto('/orders')
+    await page.evaluate(({ sharedKey, tabKey, payload }) => {
+      localStorage.setItem(sharedKey, JSON.stringify({ owner: 'demo', payload }))
+      sessionStorage.setItem(tabKey, JSON.stringify(payload))
+    }, { sharedKey, tabKey, payload })
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('dialog', { name: '원자재 입고' })).toBeVisible()
+
+    otherTab.once('dialog', dialog => dialog.accept())
+    await otherTab.getByRole('button', { name: '샘플 초기화' }).click()
+    await expect(otherTab.locator('.toast')).toContainText('미확인 입고·출고 요청')
+    expect(await otherTab.evaluate(() => localStorage.getItem('factoryflow:demo-reset-epoch:v1'))).toBeNull()
+    await otherTab.goto('/inventory?itemType=RAW_MATERIAL&itemId=1')
+    await expect(otherTab.locator('.erp-lot-summary')).toContainText('현재고 40 EA')
+
+    // Simulate the original command being resolved and its shared marker removed.
+    await page.evaluate(key => localStorage.removeItem(key), sharedKey)
+    otherTab.once('dialog', dialog => dialog.accept())
+    await otherTab.getByRole('button', { name: '샘플 초기화' }).click()
+    await expect(otherTab.locator('.toast')).toContainText('데모 데이터를 초기화했습니다.')
+    expect(await otherTab.evaluate(() => localStorage.getItem('factoryflow:demo-reset-epoch:v1'))).toBeTruthy()
+
+    // The legacy tab-local request is now from an older generation.
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('dialog', { name: '원자재 입고' })).toHaveCount(0)
+    await page.getByRole('button', { name: '원자재 입고', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '원자재 입고' })
+    await dialog.locator('.item-search-toggle').click()
+    await dialog.locator('.item-search-option').filter({ hasText: 'RAW-PLATE-001' }).click()
+    await dialog.locator('input[placeholder^="LOT-"]').fill('LOT-PUBLIC-FRESH-024')
+    await dialog.getByRole('spinbutton', { name: '입고 수량 (EA)' }).fill('2')
+    await dialog.locator('button[type=submit]').click()
+    await expect(dialog).toHaveCount(0)
+    await page.goto('/inventory?itemType=RAW_MATERIAL&itemId=1')
+    await expect(page.locator('.erp-lot-summary')).toContainText('현재고 42 EA')
+    await page.screenshot({ path: 'public-qa/task-024-demo-reset-guard.png', fullPage: true })
+  } finally {
+    await otherTab.close()
+  }
+  expect(errors).toEqual([])
+  expect(otherErrors).toEqual([])
+})
