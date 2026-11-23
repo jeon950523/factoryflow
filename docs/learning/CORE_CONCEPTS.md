@@ -264,3 +264,12 @@
 - `navigator.locks.request`는 같은 브라우저 출처 범위의 협조적 잠금이며 서버 분산 락이나 DB 잠금 대체가 아니다. `storage` 이벤트는 화면 갱신 힌트일 뿐 데이터 정합성 계약이 아님.
 - 동일 owner의 원본 키와 payload만 복구/재전송. 다른 owner는 브라우저 화면에서 내용 숨김·요청 차단하지만, localStorage 자체는 인증 격리용 보안 저장소가 아니다. 서버 세션/권한은 여전히 필수.
 - 탭 종료 후 공유 기록이 남을 수 있지만 프로필 초기화·시크릿 삭제·다른 브라우저/디바이스에서는 복구하지 못한다. 정책상 자동 폐기는 금지하고 별도 서버 조회/운영자 확인 절차가 필요하다.
+
+
+## TASK-024 · 두 저장소 사이 reset 경합, Web Locks와 세대 식별값
+
+- IndexedDB 단일 `readwrite` 트랜잭션은 업무 상태 스냅샷의 원자성을 보장하지만, 별도 `localStorage`에 보관한 미확인 HTTP 쓰기 요청의 존부까지 묶지 않는다.
+- receipt→shipment Web Locks를 순서대로 잡고 공유/탭 intent가 모두 없는 경우만 IDB reset으로 진입. **둘 다 잠금 중인 상태로 IDB commit/abort까지 대기**해 동시에 신규 intent가 등록되지 못하도록 한다. 레거시 탭/다른 origin·기기는 이 잠금을 준수하지 않을 수 있다.
+- reset generation은 `localStorage`에 **IDB 변경보다 먼저** 기록한다. 화면의 입력 폼은 생성 당시 세대값을 기억하고, 요청 claim Web Lock 내부에서 현재 세대와 비교한다. reset 전에 열려있던 폼은 POST하지 않는다.
+- 다른 탭이 공유 key를 삭제한 후에도 원래 탭 세션 키는 남을 수 있다. 세대 기록이 다른 sessionStorage 미확인 키는 새로 초기화된 데모로 재사용하지 않는다. 이 보장은 Web Locks/Storage를 사용하는 같은 origin 브라우저 협조 탭에 한정된다.
+- 서로 다른 저장소 사이에는 **ACID/2PC가 없다**. reset epoch만 변경됐으나 IDB reset이 실패할 수 있으며 이 경우 기존 키가 보수적으로 무효화될 수 있다. 장애 시 재고를 중복 변경하는 것보다 재시도를 중단하고 재확인하도록 선택.

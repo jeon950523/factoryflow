@@ -4,7 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Truck, Plus, RefreshCw, X, PackageCheck, ArrowRight } from 'lucide-vue-next'
 import './shipments-workbench.css'
 import { ApiError, get, post } from '../lib/api.js'
-import { readPendingWrite, readSharedPendingWrite, claimPendingWrite, releasePendingWrite, observeSharedPendingWrite, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
+import { readPendingWrite, readSharedPendingWrite, claimPendingWrite, releasePendingWrite, observeSharedPendingWrite, demoResetEpoch, isUncertainWriteError, isConfirmedWriteRejection } from '../lib/pendingWrite.js'
 import { useAuthStore } from '../stores/auth.js'
 import { createLatestRequest, isAbortError } from '../lib/latestRequest.js'
 import { lookupItemNames, itemNameOrId } from '../lib/itemNames.js'
@@ -27,6 +27,7 @@ const pendingShipment = ref(readPendingWrite('shipment', auth.user?.username))
 const loading = ref(false), error = ref(''), drawer = ref(Boolean(pendingShipment.value)), saving = ref(false)
 const pendingPersisted = ref(true)
 const otherTabConflict = ref(false)
+const shipmentEpoch = ref(demoResetEpoch())
 let stopObservingPending = () => {}
 const itemNames = ref({}), selected = ref(null), detailLoading = ref(false), detailError = ref('')
 const detailSection = ref(null), requestedId = ref(null)
@@ -106,6 +107,7 @@ function refreshOtherTabPending() {
 }
 
 function openCreate() {
+  shipmentEpoch.value = demoResetEpoch()
   pendingShipment.value = readPendingWrite('shipment', auth.user?.username)
   otherTabConflict.value = false
   shipment.value = pendingShipment.value ? { ...pendingShipment.value } : {
@@ -128,7 +130,7 @@ async function submit() {
   let created
   saving.value = true
   // Persist before POST; an interrupted response must preserve the original key.
-  const claimed = await claimPendingWrite('shipment', payload, auth.user?.username)
+  const claimed = await claimPendingWrite('shipment', payload, auth.user?.username, shipmentEpoch.value)
   if (!claimed.ok) {
     saving.value = false
     otherTabConflict.value = claimed.reason === 'OTHER_PENDING'
@@ -139,7 +141,9 @@ async function submit() {
     }
     ui.notify(claimed.reason === 'OTHER_PENDING'
       ? '다른 탭에 미확인 출고 요청이 있습니다. 새 요청을 전송하지 않고 원래 요청을 확인하세요.'
-      : '출고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소·브라우저 잠금 지원을 확인하세요.', 'error')
+      : claimed.reason === 'RESET_CHANGED'
+        ? '다른 탭에서 데모 데이터가 초기화되어 이전 출고 요청을 전송하지 않았습니다. 화면을 다시 열어 새 요청으로 진행하세요.'
+        : '출고 요청을 브라우저에 안전하게 저장하지 못해 전송하지 않았습니다. 저장소·브라우저 잠금 지원을 확인하세요.', 'error')
     return
   }
   otherTabConflict.value = false
