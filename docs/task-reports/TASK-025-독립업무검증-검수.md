@@ -9,3 +9,10 @@
 - 한계: API 관측 기반으로 물리 DB 직접 대사와 완전한 권한 매트릭스, 강제 장애 및 앱 mutation은 후속 과제. 합성 oracle 결함 주입은 앱 mutation 점수가 아니다. 같은 개발 주체가 작성한 검증이라 독립 리뷰를 대체하지 않는다.
 - 기존 Java/Vue/DB 변경 없음. 별도 workflow는 모든 PR에서 실행되므로 CI 비용이 늘 수 있다. 현재 main 보호 미설정으로 필수 체크 강제는 별도 설정이 필요하다.
 - 상태: 코드 정적 검토 후 PR CI 실행 대기. 테스트 성공/병합은 미확정.
+
+## 첫 CI 실패 및 수정 (2026-11-26 KST)
+
+- [최초 독립 CI #45646312795](https://github.com/jeon950523/factoryflow/actions/runs/45646312795): Spring Boot/MySQL 기동과 oracle 음성 대조군 성공. 실제 HTTP 테스트는 FIFO 위치(`live.test.mjs:125`)에서 `TypeError: Cannot read properties of undefined (reading 'reserved')`로 중단.
+- 원인: `CanonicalReceipt`가 LOT 코드 및 요청 키를 대문자로 정규화하는데 테스트는 요청 원문으로 LOT를 검색했다. 애플리케이션 결함으로 판정하지 않는다.
+- 수정: 입고 응답의 `inventoryLotId`를 이용해 원래 LOT를 조회하고 존재 여부, 정규화 계약, 재전송 시 동일 LOT를 명시적으로 검증한다. FIFO 기대 예약 수량은 그대로 유지한다. 서버/DB/기존 테스트는 수정하지 않는다.
+- 최초 실패 이후의 생산·QC·출고는 당시 실행되지 않았다. 수정 커밋 전체 CI 성공 전 완료 판정 금지.

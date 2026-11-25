@@ -93,12 +93,19 @@ test('SSOT black-box: independent inventory, rollback, FIFO, competition, QC and
     { rawItemId: a.id, qtyPerUnit: 2 }, { rawItemId: b.id, qtyPerUnit: 3 },
   ] })
   const receipt = (id, quantity) => ({ requestKey: key('REC'), itemId: id, lotCode: key('LOT'), quantity })
-  const first = receipt(a.id, 5)
+  const first = { ...receipt(a.id, 5), lotCode: key('lot') }
   const csrf = await c.token()
   const race = (path, payloads) => Promise.all(payloads.map(body => c.call(path, { method: 'POST', body, csrf })))
   const same = await race('/stock-receipts', [first, first])
   assert.deepEqual(same.map(x => x.status).sort(), [200, 201], 'same-key concurrent receipt')
   assert.equal(same[0].payload.data.id, same[1].payload.data.id)
+  const firstLotId = same[0].payload.data.inventoryLotId
+  assert.ok(Number.isSafeInteger(firstLotId) && firstLotId > 0, 'receipt must identify its LOT')
+  for (const { payload: { data } } of same) {
+    assert.equal(data.inventoryLotId, firstLotId, 'replay must identify original LOT')
+    assert.equal(data.lotCode, first.lotCode.toUpperCase(), 'receipt LOT code must be normalized')
+    assert.equal(data.requestKey, first.requestKey.toUpperCase(), 'receipt key must be normalized')
+  }
   await c.post('/stock-receipts', { ...first, quantity: 6 }, 409)
   await c.post('/stock-receipts', receipt(a.id, 7))
   await c.post('/stock-receipts', receipt(b.id, 5))
@@ -122,7 +129,10 @@ test('SSOT black-box: independent inventory, rollback, FIFO, competition, QC and
   await status(c, winner.id, 'RESERVED')
   await status(c, loser.id, 'DRAFT')
   const reserved = await expectStock(c, a.id, qty(12, 8))
-  assert.equal(reserved.lots.find(l => l.lotCode === first.lotCode).reserved, 5, 'oldest LOT consumed first')
+  const firstLot = reserved.lots.find(l => l.id === firstLotId)
+  assert.ok(firstLot, 'original receipt LOT must exist')
+  assert.equal(firstLot.lotCode, first.lotCode.toUpperCase(), 'stored LOT code must be normalized')
+  assert.equal(firstLot.reserved, 5, 'oldest LOT must be reserved first')
   assert.deepEqual(reserved.lots.map(l => l.reserved).sort((x, y) => x - y), [3, 5])
   await expectStock(c, b.id, qty(12, 12))
   await command(c, winner.id, 'cancel')

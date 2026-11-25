@@ -108,3 +108,11 @@
 - **재현 지점:** `frontend/tests/write-preflight.spec.js`가 '동일 요청 재시도' 클릭 반환 직후 `expect(secondPosts).toBe(1)`을 동기 실행. 요청은 Web Locks 획득→sessionStorage 검증→CSRF→HTTP POST로 비동기 진행되므로 클릭 완료가 서버 호출 완료를 뜻하지 않는다. 종료 중 추가로 관찰된 Vite proxy `ECONNREFUSED`는 실패 후 요청 비동기 정리와 겹친 기록이며 이를 별도 운영 장애로 단정하지 않는다.
 - **수정:** `await expect(recovered).toHaveCount(0)`으로 실제 제출/응답 종료를 대기하고 `expect.poll`로 POST 횟수 및 shared 저장소 해제를 검사한다. 두 탭의 서로 다른 미확인 key가 존재할 때 타 탭의 변경 알림이 기존 탭 로컬 기록을 덮어쓰지 않도록 추가 보호.
 - **최종 검증/해결:** [수정 PR Frontend #45052883984](https://github.com/jeon950523/factoryflow/actions/runs/45052883984) Node 46/46·Chrome fixture 27/27(실패했던 2건 포함)·IndexedDB 30/30 성공. [병합 main Frontend #45053092176](https://github.com/jeon950523/factoryflow/actions/runs/45053092176)도 동일 46/27/30 성공, [main 실DB #45053092151](https://github.com/jeon950523/factoryflow/actions/runs/45053092151) E2E 3/3 성공. 최초 실패는 보존하고 수정 후의 성공만 완료로 판정한다.
+
+## TS-012 · 독립 검증 FIFO LOT 식별 오류 (TASK-025)
+
+
+- [최초 독립 CI #45646312795](https://github.com/jeon950523/factoryflow/actions/runs/45646312795): Spring Boot/MySQL 기동과 oracle 음성 대조군 성공. 실제 HTTP 테스트는 FIFO 위치(`live.test.mjs:125`)에서 `TypeError: Cannot read properties of undefined (reading 'reserved')`로 중단.
+- 원인: `CanonicalReceipt`가 LOT 코드 및 요청 키를 대문자로 정규화하는데 테스트는 요청 원문으로 LOT를 검색했다. 애플리케이션 결함으로 판정하지 않는다.
+- 수정: 입고 응답의 `inventoryLotId`를 이용해 원래 LOT를 조회하고 존재 여부, 정규화 계약, 재전송 시 동일 LOT를 명시적으로 검증한다. FIFO 기대 예약 수량은 그대로 유지한다. 서버/DB/기존 테스트는 수정하지 않는다.
+- 최초 실패 이후의 생산·QC·출고는 당시 실행되지 않았다. 수정 커밋 전체 CI 성공 전 완료 판정 금지.
