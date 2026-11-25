@@ -119,3 +119,7 @@
 - 변경: 원자재 입고→완제품 출고 잠금 순서로 두 잠금을 잡고 shared/tab 미확인 의도 검사, 두 락을 쥔 채 reset IDB 트랜잭션 완료. `localStorage` reset epoch는 DB 변경 전 저장. 입력 폼 epoch mismatch는 POST 거절.
 - **기능 회귀 성공:** [PR #37](https://github.com/jeon950523/factoryflow/pull/37) → main `fe0eacb`, [PR Frontend #45240068073](https://github.com/jeon950523/factoryflow/actions/runs/45240068073) 49/27/33 + [PR 실DB #45240067965](https://github.com/jeon950523/factoryflow/actions/runs/45240067965) 3, [main Frontend #45240451984](https://github.com/jeon950523/factoryflow/actions/runs/45240451984) 49/27/33 + [main 실DB #45240452073](https://github.com/jeon950523/factoryflow/actions/runs/45240452073) 3 통과. Vercel production `fe0eacb` SUCCESS. 공개 사이트 Chrome 9건(기존8 + 신규 TASK-024 1)은 [공개 QA #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567)에서 **9/9 통과**. 기존 8건과 신규 실 배포 다중 탭 리셋 거절/복구 1건을 구분해 기록.
 - [TASK-024](../tasks/TASK-024-데모초기화-경합.md) · [보고서](task-reports/TASK-024-데모초기화-경합-검수.md) · [ADR-015](adr/ADR-015-데모초기화-WebLocks-세대값.md).
+
+## TASK-025 — 독립 업무 검증 모듈 (PR 검증 대기)
+
+- SSOT 불변조건을 기준으로 별도 Node HTTP 검증과 oracle 음성 대조군을 추가한다. 실제 Spring Boot/MySQL 전용 CI로 실행하며 기존 테스트는 유지한다. 앱 mutation/필수 병합 체크는 아직 미확정. [TASK-025](https://github.com/jeon950523/factoryflow/blob/feature/task-025-independent-verification/tasks/TASK-025-독립업무검증.md) 및 ADR-016/검수 보고서 참조.

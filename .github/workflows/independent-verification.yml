@@ -1,0 +1,94 @@
+name: FactoryFlow Independent Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: independent-verification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  business-invariants:
+    # All ports are runner-local; never publish this unauthenticated application externally.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: factoryflow
+          MYSQL_USER: factoryflow_ci
+          MYSQL_PASSWORD: test_password_only
+          MYSQL_ROOT_PASSWORD: test_root_only
+          TZ: UTC
+        ports:
+          - 23307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -ptest_root_only"
+          --health-interval=5s
+          --health-timeout=4s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build backend application
+        working-directory: backend
+        run: ./gradlew --no-daemon bootJar -x test
+      - name: Start real Spring Boot with CI MySQL
+        env:
+          DB_URL: jdbc:mysql://127.0.0.1:23307/factoryflow?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+          DB_USERNAME: factoryflow_ci
+          DB_PASSWORD: test_password_only
+          SPRING_PROFILES_ACTIVE: local
+          FACTORYFLOW_ADMIN_USERNAME: ciadmin
+          FACTORYFLOW_ADMIN_PASSWORD: ci-test-strong-password-only
+        run: |
+          jar_path="$(find backend/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' -print -quit)"
+          if [ -z "$jar_path" ]; then
+            find backend/build/libs -maxdepth 1 -type f -print
+            echo 'Spring Boot executable JAR missing'
+            exit 1
+          fi
+          echo "Starting $jar_path"
+          nohup java -jar "$jar_path" > /tmp/factoryflow-server.log 2>&1 &
+          echo $! > /tmp/factoryflow-server.pid
+          for n in $(seq 1 90); do
+            if curl --silent --fail http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
+              echo 'Spring Boot + Flyway + MySQL started'
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/factoryflow-server.pid)" 2>/dev/null; then
+              tail -n 120 /tmp/factoryflow-server.log
+              exit 1
+            fi
+            sleep 2
+          done
+          tail -n 150 /tmp/factoryflow-server.log
+          exit 1
+      - name: Verify independent oracle negative controls
+        run: node --test verification/oracle.test.mjs
+      - name: Verify business invariants against real MySQL
+        env:
+          VERIFY_ADMIN_USERNAME: ciadmin
+          VERIFY_ADMIN_PASSWORD: ci-test-strong-password-only
+        run: node --test verification/live.test.mjs
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-verification-failure
+          path: /tmp/factoryflow-server.log
+          retention-days: 7
