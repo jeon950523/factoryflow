@@ -338,3 +338,7 @@ Vue 3 + Vite 프론트엔드에 운영 개요, 품목/BOM, 재고/LOT 입고, �
 - 구현 방향: receipt→shipment **Web Locks를 순서대로 획득**하고, shared/tab 미확인 기록이 있으면 초기화를 거부. reset epoch를 IDB commit **전에** 저장·검증하고 초기화 전 생성된 요청은 전송 거절. 초기화 버튼 중복 클릭 방지.
 - [작업지시서](tasks/TASK-024-데모초기화-경합.md) · [시니어 보고서](docs/task-reports/TASK-024-데모초기화-경합-검수.md) · [ADR-015](docs/adr/ADR-015-데모초기화-WebLocks-세대값.md).
 - **기능 검증:** [PR #37](https://github.com/jeon950523/factoryflow/pull/37) 병합 앱 코드 `fe0eacb`. PR [Frontend #45240068073](https://github.com/jeon950523/factoryflow/actions/runs/45240068073) Node49/Chrome27/IndexedDB33, [실DB #45240067965](https://github.com/jeon950523/factoryflow/actions/runs/45240067965) 3/3, 병합 [main Frontend #45240451984](https://github.com/jeon950523/factoryflow/actions/runs/45240451984) 49/27/33, [main 실DB #45240452073](https://github.com/jeon950523/factoryflow/actions/runs/45240452073) 3/3 통과. Vercel `fe0eacb` production SUCCESS. 기존 공개 8건과 신규 초기화 1건을 합쳐 [공개 Chrome #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567) **9/9 성공**. 실제 운영 도메인에서 2탭 미확인 요청의 reset 거절·해소 후 reset·구세대 키 불복원·신규 입고 정상 처리 검증.
+
+## TASK-025 — 독립 업무 검증 모듈 (PR 검증 대기)
+
+- SSOT 불변조건을 기준으로 별도 Node HTTP 검증과 oracle 음성 대조군을 추가한다. 실제 Spring Boot/MySQL 전용 CI로 실행하며 기존 테스트는 유지한다. 앱 mutation/필수 병합 체크는 아직 미확정. [TASK-025](https://github.com/jeon950523/factoryflow/blob/feature/task-025-independent-verification/tasks/TASK-025-독립업무검증.md) 및 ADR-016/검수 보고서 참조.

@@ -158,3 +158,7 @@ TASK-020 병합 main `8cb86179294ca702b5d0ad3154b3efca46c3052b`:
 - 공개 사이트 신규 TASK-024 Chrome 1건(기존 8건 포함 9건)을 `frontend/tests-public/public-site.spec.js`에 추가하여 [공개 QA #45241375567](https://github.com/jeon950523/factoryflow/actions/runs/45241375567)에서 **9/9 통과**. 공개는 브라우저 IndexedDB 데모, 실 운영 MySQL 아님.
 - **잔여 위험/차기 검토:** 서로 다른 저장소 사이 원자적 2PC 없음(epoch 선기록 후 IDB 실패 시 보수적 키 무효화). 구버전 JS 탭, 저장소 삭제, 브라우저 OS crash, 다른 장치/프로필과 비물리 생산지시 쓰기의 reset 간 경합은 본 보호 범위 밖. 기능적으로 복구 정책 개선은 차기 검토, 효율 측면에선 새 서버/Redis 필요 근거 없음.
 - [작업지시서](../tasks/TASK-024-데모초기화-경합.md) · [시니어 보고서](task-reports/TASK-024-데모초기화-경합-검수.md) · [ADR-015](adr/ADR-015-데모초기화-WebLocks-세대값.md) · [핵심 개념](learning/CORE_CONCEPTS.md).
+
+## TASK-025 — 독립 업무 검증 모듈 (PR 검증 대기)
+
+- SSOT 불변조건을 기준으로 별도 Node HTTP 검증과 oracle 음성 대조군을 추가한다. 실제 Spring Boot/MySQL 전용 CI로 실행하며 기존 테스트는 유지한다. 앱 mutation/필수 병합 체크는 아직 미확정. [TASK-025](https://github.com/jeon950523/factoryflow/blob/feature/task-025-independent-verification/tasks/TASK-025-독립업무검증.md) 및 ADR-016/검수 보고서 참조.

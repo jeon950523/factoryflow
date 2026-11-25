@@ -273,3 +273,7 @@
 - reset generation은 `localStorage`에 **IDB 변경보다 먼저** 기록한다. 화면의 입력 폼은 생성 당시 세대값을 기억하고, 요청 claim Web Lock 내부에서 현재 세대와 비교한다. reset 전에 열려있던 폼은 POST하지 않는다.
 - 다른 탭이 공유 key를 삭제한 후에도 원래 탭 세션 키는 남을 수 있다. 세대 기록이 다른 sessionStorage 미확인 키는 새로 초기화된 데모로 재사용하지 않는다. 이 보장은 Web Locks/Storage를 사용하는 같은 origin 브라우저 협조 탭에 한정된다.
 - 서로 다른 저장소 사이에는 **ACID/2PC가 없다**. reset epoch만 변경됐으나 IDB reset이 실패할 수 있으며 이 경우 기존 키가 보수적으로 무효화될 수 있다. 장애 시 재고를 중복 변경하는 것보다 재시도를 중단하고 재확인하도록 선택.
+
+## TASK-025 — 독립 업무 검증 모듈 (PR 검증 대기)
+
+- SSOT 불변조건을 기준으로 별도 Node HTTP 검증과 oracle 음성 대조군을 추가한다. 실제 Spring Boot/MySQL 전용 CI로 실행하며 기존 테스트는 유지한다. 앱 mutation/필수 병합 체크는 아직 미확정. [TASK-025](https://github.com/jeon950523/factoryflow/blob/feature/task-025-independent-verification/tasks/TASK-025-독립업무검증.md) 및 ADR-016/검수 보고서 참조.
